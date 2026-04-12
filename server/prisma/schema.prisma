@@ -1,0 +1,182 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CUSTOMER
+  MERCHANT
+  ADMIN
+}
+
+model User {
+  id              Int              @id @default(autoincrement())
+  fullName        String
+  email           String           @unique
+  passwordHash    String
+  role            Role
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  customerProfile CustomerProfile?
+  merchantProfile MerchantProfile?
+}
+
+model CustomerProfile {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  bookings Booking[]
+  reviews Review[]
+}
+
+model MerchantProfile {
+  id           Int      @id @default(autoincrement())
+  userId        Int      @unique
+  businessName  String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  facilities Facility[]
+}
+
+model SportType {
+  id         Int        @id @default(autoincrement())
+  name       String     @unique
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  facilities Facility[]
+}
+
+model Facility {
+  id                Int              @id @default(autoincrement())
+  merchantProfileId Int
+  sportTypeId       Int
+  name              String
+  description       String?
+  location          String
+  pricePerSlot      Decimal          @db.Decimal(10, 2)
+  isActive          Boolean          @default(true)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  merchantProfile   MerchantProfile  @relation(fields: [merchantProfileId], references: [id], onDelete: Cascade)
+  sportType         SportType        @relation(fields: [sportTypeId], references: [id])
+  images            FacilityImage[]
+  timeSlots TimeSlot[]
+  bookings Booking[]
+  reviews Review[]
+}
+
+model FacilityImage {
+  id         Int       @id @default(autoincrement())
+  facilityId Int
+  imageUrl   String
+  createdAt  DateTime  @default(now())
+
+  facility   Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+}
+
+model TimeSlot {
+  id         Int       @id @default(autoincrement())
+  facilityId Int
+  slotDate   DateTime
+  startTime  DateTime
+  endTime    DateTime
+  isBooked   Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  facility   Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+
+  @@index([facilityId, slotDate])
+  bookingSlots BookingSlot[]
+}
+
+enum BookingStatus {
+  PENDING_PAYMENT
+  PAYMENT_UPLOADED
+  CONFIRMED
+  REJECTED
+  CANCELLED
+}
+
+model Booking {
+  id             Int            @id @default(autoincrement())
+  customerId     Int
+  facilityId     Int
+  bookingDate    DateTime
+  totalPrice     Decimal        @db.Decimal(10, 2)
+  status         BookingStatus  @default(PENDING_PAYMENT)
+  notes          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  customer       CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  facility       Facility        @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  bookingSlots   BookingSlot[]
+  paymentProof PaymentProof?
+  review Review?
+}
+
+model BookingSlot {
+  id         Int       @id @default(autoincrement())
+  bookingId  Int
+  timeSlotId Int
+  createdAt  DateTime  @default(now())
+
+  booking    Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  timeSlot   TimeSlot  @relation(fields: [timeSlotId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, timeSlotId])
+  
+}
+
+enum PaymentProofStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model PaymentProof {
+  id              Int                @id @default(autoincrement())
+  bookingId       Int                @unique
+  filePath        String
+  originalFileName String?
+  uploadedAt      DateTime           @default(now())
+  status          PaymentProofStatus @default(PENDING)
+  merchantNotes   String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  booking         Booking            @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+enum SentimentLabel {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+}
+
+model Review {
+  id             Int             @id @default(autoincrement())
+  bookingId      Int             @unique
+  customerId     Int
+  facilityId     Int
+  rating         Int
+  comment        String?
+  sentimentLabel SentimentLabel?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  booking        Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  customer       CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  facility       Facility        @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+}
+
