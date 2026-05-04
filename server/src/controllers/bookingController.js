@@ -177,7 +177,137 @@ const getBookingsByCustomer = async (req, res) => {
   }
 };
 
+const getBookingsByMerchant = async (req, res) => {
+  try {
+    const { merchantId } = req.params;
+
+    const merchant = await prisma.merchantProfile.findUnique({
+      where: { id: Number(merchantId) },
+    });
+
+    if (!merchant) {
+      return res.status(404).json({ message: "Merchant not found" });
+    }
+
+    const bookings = await prisma.booking.findMany({
+      where: {
+        facility: {
+          merchantProfileId: Number(merchantId),
+        },
+      },
+      include: {
+        customer: {
+  include: {
+    user: {
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    },
+  },
+},
+        facility: {
+          include: {
+            sportType: true,
+            images: true,
+          },
+        },
+        bookingSlots: {
+          include: {
+            timeSlot: true,
+          },
+        },
+        paymentProof: true,
+        review: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    res.status(200).json({
+      message: "Merchant bookings fetched successfully",
+      bookings,
+    });
+  } catch (error) {
+    console.error("Error fetching merchant bookings:", error);
+    res.status(500).json({
+      message: "Failed to fetch merchant bookings",
+      error: error.message,
+    });
+  }
+};
+
+const uploadPaymentProof = async (req, res) => {
+  try {
+    const { bookingId } = req.body;
+
+    if (!bookingId) {
+      return res.status(400).json({ message: "bookingId is required" });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: "Payment proof file is required" });
+    }
+
+    const booking = await prisma.booking.findUnique({
+      where: { id: Number(bookingId) },
+      include: {
+        paymentProof: true,
+      },
+    });
+
+    if (!booking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    if (booking.status !== "PENDING_PAYMENT") {
+      return res.status(400).json({
+        message: "Payment proof can only be uploaded for bookings pending payment",
+      });
+    }
+
+    if (booking.paymentProof) {
+      return res.status(400).json({
+        message: "Payment proof already uploaded for this booking",
+      });
+    }
+
+    const paymentProof = await prisma.paymentProof.create({
+      data: {
+        bookingId: Number(bookingId),
+        filePath: req.file.path,
+        originalFileName: req.file.originalname,
+      },
+    });
+
+    await prisma.booking.update({
+      where: { id: Number(bookingId) },
+      data: {
+        status: "PAYMENT_UPLOADED",
+      },
+    });
+
+    res.status(201).json({
+      message: "Payment proof uploaded successfully",
+      paymentProof,
+    });
+  } catch (error) {
+    console.error("Error uploading payment proof:", error);
+    res.status(500).json({
+      message: "Failed to upload payment proof",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createBooking,
   getBookingsByCustomer,
+  getBookingsByMerchant,
+  uploadPaymentProof,
 };
