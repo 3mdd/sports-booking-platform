@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import padelImage from "../../assets/images/padel.jpg";
@@ -97,6 +97,12 @@ const availableSlots = [
   "01:30 - 02:00",
 ];
 
+const bookedSlots = [
+  "18:00 - 18:30",
+  "18:30 - 19:00",
+  "20:00 - 20:30",
+];
+
 const durationOptions = [
   { label: "1 Hour", value: "1", slotCount: 2 },
   { label: "1.5 Hours", value: "1.5", slotCount: 3 },
@@ -105,9 +111,27 @@ const durationOptions = [
   { label: "3 Hours", value: "3", slotCount: 6 },
 ];
 
+function buildSlotStartDateTime(selectedDate, slot) {
+  if (!selectedDate) return null;
+
+  const [year, month, day] = selectedDate.split("-").map(Number);
+  const startTime = slot.split(" - ")[0];
+  const [hour, minute] = startTime.split(":").map(Number);
+
+  const date = new Date(year, month - 1, day, hour, minute);
+
+  // 🔥 after midnight → treat as next day
+  if (hour >= 0 && hour < 6) {
+    date.setDate(date.getDate() + 1);
+  }
+
+  return date;
+}
+
 function FacilityDetailsPage() {
   const { id } = useParams();
   const facility = facilityData[id];
+  const navigate = useNavigate();
 
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedDuration, setSelectedDuration] = useState(durationOptions[0]);
@@ -147,7 +171,7 @@ function FacilityDetailsPage() {
 
   if (isSlotDisabled(clickedSlot)) {
     setSlotError(
-      "This slot is no longer available today because same-day bookings must be made at least 2 hours in advance."
+      "The selected booking duration includes unavailable slot(s). Please choose another starting time."
     );
     setSelectedSlots([]);
     return;
@@ -203,21 +227,25 @@ const todayDate = `${currentDate.getFullYear()}-${String(
 
 const currentTimePlusTwoHours = useMemo(() => {
   const now = new Date();
-  now.setHours(now.getHours() + 2);
-
-  const cutoffHour = String(now.getHours()).padStart(2, "0");
-  const cutoffMinute = String(now.getMinutes()).padStart(2, "0");
-
-  return `${cutoffHour}:${cutoffMinute}`;
+  return new Date(now.getTime() + 2 * 60 * 60 * 1000);
 }, []);
 
 const isTodaySelected = selectedDate === todayDate;
 
-const isSlotDisabled = (slot) => {
-  if (!isTodaySelected) return false;
+const isSlotBooked = (slot) => {
+  if (!selectedDate) return false;
 
-  const slotStartTime = slot.split(" - ")[0];
-  return slotStartTime < currentTimePlusTwoHours;
+  return bookedSlots.includes(slot);
+};
+
+const isSlotDisabled = (slot) => {
+  if (isSlotBooked(slot)) return true;
+
+  if (!isTodaySelected || !selectedDate) return false;
+
+  const slotDateTime = buildSlotStartDateTime(selectedDate, slot);
+
+  return slotDateTime < currentTimePlusTwoHours;
 };
 
   if (!facility) {
@@ -242,6 +270,32 @@ const isSlotDisabled = (slot) => {
   const slotCount = selectedSlots.length;
   const durationHours = slotCount * 0.5;
   const totalPrice = facility.pricePerHour * durationHours;
+
+  const handleContinueToBooking = () => {
+  if (!selectedDate) {
+    setSlotError("Please select a booking date before continuing.");
+    return;
+  }
+
+  if (selectedSlots.length === 0) {
+    setSlotError("Please select available connected time slots before continuing.");
+    return;
+  }
+
+  navigate("/booking/confirm", {
+    state: {
+      facilityId: facility.id,
+      facilityName: facility.name,
+      sport: facility.sport,
+      location: facility.location,
+      selectedDate,
+      formattedDate: formattedSelectedDate,
+      durationLabel: selectedDuration.label,
+      selectedSlots: sortedSelectedSlots,
+      totalPrice,
+    },
+  });
+};
 
   return (
     <div className="min-h-screen bg-[#f3f4f6] text-slate-900">
@@ -319,6 +373,19 @@ const isSlotDisabled = (slot) => {
   </p>
 ) : null}
 
+<div className="mt-4 flex flex-wrap gap-3 text-xs font-semibold">
+  <span className="rounded-full bg-emerald-950 px-3 py-1 text-white">
+    Selected
+  </span>
+  <span className="rounded-full bg-gray-100 px-3 py-1 text-slate-500">
+    Unavailable
+  </span>
+  <span className="rounded-full bg-lime-100 px-3 py-1 text-emerald-950">
+    Available
+  </span>
+</div>
+
+
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <div>
                 <label className="mb-2 block text-sm font-semibold text-slate-700">
@@ -360,6 +427,7 @@ const isSlotDisabled = (slot) => {
             <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {availableSlots.map((slot) => {
   const isSelected = selectedSlots.includes(slot);
+  const isBooked = isSlotBooked(slot);
   const disabled = isSlotDisabled(slot);
 
   return (
@@ -376,7 +444,10 @@ const isSlotDisabled = (slot) => {
           : "border-gray-200 bg-gray-50 text-slate-800 hover:border-lime-400 hover:bg-white"
       }`}
     >
-      {slot}
+      <span>{slot}</span>
+{isBooked ? (
+  <span className="mt-1 block text-xs font-semibold">Booked</span>
+) : null}
     </button>
   );
 })}
@@ -456,9 +527,13 @@ const isSlotDisabled = (slot) => {
               </div>
             </div>
 
-            <button className="mt-8 w-full rounded-2xl bg-emerald-950 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-emerald-900">
-              Continue to Booking
-            </button>
+            <button
+  type="button"
+  onClick={handleContinueToBooking}
+  className="mt-8 w-full rounded-2xl bg-emerald-950 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-emerald-900"
+>
+  Continue to Booking
+</button>
           </div>
         </section>
       </main>

@@ -1,0 +1,166 @@
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import Navbar from "../../components/layout/Navbar";
+import Footer from "../../components/layout/Footer";
+
+function BookingConfirmationPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const booking = location.state;
+
+  if (!booking) {
+    return (
+      <div className="min-h-screen bg-[#f3f4f6] text-slate-900">
+        <Navbar />
+
+        <main className="mx-auto max-w-4xl px-6 py-16 text-center lg:px-8">
+          <div className="rounded-[2rem] bg-white p-10 shadow-sm ring-1 ring-gray-200">
+            <h1 className="text-3xl font-black text-emerald-950">
+              No booking details found
+            </h1>
+            <p className="mt-3 text-slate-600">
+              Please select a facility, date, duration, and time slot before
+              continuing.
+            </p>
+
+            <Link
+              to="/facilities"
+              className="mt-8 inline-flex rounded-2xl bg-emerald-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-900"
+            >
+              Back to Facilities
+            </Link>
+          </div>
+        </main>
+
+        <Footer />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f3f4f6] text-slate-900">
+      <Navbar />
+
+      <main className="mx-auto max-w-7xl px-6 py-10 lg:px-8">
+        <section className="mb-10">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">
+            Confirm Booking
+          </p>
+          <h1 className="mt-3 text-4xl font-black tracking-tight text-emerald-950 md:text-5xl">
+            Review your booking details
+          </h1>
+          <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
+            Please check your selected facility, date, duration, time slots, and
+            total price before proceeding to payment proof submission.
+          </p>
+        </section>
+
+        <section className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-gray-200">
+            <h2 className="text-2xl font-black text-emerald-950">
+              Booking Details
+            </h2>
+
+            <div className="mt-8 space-y-5 text-sm">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                <span className="text-slate-500">Facility</span>
+                <span className="font-semibold text-slate-900">
+                  {booking.facilityName}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                <span className="text-slate-500">Sport</span>
+                <span className="font-semibold text-slate-900">
+                  {booking.sport}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                <span className="text-slate-500">Location</span>
+                <span className="font-semibold text-slate-900">
+                  {booking.location}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                <span className="text-slate-500">Booking Date</span>
+                <span className="font-semibold text-slate-900">
+                  {booking.formattedDate}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                <span className="text-slate-500">Duration</span>
+                <span className="font-semibold text-slate-900">
+                  {booking.durationLabel}
+                </span>
+              </div>
+
+              <div className="border-b border-gray-100 pb-4">
+                <p className="text-slate-500">Selected Time Slots</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {booking.selectedSlots.map((slot) => (
+                    <span
+                      key={slot}
+                      className="rounded-full bg-lime-100 px-4 py-2 text-xs font-semibold text-emerald-950"
+                    >
+                      {slot}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-lg font-bold text-emerald-950">
+                  Total Price
+                </span>
+                <span className="text-2xl font-black text-emerald-950">
+                  RM {booking.totalPrice.toFixed(2)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-gray-200">
+            <h2 className="text-2xl font-black text-emerald-950">
+              Next Step
+            </h2>
+
+            <div className="mt-6 rounded-2xl bg-lime-50 p-5 ring-1 ring-lime-100">
+              <p className="text-sm font-semibold text-emerald-950">
+                Payment proof upload will be required after creating the
+                booking.
+              </p>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                In the next phase, this button will create the booking in the
+                backend, set the booking status to pending payment, and redirect
+                the customer to upload payment proof.
+              </p>
+            </div>
+
+            <button
+  type="button"
+  onClick={() => navigate("/payment-proof", { state: booking })}
+  className="mt-8 w-full rounded-2xl bg-emerald-950 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-emerald-900"
+>
+  Confirm & Continue to Payment
+</button>
+
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="mt-4 w-full rounded-2xl border border-gray-200 bg-white px-6 py-3.5 text-sm font-semibold text-slate-700 transition hover:bg-gray-50"
+            >
+              Back to Slot Selection
+            </button>
+          </div>
+        </section>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
+
+export default BookingConfirmationPage;
