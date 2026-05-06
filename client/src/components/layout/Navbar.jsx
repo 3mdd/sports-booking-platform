@@ -22,9 +22,12 @@ function Navbar() {
             <button className="text-sm font-medium text-gray-600 hover:text-lime-600">
               How It Works
             </button>
-            <button className="text-sm font-medium text-gray-600 hover:text-lime-600">
-              Merchant Portal
-            </button>
+            <Link
+  to="/merchant/payments"
+  className="text-sm font-medium text-gray-600 hover:text-lime-600"
+>
+  Merchant Portal
+</Link>
             <button className="text-sm font-medium text-gray-600 hover:text-lime-600">
               Support
             </button>
