@@ -1,61 +1,19 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import padelImage from "../../assets/images/padel.jpg";
 import badmintonImage from "../../assets/images/badminton.jpg";
 
-const facilityData = {
-  1: {
-    id: 1,
-    name: "Grand Football Arena",
-    sport: "Football",
-    location: "Melaka City",
-    pricePerHour: 120,
-    rating: "4.8",
-    type: "Outdoor Field",
-    image:
-      "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80",
-    description:
-      "This football facility is suitable for friendly matches, training sessions, and weekend games. It provides a spacious playing area and supports slot-based booking for better schedule management.",
-  },
-  2: {
-    id: 2,
-    name: "Padel Point Club",
-    sport: "Padel",
-    location: "Ayer Keroh, Melaka",
-    pricePerHour: 90,
-    rating: "4.7",
-    type: "Indoor Court",
-    image: padelImage,
-    description:
-      "This facility offers a clean and modern padel court environment suitable for casual matches, training sessions, and competitive play. Users can view live slot availability and complete booking through the platform.",
-  },
-  3: {
-    id: 3,
-    name: "Smash Indoor Court",
-    sport: "Badminton",
-    location: "Bukit Beruang, Melaka",
-    pricePerHour: 45,
-    rating: "4.6",
-    type: "Indoor Court",
-    image: badmintonImage,
-    description:
-      "This badminton venue is designed for fast and convenient court booking. It supports connected time-slot selection and gives users a simple way to review pricing, location, and availability before booking.",
-  },
-  4: {
-    id: 4,
-    name: "Elite Futsal Hub",
-    sport: "Futsal",
-    location: "Melaka Tengah",
-    pricePerHour: 100,
-    rating: "4.5",
-    type: "Indoor Arena",
-    image:
-      "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=1200&q=80",
-    description:
-      "This futsal facility supports group play, training, and scheduled matches. The system helps users check available times quickly and complete reservations with a more organized booking flow.",
-  },
+const fallbackImages = {
+  Football:
+    "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80",
+  Futsal:
+    "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=1200&q=80",
+  Padel: padelImage,
+  Badminton: badmintonImage,
+  Default:
+    "https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&w=1200&q=80",
 };
 
 const availableSlots = [
@@ -120,7 +78,7 @@ function buildSlotStartDateTime(selectedDate, slot) {
 
   const date = new Date(year, month - 1, day, hour, minute);
 
-  // 🔥 after midnight → treat as next day
+  // after midnight → treat as next day
   if (hour >= 0 && hour < 6) {
     date.setDate(date.getDate() + 1);
   }
@@ -130,28 +88,87 @@ function buildSlotStartDateTime(selectedDate, slot) {
 
 function FacilityDetailsPage() {
   const { id } = useParams();
-  const facility = facilityData[id];
   const navigate = useNavigate();
+
+  const [facility, setFacility] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedDuration, setSelectedDuration] = useState(durationOptions[0]);
   const [selectedSlots, setSelectedSlots] = useState([]);
   const [slotError, setSlotError] = useState("");
 
+  const currentDate = new Date();
+  const todayDate = `${currentDate.getFullYear()}-${String(
+    currentDate.getMonth() + 1
+  ).padStart(2, "0")}-${String(currentDate.getDate()).padStart(2, "0")}`;
+
+  useEffect(() => {
+    const fetchFacilityDetails = async () => {
+      try {
+        setIsLoading(true);
+        setErrorMessage("");
+
+        const response = await fetch(`http://localhost:5000/facilities/${id}`);
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch facility details");
+        }
+
+        const data = await response.json();
+        setFacility(data.facility || null);
+      } catch (error) {
+        console.error("Fetch facility details error:", error);
+        setErrorMessage(
+          "Unable to load facility details. Please make sure the backend server is running."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFacilityDetails();
+  }, [id]);
+
+  const currentTimePlusTwoHours = useMemo(() => {
+    const now = new Date();
+    return new Date(now.getTime() + 2 * 60 * 60 * 1000);
+  }, []);
+
+  const isTodaySelected = selectedDate === todayDate;
+
+  const sportName = facility?.sportType?.name || "Sport";
+
+  const facilityImage = useMemo(() => {
+    const firstImage = facility?.images?.[0]?.imageUrl;
+
+    if (firstImage) {
+      return firstImage;
+    }
+
+    return fallbackImages[sportName] || fallbackImages.Default;
+  }, [facility, sportName]);
+
+  const pricePerSlot = Number(facility?.pricePerSlot || 0);
+  const pricePerHour = pricePerSlot * 2;
+
   const handleDateChange = (event) => {
-  const chosenDate = event.target.value;
+    const chosenDate = event.target.value;
 
-  if (chosenDate && chosenDate < todayDate) {
-    setSlotError("Past dates are not allowed. Please choose today or a future date.");
-    setSelectedDate("");
+    if (chosenDate && chosenDate < todayDate) {
+      setSlotError(
+        "Past dates are not allowed. Please choose today or a future date."
+      );
+      setSelectedDate("");
+      setSelectedSlots([]);
+      return;
+    }
+
+    setSelectedDate(chosenDate);
     setSelectedSlots([]);
-    return;
-  }
-
-  setSelectedDate(chosenDate);
-  setSelectedSlots([]);
-  setSlotError("");
-};
+    setSlotError("");
+  };
 
   const handleDurationChange = (event) => {
     const chosenDuration = durationOptions.find(
@@ -163,47 +180,63 @@ function FacilityDetailsPage() {
     setSlotError("");
   };
 
+  const isSlotBooked = (slot) => {
+    if (!selectedDate) return false;
+
+    return bookedSlots.includes(slot);
+  };
+
+  const isSlotDisabled = (slot) => {
+    if (isSlotBooked(slot)) return true;
+
+    if (!isTodaySelected || !selectedDate) return false;
+
+    const slotDateTime = buildSlotStartDateTime(selectedDate, slot);
+
+    return slotDateTime < currentTimePlusTwoHours;
+  };
+
   const handleSlotSelection = (clickedSlot) => {
-  if (!selectedDate) {
-    setSlotError("Please select a booking date before choosing a slot.");
-    return;
-  }
+    if (!selectedDate) {
+      setSlotError("Please select a booking date before choosing a slot.");
+      return;
+    }
 
-  if (isSlotDisabled(clickedSlot)) {
-    setSlotError(
-      "The selected booking duration includes unavailable slot(s). Please choose another starting time."
+    if (isSlotDisabled(clickedSlot)) {
+      setSlotError(
+        "The selected booking duration includes unavailable slot(s). Please choose another starting time."
+      );
+      setSelectedSlots([]);
+      return;
+    }
+
+    const startIndex = availableSlots.indexOf(clickedSlot);
+    const endIndex = startIndex + selectedDuration.slotCount;
+    const connectedSlots = availableSlots.slice(startIndex, endIndex);
+
+    if (connectedSlots.length < selectedDuration.slotCount) {
+      setSlotError(
+        `Not enough connected slots available for ${selectedDuration.label}. Please choose an earlier start time.`
+      );
+      setSelectedSlots([]);
+      return;
+    }
+
+    const hasDisabledConnectedSlot = connectedSlots.some((slot) =>
+      isSlotDisabled(slot)
     );
-    setSelectedSlots([]);
-    return;
-  }
 
-  const startIndex = availableSlots.indexOf(clickedSlot);
-  const endIndex = startIndex + selectedDuration.slotCount;
-  const connectedSlots = availableSlots.slice(startIndex, endIndex);
+    if (hasDisabledConnectedSlot) {
+      setSlotError(
+        "The selected booking duration includes slot(s) that are no longer available today due to the 2-hour advance booking rule."
+      );
+      setSelectedSlots([]);
+      return;
+    }
 
-  if (connectedSlots.length < selectedDuration.slotCount) {
-    setSlotError(
-      `Not enough connected slots available for ${selectedDuration.label}. Please choose an earlier start time.`
-    );
-    setSelectedSlots([]);
-    return;
-  }
-
-  const hasDisabledConnectedSlot = connectedSlots.some((slot) =>
-    isSlotDisabled(slot)
-  );
-
-  if (hasDisabledConnectedSlot) {
-    setSlotError(
-      "The selected booking duration includes slot(s) that are no longer available today due to the 2-hour advance booking rule."
-    );
-    setSelectedSlots([]);
-    return;
-  }
-
-  setSelectedSlots(connectedSlots);
-  setSlotError("");
-};
+    setSelectedSlots(connectedSlots);
+    setSlotError("");
+  };
 
   const sortedSelectedSlots = useMemo(() => {
     return availableSlots.filter((slot) => selectedSlots.includes(slot));
@@ -220,35 +253,55 @@ function FacilityDetailsPage() {
     });
   }, [selectedDate]);
 
-const currentDate = new Date();
-const todayDate = `${currentDate.getFullYear()}-${String(
-  currentDate.getMonth() + 1
-).padStart(2, "0")}-${String(currentDate.getDate()).padStart(2, "0")}`;
+  const slotCount = selectedSlots.length;
+  const durationHours = slotCount * 0.5;
+  const totalPrice = pricePerHour * durationHours;
 
-const currentTimePlusTwoHours = useMemo(() => {
-  const now = new Date();
-  return new Date(now.getTime() + 2 * 60 * 60 * 1000);
-}, []);
+  const handleContinueToBooking = () => {
+    if (!selectedDate) {
+      setSlotError("Please select a booking date before continuing.");
+      return;
+    }
 
-const isTodaySelected = selectedDate === todayDate;
+    if (selectedSlots.length === 0) {
+      setSlotError(
+        "Please select available connected time slots before continuing."
+      );
+      return;
+    }
 
-const isSlotBooked = (slot) => {
-  if (!selectedDate) return false;
+    navigate("/booking/confirm", {
+      state: {
+        facilityId: facility.id,
+        facilityName: facility.name,
+        sport: sportName,
+        location: facility.location,
+        selectedDate,
+        formattedDate: formattedSelectedDate,
+        durationLabel: selectedDuration.label,
+        selectedSlots: sortedSelectedSlots,
+        totalPrice,
+      },
+    });
+  };
 
-  return bookedSlots.includes(slot);
-};
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#f3f4f6] text-slate-900">
+        <Navbar />
+        <main className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
+          <div className="rounded-[2rem] bg-white p-10 text-center shadow-sm ring-1 ring-gray-200">
+            <p className="text-sm font-semibold text-slate-600">
+              Loading facility details...
+            </p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
-const isSlotDisabled = (slot) => {
-  if (isSlotBooked(slot)) return true;
-
-  if (!isTodaySelected || !selectedDate) return false;
-
-  const slotDateTime = buildSlotStartDateTime(selectedDate, slot);
-
-  return slotDateTime < currentTimePlusTwoHours;
-};
-
-  if (!facility) {
+  if (errorMessage || !facility) {
     return (
       <div className="min-h-screen bg-[#f3f4f6] text-slate-900">
         <Navbar />
@@ -258,7 +311,8 @@ const isSlotDisabled = (slot) => {
               Facility not found
             </h1>
             <p className="mt-3 text-slate-600">
-              The selected facility does not exist in the current draft data.
+              {errorMessage ||
+                "The selected facility does not exist in the database."}
             </p>
           </div>
         </main>
@@ -266,36 +320,6 @@ const isSlotDisabled = (slot) => {
       </div>
     );
   }
-
-  const slotCount = selectedSlots.length;
-  const durationHours = slotCount * 0.5;
-  const totalPrice = facility.pricePerHour * durationHours;
-
-  const handleContinueToBooking = () => {
-  if (!selectedDate) {
-    setSlotError("Please select a booking date before continuing.");
-    return;
-  }
-
-  if (selectedSlots.length === 0) {
-    setSlotError("Please select available connected time slots before continuing.");
-    return;
-  }
-
-  navigate("/booking/confirm", {
-    state: {
-      facilityId: facility.id,
-      facilityName: facility.name,
-      sport: facility.sport,
-      location: facility.location,
-      selectedDate,
-      formattedDate: formattedSelectedDate,
-      durationLabel: selectedDuration.label,
-      selectedSlots: sortedSelectedSlots,
-      totalPrice,
-    },
-  });
-};
 
   return (
     <div className="min-h-screen bg-[#f3f4f6] text-slate-900">
@@ -305,7 +329,7 @@ const isSlotDisabled = (slot) => {
         <section className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="overflow-hidden rounded-[2rem] bg-white shadow-sm ring-1 ring-gray-200">
             <img
-              src={facility.image}
+              src={facilityImage}
               alt={facility.name}
               className="h-[420px] w-full object-cover"
             />
@@ -313,21 +337,23 @@ const isSlotDisabled = (slot) => {
 
           <div className="rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-gray-200">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">
-              {facility.sport}
+              {sportName}
             </p>
 
             <h1 className="mt-3 text-4xl font-black tracking-tight text-emerald-950">
               {facility.name}
             </h1>
 
-            <p className="mt-3 text-base text-slate-500">{facility.location}</p>
+            <p className="mt-3 text-base text-slate-500">
+              {facility.location}
+            </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
               <span className="rounded-full bg-lime-100 px-4 py-2 text-sm font-semibold text-emerald-950">
-                Rating: {facility.rating} ★
+                Rating: 4.8 ★
               </span>
               <span className="rounded-full bg-gray-100 px-4 py-2 text-sm font-semibold text-slate-700">
-                {facility.type}
+                {sportName} Facility
               </span>
               <span className="rounded-full bg-gray-100 px-4 py-2 text-sm font-semibold text-slate-700">
                 30-Minute Slot Booking
@@ -339,7 +365,8 @@ const isSlotDisabled = (slot) => {
                 Facility Description
               </h2>
               <p className="mt-3 text-sm leading-7 text-slate-600">
-                {facility.description}
+                {facility.description ||
+                  "This facility is available for slot-based sports booking through the platform."}
               </p>
             </div>
 
@@ -347,7 +374,10 @@ const isSlotDisabled = (slot) => {
               <div>
                 <p className="text-sm text-slate-500">Price</p>
                 <p className="text-3xl font-black text-emerald-950">
-                  RM {facility.pricePerHour} / hour
+                  RM {pricePerHour.toFixed(2)} / hour
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  RM {pricePerSlot.toFixed(2)} / 30-minute slot
                 </p>
               </div>
 
@@ -364,27 +394,28 @@ const isSlotDisabled = (slot) => {
               Available Time Slots
             </h2>
             <p className="mt-2 text-sm text-slate-600">
-              Select a date first, then choose the booking duration and starting slot.
+              Select a date first, then choose the booking duration and starting
+              slot.
             </p>
 
             {isTodaySelected ? (
-  <p className="mt-2 text-sm font-medium text-amber-700">
-    Same-day bookings must be made at least 2 hours before the slot start time.
-  </p>
-) : null}
+              <p className="mt-2 text-sm font-medium text-amber-700">
+                Same-day bookings must be made at least 2 hours before the slot
+                start time.
+              </p>
+            ) : null}
 
-<div className="mt-4 flex flex-wrap gap-3 text-xs font-semibold">
-  <span className="rounded-full bg-emerald-950 px-3 py-1 text-white">
-    Selected
-  </span>
-  <span className="rounded-full bg-gray-100 px-3 py-1 text-slate-500">
-    Unavailable
-  </span>
-  <span className="rounded-full bg-lime-100 px-3 py-1 text-emerald-950">
-    Available
-  </span>
-</div>
-
+            <div className="mt-4 flex flex-wrap gap-3 text-xs font-semibold">
+              <span className="rounded-full bg-emerald-950 px-3 py-1 text-white">
+                Selected
+              </span>
+              <span className="rounded-full bg-gray-100 px-3 py-1 text-slate-500">
+                Unavailable
+              </span>
+              <span className="rounded-full bg-lime-100 px-3 py-1 text-emerald-950">
+                Available
+              </span>
+            </div>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <div>
@@ -397,7 +428,7 @@ const isSlotDisabled = (slot) => {
                   value={selectedDate}
                   onChange={handleDateChange}
                   className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
-/>
+                />
               </div>
 
               <div>
@@ -426,31 +457,33 @@ const isSlotDisabled = (slot) => {
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {availableSlots.map((slot) => {
-  const isSelected = selectedSlots.includes(slot);
-  const isBooked = isSlotBooked(slot);
-  const disabled = isSlotDisabled(slot);
+                const isSelected = selectedSlots.includes(slot);
+                const isBooked = isSlotBooked(slot);
+                const disabled = isSlotDisabled(slot);
 
-  return (
-    <button
-      key={slot}
-      type="button"
-      disabled={disabled}
-      onClick={() => handleSlotSelection(slot)}
-      className={`rounded-2xl border px-4 py-4 text-sm font-semibold transition ${
-        isSelected
-          ? "border-emerald-950 bg-emerald-950 text-white"
-          : disabled
-          ? "cursor-not-allowed border-gray-200 bg-gray-100 text-slate-400 opacity-60"
-          : "border-gray-200 bg-gray-50 text-slate-800 hover:border-lime-400 hover:bg-white"
-      }`}
-    >
-      <span>{slot}</span>
-{isBooked ? (
-  <span className="mt-1 block text-xs font-semibold">Booked</span>
-) : null}
-    </button>
-  );
-})}
+                return (
+                  <button
+                    key={slot}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => handleSlotSelection(slot)}
+                    className={`rounded-2xl border px-4 py-4 text-sm font-semibold transition ${
+                      isSelected
+                        ? "border-emerald-950 bg-emerald-950 text-white"
+                        : disabled
+                        ? "cursor-not-allowed border-gray-200 bg-gray-100 text-slate-400 opacity-60"
+                        : "border-gray-200 bg-gray-50 text-slate-800 hover:border-lime-400 hover:bg-white"
+                    }`}
+                  >
+                    <span>{slot}</span>
+                    {isBooked ? (
+                      <span className="mt-1 block text-xs font-semibold">
+                        Booked
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -470,7 +503,7 @@ const isSlotDisabled = (slot) => {
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <span className="text-slate-500">Sport</span>
                 <span className="font-semibold text-slate-900">
-                  {facility.sport}
+                  {sportName}
                 </span>
               </div>
 
@@ -528,12 +561,12 @@ const isSlotDisabled = (slot) => {
             </div>
 
             <button
-  type="button"
-  onClick={handleContinueToBooking}
-  className="mt-8 w-full rounded-2xl bg-emerald-950 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-emerald-900"
->
-  Continue to Booking
-</button>
+              type="button"
+              onClick={handleContinueToBooking}
+              className="mt-8 w-full rounded-2xl bg-emerald-950 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-emerald-900"
+            >
+              Continue to Booking
+            </button>
           </div>
         </section>
       </main>
