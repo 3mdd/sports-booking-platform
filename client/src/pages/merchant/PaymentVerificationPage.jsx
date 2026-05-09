@@ -1,64 +1,102 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 
-const initialPaymentProofs = [
-  {
-    id: 1,
-    bookingId: 1,
-    customerName: "Ahmad Hakim",
-    facilityName: "Padel Point Club",
-    bookingDate: "6 May 2026",
-    bookingTime: "20:00 - 21:00",
-    amount: "RM 90.00",
-    status: "Pending",
-    uploadedAt: "Today, 10:15 PM",
-  },
-  {
-    id: 2,
-    bookingId: 2,
-    customerName: "Sarah Lim",
-    facilityName: "Smash Indoor Court",
-    bookingDate: "7 May 2026",
-    bookingTime: "18:00 - 19:30",
-    amount: "RM 67.50",
-    status: "Pending",
-    uploadedAt: "Today, 9:40 PM",
-  },
-  {
-    id: 3,
-    bookingId: 3,
-    customerName: "Daniel Wong",
-    facilityName: "Grand Football Arena",
-    bookingDate: "8 May 2026",
-    bookingTime: "21:00 - 23:00",
-    amount: "RM 240.00",
-    status: "Approved",
-    uploadedAt: "Yesterday, 8:10 PM",
-  },
-];
+const TEMP_MERCHANT_ID = 1;
+
+function formatDate(dateValue) {
+  if (!dateValue) return "Not available";
+
+  const date = new Date(dateValue);
+
+  return date.toLocaleDateString("en-MY", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function formatTime(dateValue) {
+  if (!dateValue) return "";
+
+  const date = new Date(dateValue);
+
+  return date.toLocaleTimeString("en-MY", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+function getBookingTime(booking) {
+  const slots = booking.bookingSlots || [];
+
+  if (slots.length === 0) {
+    return "No slots";
+  }
+
+  const sortedSlots = [...slots].sort(
+    (a, b) =>
+      new Date(a.timeSlot.startTime).getTime() -
+      new Date(b.timeSlot.startTime).getTime()
+  );
+
+  const firstSlot = sortedSlots[0].timeSlot;
+  const lastSlot = sortedSlots[sortedSlots.length - 1].timeSlot;
+
+  return `${formatTime(firstSlot.startTime)} - ${formatTime(lastSlot.endTime)}`;
+}
 
 function PaymentVerificationPage() {
-  const [paymentProofs, setPaymentProofs] = useState(initialPaymentProofs);
+  const [bookings, setBookings] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const updatePaymentStatus = (proofId, newStatus) => {
-    setPaymentProofs((currentProofs) =>
-      currentProofs.map((proof) =>
-        proof.id === proofId ? { ...proof, status: newStatus } : proof
-      )
-    );
-  };
+  useEffect(() => {
+    const fetchMerchantBookings = async () => {
+      try {
+        setIsLoading(true);
+        setErrorMessage("");
 
-  const pendingCount = paymentProofs.filter(
-    (proof) => proof.status === "Pending"
+        const response = await fetch(
+          `http://localhost:5000/bookings/merchant/${TEMP_MERCHANT_ID}`
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch merchant bookings");
+        }
+
+        setBookings(data.bookings || []);
+      } catch (error) {
+        console.error("Fetch merchant bookings error:", error);
+        setErrorMessage(
+          error.message ||
+            "Unable to load merchant bookings. Please make sure the backend server is running."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMerchantBookings();
+  }, []);
+
+  const paymentProofBookings = useMemo(() => {
+    return bookings.filter((booking) => booking.paymentProof);
+  }, [bookings]);
+
+  const pendingCount = paymentProofBookings.filter(
+    (booking) => booking.status === "PAYMENT_UPLOADED"
   ).length;
 
-  const approvedCount = paymentProofs.filter(
-    (proof) => proof.status === "Approved"
+  const approvedCount = paymentProofBookings.filter(
+    (booking) => booking.status === "CONFIRMED"
   ).length;
 
-  const rejectedCount = paymentProofs.filter(
-    (proof) => proof.status === "Rejected"
+  const rejectedCount = paymentProofBookings.filter(
+    (booking) => booking.status === "REJECTED"
   ).length;
 
   return (
@@ -115,115 +153,181 @@ function PaymentVerificationPage() {
                 Uploaded Payment Proofs
               </h2>
               <p className="mt-2 text-sm text-slate-600">
-                Merchant can approve or reject each uploaded payment proof.
+                Merchant can review real uploaded payment proof records from the
+                backend.
               </p>
             </div>
 
             <span className="rounded-full bg-lime-100 px-4 py-2 text-sm font-semibold text-emerald-950">
-              Frontend draft
+              Connected to backend
             </span>
           </div>
 
-          <div className="space-y-5">
-            {paymentProofs.map((proof) => (
-              <article
-                key={proof.id}
-                className="grid gap-5 rounded-[1.5rem] border border-gray-200 bg-gray-50 p-5 lg:grid-cols-[1fr_220px]"
-              >
-                <div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <h3 className="text-xl font-black text-emerald-950">
-                      Booking #{proof.bookingId}
-                    </h3>
+          {isLoading ? (
+            <div className="rounded-2xl bg-gray-50 px-5 py-5 text-sm font-medium text-slate-500 ring-1 ring-gray-200">
+              Loading uploaded payment proofs...
+            </div>
+          ) : null}
 
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-bold ${
-                        proof.status === "Approved"
-                          ? "bg-lime-100 text-emerald-950"
-                          : proof.status === "Rejected"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-amber-100 text-amber-700"
-                      }`}
-                    >
-                      {proof.status}
-                    </span>
-                  </div>
+          {!isLoading && errorMessage ? (
+            <div className="rounded-2xl bg-red-50 px-5 py-5 text-sm font-medium text-red-700 ring-1 ring-red-100">
+              {errorMessage}
+            </div>
+          ) : null}
 
-                  <div className="mt-5 grid gap-4 text-sm md:grid-cols-2">
-                    <div>
-                      <p className="text-slate-500">Customer</p>
-                      <p className="mt-1 font-semibold text-slate-900">
-                        {proof.customerName}
-                      </p>
-                    </div>
+          {!isLoading && !errorMessage && paymentProofBookings.length === 0 ? (
+            <div className="rounded-2xl bg-gray-50 px-5 py-5 text-sm font-medium text-slate-500 ring-1 ring-gray-200">
+              No uploaded payment proofs found for this merchant yet.
+            </div>
+          ) : null}
 
-                    <div>
-                      <p className="text-slate-500">Facility</p>
-                      <p className="mt-1 font-semibold text-slate-900">
-                        {proof.facilityName}
-                      </p>
-                    </div>
+          {!isLoading && !errorMessage && paymentProofBookings.length > 0 ? (
+            <div className="space-y-5">
+              {paymentProofBookings.map((booking) => {
+                const customerName =
+                  booking.customer?.user?.fullName || "Customer";
+                const facilityName = booking.facility?.name || "Facility";
+                const bookingDate = formatDate(booking.bookingDate);
+                const bookingTime = getBookingTime(booking);
+                const amount = `RM ${Number(booking.totalPrice).toFixed(2)}`;
+                const uploadedAt = formatDate(booking.paymentProof?.uploadedAt);
+                const fileName =
+                  booking.paymentProof?.originalFileName || "Uploaded file";
+                const filePath = booking.paymentProof?.filePath || "";
+const normalizedFilePath = filePath.replace(/\\/g, "/");
 
-                    <div>
-                      <p className="text-slate-500">Booking Date</p>
-                      <p className="mt-1 font-semibold text-slate-900">
-                        {proof.bookingDate}
-                      </p>
-                    </div>
+const uploadsIndex = normalizedFilePath.indexOf("uploads/");
+const publicFilePath =
+  uploadsIndex !== -1 ? normalizedFilePath.substring(uploadsIndex) : "";
 
-                    <div>
-                      <p className="text-slate-500">Booking Time</p>
-                      <p className="mt-1 font-semibold text-slate-900">
-                        {proof.bookingTime}
-                      </p>
-                    </div>
+const fileUrl = publicFilePath
+  ? `http://localhost:5000/${publicFilePath}`
+  : "";
 
-                    <div>
-                      <p className="text-slate-500">Amount</p>
-                      <p className="mt-1 font-semibold text-slate-900">
-                        {proof.amount}
-                      </p>
-                    </div>
+const isImageFile = /\.(jpg|jpeg|png)$/i.test(fileName);
 
-                    <div>
-                      <p className="text-slate-500">Uploaded At</p>
-                      <p className="mt-1 font-semibold text-slate-900">
-                        {proof.uploadedAt}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 rounded-2xl bg-white p-4 text-sm ring-1 ring-gray-200">
-                    <p className="font-semibold text-emerald-950">
-                      Payment Proof Preview
-                    </p>
-                    <p className="mt-2 text-slate-500">
-                      Uploaded receipt preview will appear here after backend
-                      file integration.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col justify-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => updatePaymentStatus(proof.id, "Approved")}
-                    className="rounded-2xl bg-emerald-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-900"
+                return (
+                  <article
+                    key={booking.id}
+                    className="grid gap-5 rounded-[1.5rem] border border-gray-200 bg-gray-50 p-5 lg:grid-cols-[1fr_220px]"
                   >
-                    Approve Payment
-                  </button>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <h3 className="text-xl font-black text-emerald-950">
+                          Booking #{booking.id}
+                        </h3>
 
-                  <button
-                    type="button"
-                    onClick={() => updatePaymentStatus(proof.id, "Rejected")}
-                    className="rounded-2xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-100"
-                  >
-                    Reject Payment
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-bold ${
+                            booking.status === "CONFIRMED"
+                              ? "bg-lime-100 text-emerald-950"
+                              : booking.status === "REJECTED"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-amber-100 text-amber-700"
+                          }`}
+                        >
+                          {booking.status}
+                        </span>
+                      </div>
+
+                      <div className="mt-5 grid gap-4 text-sm md:grid-cols-2">
+                        <div>
+                          <p className="text-slate-500">Customer</p>
+                          <p className="mt-1 font-semibold text-slate-900">
+                            {customerName}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-slate-500">Facility</p>
+                          <p className="mt-1 font-semibold text-slate-900">
+                            {facilityName}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-slate-500">Booking Date</p>
+                          <p className="mt-1 font-semibold text-slate-900">
+                            {bookingDate}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-slate-500">Booking Time</p>
+                          <p className="mt-1 font-semibold text-slate-900">
+                            {bookingTime}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-slate-500">Amount</p>
+                          <p className="mt-1 font-semibold text-slate-900">
+                            {amount}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-slate-500">Uploaded At</p>
+                          <p className="mt-1 font-semibold text-slate-900">
+                            {uploadedAt}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 rounded-2xl bg-white p-4 text-sm ring-1 ring-gray-200">
+  <p className="font-semibold text-emerald-950">
+    Payment Proof File
+  </p>
+
+  <p className="mt-2 text-slate-600">{fileName}</p>
+
+  {fileUrl && isImageFile ? (
+    <img
+      src={fileUrl}
+      alt="Payment proof"
+      className="mt-4 max-h-72 w-full rounded-2xl object-contain ring-1 ring-gray-200"
+    />
+  ) : null}
+
+  {fileUrl ? (
+    <a
+      href={fileUrl}
+      target="_blank"
+      rel="noreferrer"
+      className="mt-4 inline-flex rounded-xl bg-lime-100 px-4 py-2 text-xs font-bold text-emerald-950 transition hover:bg-lime-200"
+    >
+      Open Payment Proof
+    </a>
+  ) : null}
+</div>
+                    </div>
+
+                    <div className="flex flex-col justify-center gap-3">
+                      <button
+                        type="button"
+                        disabled
+                        className="cursor-not-allowed rounded-2xl bg-slate-400 px-5 py-3 text-sm font-semibold text-white"
+                      >
+                        Approve Payment
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled
+                        className="cursor-not-allowed rounded-2xl border border-gray-200 bg-gray-100 px-5 py-3 text-sm font-semibold text-slate-400"
+                      >
+                        Reject Payment
+                      </button>
+
+                      <p className="text-center text-xs leading-5 text-slate-500">
+                        Approval API will be connected in the next step.
+                      </p>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : null}
         </section>
       </main>
 
