@@ -16,51 +16,6 @@ const fallbackImages = {
     "https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&w=1200&q=80",
 };
 
-const availableSlots = [
-  "08:00 - 08:30",
-  "08:30 - 09:00",
-  "09:00 - 09:30",
-  "09:30 - 10:00",
-  "10:00 - 10:30",
-  "10:30 - 11:00",
-  "11:00 - 11:30",
-  "11:30 - 12:00",
-  "12:00 - 12:30",
-  "12:30 - 13:00",
-  "13:00 - 13:30",
-  "13:30 - 14:00",
-  "14:00 - 14:30",
-  "14:30 - 15:00",
-  "15:00 - 15:30",
-  "15:30 - 16:00",
-  "16:00 - 16:30",
-  "16:30 - 17:00",
-  "17:00 - 17:30",
-  "17:30 - 18:00",
-  "18:00 - 18:30",
-  "18:30 - 19:00",
-  "19:00 - 19:30",
-  "19:30 - 20:00",
-  "20:00 - 20:30",
-  "20:30 - 21:00",
-  "21:00 - 21:30",
-  "21:30 - 22:00",
-  "22:00 - 22:30",
-  "22:30 - 23:00",
-  "23:00 - 23:30",
-  "23:30 - 00:00",
-  "00:00 - 00:30",
-  "00:30 - 01:00",
-  "01:00 - 01:30",
-  "01:30 - 02:00",
-];
-
-const bookedSlots = [
-  "18:00 - 18:30",
-  "18:30 - 19:00",
-  "20:00 - 20:30",
-];
-
 const durationOptions = [
   { label: "1 Hour", value: "1", slotCount: 2 },
   { label: "1.5 Hours", value: "1.5", slotCount: 3 },
@@ -69,11 +24,25 @@ const durationOptions = [
   { label: "3 Hours", value: "3", slotCount: 6 },
 ];
 
-function buildSlotStartDateTime(selectedDate, slot) {
+function formatSlotTime(dateValue) {
+  const date = new Date(dateValue);
+
+  return date.toLocaleTimeString("en-MY", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+function formatSlotLabel(slot) {
+  return `${formatSlotTime(slot.startTime)} - ${formatSlotTime(slot.endTime)}`;
+}
+
+function buildSlotStartDateTime(selectedDate, slotLabel) {
   if (!selectedDate) return null;
 
   const [year, month, day] = selectedDate.split("-").map(Number);
-  const startTime = slot.split(" - ")[0];
+  const startTime = slotLabel.split(" - ")[0];
   const [hour, minute] = startTime.split(":").map(Number);
 
   const date = new Date(year, month - 1, day, hour, minute);
@@ -93,6 +62,10 @@ function FacilityDetailsPage() {
   const [facility, setFacility] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [isSlotsLoading, setIsSlotsLoading] = useState(false);
+  const [slotsMessage, setSlotsMessage] = useState("");
 
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedDuration, setSelectedDuration] = useState(durationOptions[0]);
@@ -131,6 +104,52 @@ function FacilityDetailsPage() {
     fetchFacilityDetails();
   }, [id]);
 
+  useEffect(() => {
+    const fetchAvailableSlots = async () => {
+      if (!selectedDate || !facility?.id) {
+        setAvailableSlots([]);
+        setSlotsMessage("");
+        return;
+      }
+
+      try {
+        setIsSlotsLoading(true);
+        setSlotsMessage("");
+        setSlotError("");
+
+        const response = await fetch(
+          `http://localhost:5000/facilities/slots/by-date?facilityId=${facility.id}&date=${selectedDate}`
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch facility slots");
+        }
+
+        const data = await response.json();
+        const formattedSlots = (data.slots || []).map((slot) => ({
+          ...slot,
+          label: formatSlotLabel(slot),
+        }));
+
+        setAvailableSlots(formattedSlots);
+
+        if (formattedSlots.length === 0) {
+          setSlotsMessage("No time slots found for this date.");
+        }
+      } catch (error) {
+        console.error("Fetch facility slots error:", error);
+        setAvailableSlots([]);
+        setSlotsMessage(
+          "Unable to load time slots. Please make sure slots are created for this facility and date."
+        );
+      } finally {
+        setIsSlotsLoading(false);
+      }
+    };
+
+    fetchAvailableSlots();
+  }, [selectedDate, facility]);
+
   const currentTimePlusTwoHours = useMemo(() => {
     const now = new Date();
     return new Date(now.getTime() + 2 * 60 * 60 * 1000);
@@ -162,6 +181,7 @@ function FacilityDetailsPage() {
       );
       setSelectedDate("");
       setSelectedSlots([]);
+      setAvailableSlots([]);
       return;
     }
 
@@ -183,7 +203,7 @@ function FacilityDetailsPage() {
   const isSlotBooked = (slot) => {
     if (!selectedDate) return false;
 
-    return bookedSlots.includes(slot);
+    return Boolean(slot.isBooked);
   };
 
   const isSlotDisabled = (slot) => {
@@ -191,7 +211,7 @@ function FacilityDetailsPage() {
 
     if (!isTodaySelected || !selectedDate) return false;
 
-    const slotDateTime = buildSlotStartDateTime(selectedDate, slot);
+    const slotDateTime = buildSlotStartDateTime(selectedDate, slot.label);
 
     return slotDateTime < currentTimePlusTwoHours;
   };
@@ -210,7 +230,9 @@ function FacilityDetailsPage() {
       return;
     }
 
-    const startIndex = availableSlots.indexOf(clickedSlot);
+    const startIndex = availableSlots.findIndex(
+      (slot) => slot.id === clickedSlot.id
+    );
     const endIndex = startIndex + selectedDuration.slotCount;
     const connectedSlots = availableSlots.slice(startIndex, endIndex);
 
@@ -228,7 +250,7 @@ function FacilityDetailsPage() {
 
     if (hasDisabledConnectedSlot) {
       setSlotError(
-        "The selected booking duration includes slot(s) that are no longer available today due to the 2-hour advance booking rule."
+        "The selected booking duration includes slot(s) that are unavailable or no longer allowed due to the 2-hour advance booking rule."
       );
       setSelectedSlots([]);
       return;
@@ -239,8 +261,12 @@ function FacilityDetailsPage() {
   };
 
   const sortedSelectedSlots = useMemo(() => {
-    return availableSlots.filter((slot) => selectedSlots.includes(slot));
-  }, [selectedSlots]);
+    return availableSlots.filter((slot) =>
+      selectedSlots.some((selectedSlot) => selectedSlot.id === slot.id)
+    );
+  }, [availableSlots, selectedSlots]);
+
+  const selectedSlotLabels = sortedSelectedSlots.map((slot) => slot.label);
 
   const formattedSelectedDate = useMemo(() => {
     if (!selectedDate) return "No date selected yet";
@@ -255,7 +281,7 @@ function FacilityDetailsPage() {
 
   const slotCount = selectedSlots.length;
   const durationHours = slotCount * 0.5;
-  const totalPrice = pricePerHour * durationHours;
+  const totalPrice = pricePerSlot * slotCount;
 
   const handleContinueToBooking = () => {
     if (!selectedDate) {
@@ -279,7 +305,8 @@ function FacilityDetailsPage() {
         selectedDate,
         formattedDate: formattedSelectedDate,
         durationLabel: selectedDuration.label,
-        selectedSlots: sortedSelectedSlots,
+        selectedSlots: selectedSlotLabels,
+        selectedSlotIds: selectedSlots.map((slot) => slot.id),
         totalPrice,
       },
     });
@@ -455,36 +482,58 @@ function FacilityDetailsPage() {
               </div>
             ) : null}
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {availableSlots.map((slot) => {
-                const isSelected = selectedSlots.includes(slot);
-                const isBooked = isSlotBooked(slot);
-                const disabled = isSlotDisabled(slot);
+            {!selectedDate ? (
+              <div className="mt-6 rounded-2xl bg-gray-50 px-5 py-5 text-sm font-medium text-slate-500 ring-1 ring-gray-200">
+                Please select a booking date to load available time slots.
+              </div>
+            ) : null}
 
-                return (
-                  <button
-                    key={slot}
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => handleSlotSelection(slot)}
-                    className={`rounded-2xl border px-4 py-4 text-sm font-semibold transition ${
-                      isSelected
-                        ? "border-emerald-950 bg-emerald-950 text-white"
-                        : disabled
-                        ? "cursor-not-allowed border-gray-200 bg-gray-100 text-slate-400 opacity-60"
-                        : "border-gray-200 bg-gray-50 text-slate-800 hover:border-lime-400 hover:bg-white"
-                    }`}
-                  >
-                    <span>{slot}</span>
-                    {isBooked ? (
-                      <span className="mt-1 block text-xs font-semibold">
-                        Booked
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
+            {isSlotsLoading ? (
+              <div className="mt-6 rounded-2xl bg-gray-50 px-5 py-5 text-sm font-medium text-slate-500 ring-1 ring-gray-200">
+                Loading time slots...
+              </div>
+            ) : null}
+
+            {!isSlotsLoading && selectedDate && slotsMessage ? (
+              <div className="mt-6 rounded-2xl bg-amber-50 px-5 py-5 text-sm font-medium text-amber-700 ring-1 ring-amber-100">
+                {slotsMessage}
+              </div>
+            ) : null}
+
+            {!isSlotsLoading && availableSlots.length > 0 ? (
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {availableSlots.map((slot) => {
+                  const isSelected = selectedSlots.some(
+                    (selectedSlot) => selectedSlot.id === slot.id
+                  );
+                  const isBooked = isSlotBooked(slot);
+                  const disabled = isSlotDisabled(slot);
+
+                  return (
+                    <button
+                      key={slot.id}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => handleSlotSelection(slot)}
+                      className={`rounded-2xl border px-4 py-4 text-sm font-semibold transition ${
+                        isSelected
+                          ? "border-emerald-950 bg-emerald-950 text-white"
+                          : disabled
+                          ? "cursor-not-allowed border-gray-200 bg-gray-100 text-slate-400 opacity-60"
+                          : "border-gray-200 bg-gray-50 text-slate-800 hover:border-lime-400 hover:bg-white"
+                      }`}
+                    >
+                      <span>{slot.label}</span>
+                      {isBooked ? (
+                        <span className="mt-1 block text-xs font-semibold">
+                          Booked
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
           </div>
 
           <div className="rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-gray-200">
@@ -530,11 +579,14 @@ function FacilityDetailsPage() {
 
               <div className="border-b border-gray-100 pb-3">
                 <p className="text-slate-500">Slot Time</p>
-                {sortedSelectedSlots.length > 0 ? (
+                {selectedSlotLabels.length > 0 ? (
                   <div className="mt-2 space-y-1">
-                    {sortedSelectedSlots.map((slot) => (
-                      <p key={slot} className="font-semibold text-slate-900">
-                        {slot}
+                    {selectedSlotLabels.map((slotLabel) => (
+                      <p
+                        key={slotLabel}
+                        className="font-semibold text-slate-900"
+                      >
+                        {slotLabel}
                       </p>
                     ))}
                   </div>

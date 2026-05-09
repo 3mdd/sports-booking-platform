@@ -1,12 +1,65 @@
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
+
+const TEMP_CUSTOMER_ID = 1;
 
 function BookingConfirmationPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
   const booking = location.state;
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState("");
+
+  const handleCreateBooking = async () => {
+    if (!booking?.facilityId || !booking?.selectedSlotIds?.length) {
+      setSubmitMessage(
+        "Booking data is missing. Please go back and select available slots again."
+      );
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setSubmitMessage("");
+
+      const response = await fetch("http://localhost:5000/bookings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customerId: TEMP_CUSTOMER_ID,
+          facilityId: booking.facilityId,
+          timeSlotIds: booking.selectedSlotIds,
+          notes: "",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to create booking");
+      }
+
+      navigate("/payment-proof", {
+        state: {
+          ...booking,
+          bookingId: data.booking.id,
+          bookingStatus: data.booking.status,
+          totalPrice: Number(data.totalPrice),
+        },
+      });
+    } catch (error) {
+      console.error("Create booking error:", error);
+      setSubmitMessage(error.message || "Unable to create booking.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (!booking) {
     return (
@@ -116,7 +169,7 @@ function BookingConfirmationPage() {
                   Total Price
                 </span>
                 <span className="text-2xl font-black text-emerald-950">
-                  RM {booking.totalPrice.toFixed(2)}
+                  RM {Number(booking.totalPrice).toFixed(2)}
                 </span>
               </div>
             </div>
@@ -129,27 +182,40 @@ function BookingConfirmationPage() {
 
             <div className="mt-6 rounded-2xl bg-lime-50 p-5 ring-1 ring-lime-100">
               <p className="text-sm font-semibold text-emerald-950">
-                Payment proof upload will be required after creating the
-                booking.
+                Your booking will be created before payment proof upload.
               </p>
               <p className="mt-3 text-sm leading-6 text-slate-600">
-                In the next phase, this button will create the booking in the
-                backend, set the booking status to pending payment, and redirect
-                the customer to upload payment proof.
+                After confirmation, the system will save this booking in the
+                database with pending payment status. Then you can upload the
+                payment proof for merchant verification.
               </p>
             </div>
 
+            {submitMessage ? (
+              <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                {submitMessage}
+              </div>
+            ) : null}
+
             <button
-  type="button"
-  onClick={() => navigate("/payment-proof", { state: booking })}
-  className="mt-8 w-full rounded-2xl bg-emerald-950 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-emerald-900"
->
-  Confirm & Continue to Payment
-</button>
+              type="button"
+              onClick={handleCreateBooking}
+              disabled={isSubmitting}
+              className={`mt-8 w-full rounded-2xl px-6 py-3.5 text-sm font-semibold text-white transition ${
+                isSubmitting
+                  ? "cursor-not-allowed bg-slate-400"
+                  : "bg-emerald-950 hover:bg-emerald-900"
+              }`}
+            >
+              {isSubmitting
+                ? "Creating Booking..."
+                : "Confirm & Continue to Payment"}
+            </button>
 
             <button
               type="button"
               onClick={() => navigate(-1)}
+              disabled={isSubmitting}
               className="mt-4 w-full rounded-2xl border border-gray-200 bg-white px-6 py-3.5 text-sm font-semibold text-slate-700 transition hover:bg-gray-50"
             >
               Back to Slot Selection
