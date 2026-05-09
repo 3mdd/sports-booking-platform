@@ -23,7 +23,7 @@ function Navbar() {
               How It Works
             </button>
             <Link
-  to="/merchant/payments"
+  to="/merchant/dashboard"
   className="text-sm font-medium text-gray-600 hover:text-lime-600"
 >
   Merchant Portal
