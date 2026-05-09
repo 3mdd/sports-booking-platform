@@ -8,19 +8,62 @@ function PaymentProofUploadPage() {
   const navigate = useNavigate();
 
   const booking = location.state;
+
   const [selectedFile, setSelectedFile] = useState(null);
   const [submitMessage, setSubmitMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
-  const handleSubmitPaymentProof = () => {
-  if (!selectedFile) {
-    setSubmitMessage("Please choose a payment proof file before submitting.");
-    return;
-  }
+  const handleSubmitPaymentProof = async () => {
+    if (!booking?.bookingId) {
+      setIsSuccess(false);
+      setSubmitMessage(
+        "Booking ID is missing. Please create the booking again before uploading payment proof."
+      );
+      return;
+    }
 
-  setSubmitMessage(
-    "Payment proof submitted successfully. Waiting for merchant verification."
-  );
-};
+    if (!selectedFile) {
+      setIsSuccess(false);
+      setSubmitMessage("Please choose a payment proof file before submitting.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setIsSuccess(false);
+      setSubmitMessage("");
+
+      const formData = new FormData();
+      formData.append("bookingId", booking.bookingId);
+      formData.append("paymentProof", selectedFile);
+
+      const response = await fetch(
+        "http://localhost:5000/bookings/payment-proof",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to upload payment proof");
+      }
+
+      setIsSuccess(true);
+      setSubmitMessage(
+        "Payment proof uploaded successfully. Waiting for merchant verification."
+      );
+    } catch (error) {
+      console.error("Payment proof upload error:", error);
+      setIsSuccess(false);
+      setSubmitMessage(error.message || "Unable to upload payment proof.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (!booking) {
     return (
@@ -63,14 +106,15 @@ function PaymentProofUploadPage() {
             Upload your payment receipt
           </h1>
           <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
-            Complete your external payment using the payment details, then upload the receipt for merchant verification.
+            Complete your external payment using the payment details, then
+            upload the receipt for merchant verification.
           </p>
         </section>
 
         <section className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-gray-200">
             <h2 className="text-2xl font-black text-emerald-950">
-               Payment Details
+              Payment Details
             </h2>
 
             <div className="mt-6 flex h-52 items-center justify-center rounded-3xl bg-gray-100 ring-1 ring-gray-200">
@@ -92,7 +136,14 @@ function PaymentProofUploadPage() {
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <span className="text-slate-500">Reference</span>
                 <span className="font-semibold text-slate-900">
-                  BOOKING-{booking.facilityId}
+                  BOOKING-{booking.bookingId || booking.facilityId}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <span className="text-slate-500">Booking Status</span>
+                <span className="font-semibold text-slate-900">
+                  {booking.bookingStatus || "PENDING_PAYMENT"}
                 </span>
               </div>
 
@@ -101,7 +152,7 @@ function PaymentProofUploadPage() {
                   Amount to Pay
                 </span>
                 <span className="text-2xl font-black text-emerald-950">
-                  RM {booking.totalPrice.toFixed(2)}
+                  RM {Number(booking.totalPrice).toFixed(2)}
                 </span>
               </div>
             </div>
@@ -130,14 +181,21 @@ function PaymentProofUploadPage() {
               </p>
 
               <input
-  type="file"
-  accept=".jpg,.jpeg,.png,.pdf"
-  onChange={(event) => {
-    setSelectedFile(event.target.files[0]);
-    setSubmitMessage("");
-  }}
-  className="mt-6 w-full cursor-pointer rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-slate-700"
-/>
+                type="file"
+                accept=".jpg,.jpeg,.png,.pdf"
+                onChange={(event) => {
+                  setSelectedFile(event.target.files[0]);
+                  setSubmitMessage("");
+                  setIsSuccess(false);
+                }}
+                className="mt-6 w-full cursor-pointer rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-slate-700"
+              />
+
+              {selectedFile ? (
+                <p className="mt-4 text-sm font-semibold text-emerald-950">
+                  Selected file: {selectedFile.name}
+                </p>
+              ) : null}
             </div>
 
             <div className="mt-8 rounded-2xl bg-gray-50 p-5 ring-1 ring-gray-200">
@@ -168,28 +226,38 @@ function PaymentProofUploadPage() {
             </div>
 
             {submitMessage ? (
-  <div
-    className={`mt-6 rounded-2xl px-4 py-3 text-sm font-medium ${
-      selectedFile
-        ? "border border-lime-200 bg-lime-50 text-emerald-800"
-        : "border border-red-200 bg-red-50 text-red-700"
-    }`}
-  >
-    {submitMessage}
-  </div>
-) : null}
+              <div
+                className={`mt-6 rounded-2xl px-4 py-3 text-sm font-medium ${
+                  isSuccess
+                    ? "border border-lime-200 bg-lime-50 text-emerald-800"
+                    : "border border-red-200 bg-red-50 text-red-700"
+                }`}
+              >
+                {submitMessage}
+              </div>
+            ) : null}
 
             <button
-                type="button"
-                onClick={handleSubmitPaymentProof}
-                className="mt-8 w-full rounded-2xl bg-emerald-950 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-emerald-900"
-                >
-                    Submit Payment Proof
+              type="button"
+              onClick={handleSubmitPaymentProof}
+              disabled={isSubmitting || isSuccess}
+              className={`mt-8 w-full rounded-2xl px-6 py-3.5 text-sm font-semibold text-white transition ${
+                isSubmitting || isSuccess
+                  ? "cursor-not-allowed bg-slate-400"
+                  : "bg-emerald-950 hover:bg-emerald-900"
+              }`}
+            >
+              {isSubmitting
+                ? "Uploading Payment Proof..."
+                : isSuccess
+                ? "Payment Proof Submitted"
+                : "Submit Payment Proof"}
             </button>
 
             <button
               type="button"
               onClick={() => navigate(-1)}
+              disabled={isSubmitting}
               className="mt-4 w-full rounded-2xl border border-gray-200 bg-white px-6 py-3.5 text-sm font-semibold text-slate-700 transition hover:bg-gray-50"
             >
               Back to Confirmation
