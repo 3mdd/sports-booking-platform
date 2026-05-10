@@ -5,6 +5,8 @@ const {
   getBookingsByCustomer,
   getBookingsByMerchant,
   uploadPaymentProof,
+  approvePayment,
+  rejectPayment,
 } = require("../controllers/bookingController");
 
 const router = express.Router();
@@ -17,5 +19,7 @@ router.post(
   upload.single("paymentProof"),
   uploadPaymentProof
 );
+router.patch("/bookings/:bookingId/approve-payment", approvePayment);
+router.patch("/bookings/:bookingId/reject-payment", rejectPayment);
 
 module.exports = router;

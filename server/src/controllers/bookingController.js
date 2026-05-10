@@ -305,9 +305,125 @@ const uploadPaymentProof = async (req, res) => {
   }
 };
 
+const approvePayment = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+
+    const booking = await prisma.booking.findUnique({
+      where: { id: Number(bookingId) },
+      include: {
+        paymentProof: true,
+      },
+    });
+
+    if (!booking) {
+      return res.status(404).json({
+        message: "Booking not found",
+      });
+    }
+
+    if (!booking.paymentProof) {
+      return res.status(400).json({
+        message: "Cannot approve booking without uploaded payment proof",
+      });
+    }
+
+    if (booking.status !== "PAYMENT_UPLOADED") {
+      return res.status(400).json({
+        message: "Only bookings with uploaded payment proof can be approved",
+      });
+    }
+
+    const updatedBooking = await prisma.booking.update({
+      where: { id: Number(bookingId) },
+      data: {
+        status: "CONFIRMED",
+      },
+    });
+
+    return res.status(200).json({
+      message: "Payment approved successfully",
+      booking: updatedBooking,
+    });
+  } catch (error) {
+    console.error("Approve payment failed:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
+const rejectPayment = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+
+    const booking = await prisma.booking.findUnique({
+      where: { id: Number(bookingId) },
+      include: {
+        paymentProof: true,
+        bookingSlots: true,
+      },
+    });
+
+    if (!booking) {
+      return res.status(404).json({
+        message: "Booking not found",
+      });
+    }
+
+    if (!booking.paymentProof) {
+      return res.status(400).json({
+        message: "Cannot reject booking without uploaded payment proof",
+      });
+    }
+
+    if (booking.status !== "PAYMENT_UPLOADED") {
+      return res.status(400).json({
+        message: "Only bookings with uploaded payment proof can be rejected",
+      });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const updatedBooking = await tx.booking.update({
+        where: { id: Number(bookingId) },
+        data: {
+          status: "REJECTED",
+        },
+      });
+
+      await tx.timeSlot.updateMany({
+        where: {
+          id: {
+            in: booking.bookingSlots.map(
+              (bookingSlot) => bookingSlot.timeSlotId
+            ),
+          },
+        },
+        data: {
+          isBooked: false,
+        },
+      });
+
+      return updatedBooking;
+    });
+
+    return res.status(200).json({
+      message: "Payment rejected successfully",
+      booking: result,
+    });
+  } catch (error) {
+    console.error("Reject payment failed:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
 module.exports = {
   createBooking,
   getBookingsByCustomer,
   getBookingsByMerchant,
   uploadPaymentProof,
+  approvePayment,
+  rejectPayment,
 };
