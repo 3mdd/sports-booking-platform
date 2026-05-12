@@ -51,6 +51,8 @@ function PaymentVerificationPage() {
   const [bookings, setBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
+  const [processingBookingId, setProcessingBookingId] = useState(null);
 
   useEffect(() => {
     const fetchMerchantBookings = async () => {
@@ -98,6 +100,43 @@ function PaymentVerificationPage() {
   const rejectedCount = paymentProofBookings.filter(
     (booking) => booking.status === "REJECTED"
   ).length;
+
+const handlePaymentAction = async (bookingId, actionType) => {
+  try {
+    setProcessingBookingId(bookingId);
+    setActionMessage("");
+
+    const endpoint =
+      actionType === "approve"
+        ? `http://localhost:5000/bookings/${bookingId}/approve-payment`
+        : `http://localhost:5000/bookings/${bookingId}/reject-payment`;
+
+    const response = await fetch(endpoint, {
+      method: "PATCH",
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to update payment status");
+    }
+
+    setBookings((currentBookings) =>
+      currentBookings.map((booking) =>
+        booking.id === bookingId
+          ? { ...booking, status: data.booking.status }
+          : booking
+      )
+    );
+
+    setActionMessage(data.message);
+  } catch (error) {
+    console.error("Payment action error:", error);
+    setActionMessage(error.message || "Unable to update payment status.");
+  } finally {
+    setProcessingBookingId(null);
+  }
+};
 
   return (
     <div className="min-h-screen bg-[#f3f4f6] text-slate-900">
@@ -162,6 +201,12 @@ function PaymentVerificationPage() {
               Connected to backend
             </span>
           </div>
+
+          {actionMessage ? (
+            <div className="mb-6 rounded-2xl bg-lime-50 px-5 py-4 text-sm font-semibold text-emerald-800 ring-1 ring-lime-100">
+                {actionMessage}
+            </div>
+            ) : null}
 
           {isLoading ? (
             <div className="rounded-2xl bg-gray-50 px-5 py-5 text-sm font-medium text-slate-500 ring-1 ring-gray-200">
@@ -305,23 +350,33 @@ const isImageFile = /\.(jpg|jpeg|png)$/i.test(fileName);
                     <div className="flex flex-col justify-center gap-3">
                       <button
                         type="button"
-                        disabled
-                        className="cursor-not-allowed rounded-2xl bg-slate-400 px-5 py-3 text-sm font-semibold text-white"
-                      >
-                        Approve Payment
-                      </button>
+                        onClick={() => handlePaymentAction(booking.id, "approve")}
+                        disabled={booking.status !== "PAYMENT_UPLOADED" || processingBookingId === booking.id}
+                        className={`rounded-2xl px-5 py-3 text-sm font-semibold text-white transition ${
+                            booking.status !== "PAYMENT_UPLOADED" || processingBookingId === booking.id
+                            ? "cursor-not-allowed bg-slate-400"
+                            : "bg-emerald-950 hover:bg-emerald-900"
+                        }`}
+                        >
+                        {processingBookingId === booking.id ? "Processing..." : "Approve Payment"}
+                        </button>
 
-                      <button
+                        <button
                         type="button"
-                        disabled
-                        className="cursor-not-allowed rounded-2xl border border-gray-200 bg-gray-100 px-5 py-3 text-sm font-semibold text-slate-400"
-                      >
-                        Reject Payment
-                      </button>
+                        onClick={() => handlePaymentAction(booking.id, "reject")}
+                        disabled={booking.status !== "PAYMENT_UPLOADED" || processingBookingId === booking.id}
+                        className={`rounded-2xl border px-5 py-3 text-sm font-semibold transition ${
+                            booking.status !== "PAYMENT_UPLOADED" || processingBookingId === booking.id
+                            ? "cursor-not-allowed border-gray-200 bg-gray-100 text-slate-400"
+                            : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                        }`}
+                        >
+                        {processingBookingId === booking.id ? "Processing..." : "Reject Payment"}
+                        </button>
 
-                      <p className="text-center text-xs leading-5 text-slate-500">
-                        Approval API will be connected in the next step.
-                      </p>
+                        <p className="text-center text-xs leading-5 text-slate-500">
+                        Buttons are enabled only for bookings with PAYMENT_UPLOADED status.
+                        </p>
                     </div>
                   </article>
                 );
