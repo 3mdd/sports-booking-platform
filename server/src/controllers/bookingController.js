@@ -1,4 +1,7 @@
 const prisma = require("../lib/prisma");
+const {
+  expireOldPendingBookings,
+} = require("../services/bookingExpiryService");
 
 const createBooking = async (req, res) => {
   try {
@@ -141,6 +144,8 @@ const getBookingsByCustomer = async (req, res) => {
       });
     }
 
+    await expireOldPendingBookings();
+
     const bookings = await prisma.booking.findMany({
       where: {
         customerId: Number(customerId),
@@ -188,6 +193,8 @@ const getBookingsByMerchant = async (req, res) => {
     if (!merchant) {
       return res.status(404).json({ message: "Merchant not found" });
     }
+
+    await expireOldPendingBookings();
 
     const bookings = await prisma.booking.findMany({
       where: {
@@ -334,11 +341,22 @@ const approvePayment = async (req, res) => {
       });
     }
 
-    const updatedBooking = await prisma.booking.update({
-      where: { id: Number(bookingId) },
-      data: {
-        status: "CONFIRMED",
-      },
+    const updatedBooking = await prisma.$transaction(async (tx) => {
+      const bookingUpdate = await tx.booking.update({
+        where: { id: Number(bookingId) },
+        data: {
+          status: "CONFIRMED",
+        },
+      });
+
+      await tx.paymentProof.update({
+        where: { bookingId: Number(bookingId) },
+        data: {
+          status: "APPROVED",
+        },
+      });
+
+      return bookingUpdate;
     });
 
     return res.status(200).json({
@@ -386,6 +404,13 @@ const rejectPayment = async (req, res) => {
     const result = await prisma.$transaction(async (tx) => {
       const updatedBooking = await tx.booking.update({
         where: { id: Number(bookingId) },
+        data: {
+          status: "REJECTED",
+        },
+      });
+
+      await tx.paymentProof.update({
+        where: { bookingId: Number(bookingId) },
         data: {
           status: "REJECTED",
         },

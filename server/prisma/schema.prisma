@@ -105,6 +105,7 @@ enum BookingStatus {
   CONFIRMED
   REJECTED
   CANCELLED
+  EXPIRED
 }
 
 model Booking {
@@ -179,4 +180,3 @@ model Review {
   customer       CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
   facility       Facility        @relation(fields: [facilityId], references: [id], onDelete: Cascade)
 }
-

@@ -19,6 +19,12 @@ function Navbar() {
 >
   Browse Facilities
 </Link>
+            <Link
+  to="/customer/bookings"
+  className="text-sm font-medium text-gray-600 hover:text-lime-600"
+>
+  My Bookings
+</Link>
             <button className="text-sm font-medium text-gray-600 hover:text-lime-600">
               How It Works
             </button>

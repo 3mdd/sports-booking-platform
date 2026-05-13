@@ -254,13 +254,18 @@ function PaymentProofUploadPage() {
                 : "Submit Payment Proof"}
             </button>
 
+            <p className="mt-4 rounded-2xl bg-lime-50 px-4 py-3 text-sm leading-6 text-emerald-950 ring-1 ring-lime-100">
+              You can upload your payment proof later from My Bookings before
+              the 30-minute payment window expires.
+            </p>
+
             <button
               type="button"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate("/customer/bookings")}
               disabled={isSubmitting}
               className="mt-4 w-full rounded-2xl border border-gray-200 bg-white px-6 py-3.5 text-sm font-semibold text-slate-700 transition hover:bg-gray-50"
             >
-              Back to Confirmation
+              Pay Later / View My Bookings
             </button>
           </div>
         </section>

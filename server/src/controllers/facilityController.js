@@ -1,4 +1,7 @@
 const prisma = require("../lib/prisma");
+const {
+  expireOldPendingBookings,
+} = require("../services/bookingExpiryService");
 
 const createFacility = async (req, res) => {
   try {
@@ -199,6 +202,8 @@ const getFacilitySlotsByDate = async (req, res) => {
         message: "Facility not found",
       });
     }
+
+    await expireOldPendingBookings();
 
     const slotDate = new Date(`${date}T00:00:00`);
 
