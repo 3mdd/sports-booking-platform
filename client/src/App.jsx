@@ -9,6 +9,8 @@ import ScrollToTop from "./components/layout/ScrollToTop";
 import PaymentProofUploadPage from "./pages/customer/PaymentProofUploadPage";
 import PaymentVerificationPage from "./pages/merchant/PaymentVerificationPage";
 import MerchantDashboardPage from "./pages/merchant/MerchantDashboardPage";
+import MerchantFacilityManagementPage from "./pages/merchant/MerchantFacilityManagementPage";
+import MerchantSlotManagementPage from "./pages/merchant/MerchantSlotManagementPage";
 
 function App() {
   return (
@@ -25,6 +27,8 @@ function App() {
         <Route path="/payment-proof" element={<PaymentProofUploadPage />} />
         <Route path="/merchant/payments" element={<PaymentVerificationPage />} />
         <Route path="/merchant/dashboard" element={<MerchantDashboardPage />} />
+        <Route path="/merchant/facilities" element={<MerchantFacilityManagementPage />} />
+        <Route path="/merchant/facilities/:facilityId/slots" element={<MerchantSlotManagementPage />} />
       </Routes>
     </BrowserRouter>
   );

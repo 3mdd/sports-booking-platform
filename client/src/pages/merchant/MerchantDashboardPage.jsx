@@ -385,9 +385,12 @@ function MerchantDashboardPage() {
                   Verify Payment Proofs
                 </Link>
 
-                <button className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-gray-50">
+                <Link
+                  to="/merchant/facilities"
+                  className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-gray-50"
+                >
                   Manage Facilities
-                </button>
+                </Link>
 
                 <button className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-gray-50">
                   View Booking Schedule

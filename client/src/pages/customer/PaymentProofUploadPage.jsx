@@ -1,7 +1,32 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
+
+const PAYMENT_WINDOW_MS = 30 * 60 * 1000;
+
+function getRemainingPaymentTime(createdAt, currentTime) {
+  if (!createdAt) return null;
+
+  const createdAtTime = new Date(createdAt).getTime();
+
+  if (Number.isNaN(createdAtTime)) return null;
+
+  return Math.max(createdAtTime + PAYMENT_WINDOW_MS - currentTime, 0);
+}
+
+function formatRemainingTime(milliseconds) {
+  if (milliseconds === null) return "Unavailable";
+
+  const totalSeconds = Math.ceil(milliseconds / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(
+    2,
+    "0"
+  )}`;
+}
 
 function PaymentProofUploadPage() {
   const location = useLocation();
@@ -13,6 +38,31 @@ function PaymentProofUploadPage() {
   const [submitMessage, setSubmitMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [currentTime, setCurrentTime] = useState(Date.now());
+
+  const bookingStatus = isSuccess
+    ? "PAYMENT_UPLOADED"
+    : booking?.bookingStatus || "PENDING_PAYMENT";
+
+  useEffect(() => {
+    if (bookingStatus !== "PENDING_PAYMENT" || !booking?.createdAt) {
+      return undefined;
+    }
+
+    const timerId = window.setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(timerId);
+  }, [booking?.createdAt, bookingStatus]);
+
+  const remainingPaymentTime = useMemo(
+    () => getRemainingPaymentTime(booking?.createdAt, currentTime),
+    [booking?.createdAt, currentTime]
+  );
+
+  const isPaymentWindowExpired =
+    bookingStatus === "PENDING_PAYMENT" && remainingPaymentTime === 0;
 
   const handleSubmitPaymentProof = async () => {
     if (!booking?.bookingId) {
@@ -20,6 +70,12 @@ function PaymentProofUploadPage() {
       setSubmitMessage(
         "Booking ID is missing. Please create the booking again before uploading payment proof."
       );
+      return;
+    }
+
+    if (isPaymentWindowExpired) {
+      setIsSuccess(false);
+      setSubmitMessage("Payment window expired. Please make a new booking.");
       return;
     }
 
@@ -143,7 +199,7 @@ function PaymentProofUploadPage() {
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <span className="text-slate-500">Booking Status</span>
                 <span className="font-semibold text-slate-900">
-                  {booking.bookingStatus || "PENDING_PAYMENT"}
+                  {bookingStatus}
                 </span>
               </div>
 
@@ -161,6 +217,30 @@ function PaymentProofUploadPage() {
               Payment proof should be uploaded within 30 minutes after booking
               creation.
             </div>
+
+            {bookingStatus === "PENDING_PAYMENT" ? (
+              <div
+                className={`mt-4 rounded-2xl p-4 text-sm ring-1 ${
+                  isPaymentWindowExpired
+                    ? "bg-red-50 text-red-700 ring-red-100"
+                    : "bg-amber-50 text-amber-700 ring-amber-100"
+                }`}
+              >
+                {remainingPaymentTime === null ? (
+                  <p className="font-semibold">
+                    Payment countdown is unavailable for this booking.
+                  </p>
+                ) : isPaymentWindowExpired ? (
+                  <p className="font-semibold">
+                    Payment window expired. Please make a new booking.
+                  </p>
+                ) : (
+                  <p className="font-semibold">
+                    Time remaining: {formatRemainingTime(remainingPaymentTime)}
+                  </p>
+                )}
+              </div>
+            ) : null}
           </div>
 
           <div className="rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-gray-200">
@@ -240,9 +320,9 @@ function PaymentProofUploadPage() {
             <button
               type="button"
               onClick={handleSubmitPaymentProof}
-              disabled={isSubmitting || isSuccess}
+              disabled={isSubmitting || isSuccess || isPaymentWindowExpired}
               className={`mt-8 w-full rounded-2xl px-6 py-3.5 text-sm font-semibold text-white transition ${
-                isSubmitting || isSuccess
+                isSubmitting || isSuccess || isPaymentWindowExpired
                   ? "cursor-not-allowed bg-slate-400"
                   : "bg-emerald-950 hover:bg-emerald-900"
               }`}

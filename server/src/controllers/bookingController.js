@@ -3,6 +3,30 @@ const {
   expireOldPendingBookings,
 } = require("../services/bookingExpiryService");
 
+const BOOKING_ADVANCE_DAYS = 14;
+
+function getStartOfToday() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return today;
+}
+
+function getMaxBookingDate() {
+  const maxBookingDate = getStartOfToday();
+  maxBookingDate.setDate(maxBookingDate.getDate() + BOOKING_ADVANCE_DAYS);
+  maxBookingDate.setHours(23, 59, 59, 999);
+
+  return maxBookingDate;
+}
+
+function getStartOfSlotDate(slotDate) {
+  const date = new Date(slotDate);
+  date.setHours(0, 0, 0, 0);
+
+  return date;
+}
+
 const createBooking = async (req, res) => {
   try {
     const { customerId, facilityId, timeSlotIds, notes } = req.body;
@@ -50,6 +74,29 @@ const createBooking = async (req, res) => {
     if (slots.length !== timeSlotIds.length) {
       return res.status(400).json({
         message: "One or more selected slots do not exist",
+      });
+    }
+
+    const todayStart = getStartOfToday();
+    const maxBookingDate = getMaxBookingDate();
+
+    const hasPastSlotDate = slots.some(
+      (slot) => getStartOfSlotDate(slot.slotDate) < todayStart
+    );
+
+    if (hasPastSlotDate) {
+      return res.status(400).json({
+        message: "Bookings cannot be made for past dates.",
+      });
+    }
+
+    const hasTooFarSlotDate = slots.some(
+      (slot) => getStartOfSlotDate(slot.slotDate) > maxBookingDate
+    );
+
+    if (hasTooFarSlotDate) {
+      return res.status(400).json({
+        message: "Bookings are only available up to 14 days in advance.",
       });
     }
 

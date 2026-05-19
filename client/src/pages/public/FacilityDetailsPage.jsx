@@ -55,6 +55,33 @@ function buildSlotStartDateTime(selectedDate, slotLabel) {
   return date;
 }
 
+function buildDateInputValue(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function buildLocalDate(dateValue) {
+  const [year, month, day] = dateValue.split("-").map(Number);
+
+  return new Date(year, month - 1, day);
+}
+
+function getBookingDateError(dateValue, todayDate, maxBookingDateValue) {
+  if (!dateValue) return "";
+
+  if (buildLocalDate(dateValue) < buildLocalDate(todayDate)) {
+    return "Past dates are not allowed. Please choose today or a future date.";
+  }
+
+  if (buildLocalDate(dateValue) > buildLocalDate(maxBookingDateValue)) {
+    return "Bookings are only available up to 14 days in advance. Please choose an earlier date.";
+  }
+
+  return "";
+}
+
 function FacilityDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -73,9 +100,15 @@ function FacilityDetailsPage() {
   const [slotError, setSlotError] = useState("");
 
   const currentDate = new Date();
-  const todayDate = `${currentDate.getFullYear()}-${String(
-    currentDate.getMonth() + 1
-  ).padStart(2, "0")}-${String(currentDate.getDate()).padStart(2, "0")}`;
+  const todayDate = buildDateInputValue(currentDate);
+  const maxBookingDate = new Date(currentDate);
+  maxBookingDate.setDate(maxBookingDate.getDate() + 14);
+  const maxBookingDateValue = buildDateInputValue(maxBookingDate);
+  const selectedDateError = getBookingDateError(
+    selectedDate,
+    todayDate,
+    maxBookingDateValue
+  );
 
   useEffect(() => {
     const fetchFacilityDetails = async () => {
@@ -107,6 +140,12 @@ function FacilityDetailsPage() {
   useEffect(() => {
     const fetchAvailableSlots = async () => {
       if (!selectedDate || !facility?.id) {
+        setAvailableSlots([]);
+        setSlotsMessage("");
+        return;
+      }
+
+      if (selectedDateError) {
         setAvailableSlots([]);
         setSlotsMessage("");
         return;
@@ -148,7 +187,7 @@ function FacilityDetailsPage() {
     };
 
     fetchAvailableSlots();
-  }, [selectedDate, facility]);
+  }, [selectedDate, selectedDateError, facility]);
 
   const currentTimePlusTwoHours = useMemo(() => {
     const now = new Date();
@@ -174,19 +213,22 @@ function FacilityDetailsPage() {
 
   const handleDateChange = (event) => {
     const chosenDate = event.target.value;
-
-    if (chosenDate && chosenDate < todayDate) {
-      setSlotError(
-        "Past dates are not allowed. Please choose today or a future date."
-      );
-      setSelectedDate("");
-      setSelectedSlots([]);
-      setAvailableSlots([]);
-      return;
-    }
+    const dateError = getBookingDateError(
+      chosenDate,
+      todayDate,
+      maxBookingDateValue
+    );
 
     setSelectedDate(chosenDate);
     setSelectedSlots([]);
+
+    if (dateError) {
+      setSlotError(dateError);
+      setAvailableSlots([]);
+      setSlotsMessage("");
+      return;
+    }
+
     setSlotError("");
   };
 
@@ -452,10 +494,14 @@ function FacilityDetailsPage() {
                 <input
                   type="date"
                   min={todayDate}
+                  max={maxBookingDateValue}
                   value={selectedDate}
                   onChange={handleDateChange}
                   className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
                 />
+                <p className="mt-2 text-sm font-medium text-slate-500">
+                  Bookings are available up to 14 days in advance.
+                </p>
               </div>
 
               <div>
@@ -615,7 +661,12 @@ function FacilityDetailsPage() {
             <button
               type="button"
               onClick={handleContinueToBooking}
-              className="mt-8 w-full rounded-2xl bg-emerald-950 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-emerald-900"
+              disabled={Boolean(selectedDateError)}
+              className={`mt-8 w-full rounded-2xl px-6 py-3.5 text-sm font-semibold text-white transition ${
+                selectedDateError
+                  ? "cursor-not-allowed bg-slate-400"
+                  : "bg-emerald-950 hover:bg-emerald-900"
+              }`}
             >
               Continue to Booking
             </button>

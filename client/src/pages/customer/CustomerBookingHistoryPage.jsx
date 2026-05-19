@@ -4,6 +4,7 @@ import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 
 const TEMP_CUSTOMER_ID = 1;
+const PAYMENT_WINDOW_MS = 30 * 60 * 1000;
 
 function formatDate(dateValue) {
   if (!dateValue) return "Not available";
@@ -70,12 +71,52 @@ function getStatusClass(status) {
   return "bg-gray-100 text-slate-600";
 }
 
+function getRemainingPaymentTime(createdAt, currentTime) {
+  if (!createdAt) return null;
+
+  const createdAtTime = new Date(createdAt).getTime();
+
+  if (Number.isNaN(createdAtTime)) return null;
+
+  return Math.max(createdAtTime + PAYMENT_WINDOW_MS - currentTime, 0);
+}
+
+function formatRemainingTime(milliseconds) {
+  if (milliseconds === null) return "Unavailable";
+
+  const totalSeconds = Math.ceil(milliseconds / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(
+    2,
+    "0"
+  )}`;
+}
+
 function CustomerBookingHistoryPage() {
   const navigate = useNavigate();
 
   const [bookings, setBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [currentTime, setCurrentTime] = useState(Date.now());
+
+  useEffect(() => {
+    const hasPendingBooking = bookings.some(
+      (booking) => booking.status === "PENDING_PAYMENT" && booking.createdAt
+    );
+
+    if (!hasPendingBooking) {
+      return undefined;
+    }
+
+    const timerId = window.setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(timerId);
+  }, [bookings]);
 
   useEffect(() => {
     const fetchCustomerBookings = async () => {
@@ -134,6 +175,7 @@ function CustomerBookingHistoryPage() {
         durationLabel: bookingTime,
         totalPrice: Number(booking.totalPrice || 0),
         bookingStatus: booking.status,
+        createdAt: booking.createdAt,
       },
     });
   };
@@ -241,6 +283,13 @@ function CustomerBookingHistoryPage() {
                 const bookingStatus = booking.status || "UNKNOWN";
                 const paymentProofStatus =
                   booking.paymentProof?.status || "Not uploaded";
+                const remainingPaymentTime = getRemainingPaymentTime(
+                  booking.createdAt,
+                  currentTime
+                );
+                const isPendingPaymentExpired =
+                  bookingStatus === "PENDING_PAYMENT" &&
+                  remainingPaymentTime === 0;
 
                 return (
                   <article
@@ -311,20 +360,30 @@ function CustomerBookingHistoryPage() {
 
                     <div className="mt-5 flex flex-col gap-3 border-t border-gray-200 pt-5 md:flex-row md:items-center md:justify-between">
                       {bookingStatus === "PENDING_PAYMENT" ? (
-                        <>
-                          <p className="text-sm font-medium text-amber-700">
-                            Payment proof is still required before the
-                            30-minute payment window expires.
+                        isPendingPaymentExpired ? (
+                          <p className="text-sm font-semibold text-red-700">
+                            Payment window expired. Please make a new booking.
                           </p>
+                        ) : (
+                          <>
+                            <p className="text-sm font-medium text-amber-700">
+                              {remainingPaymentTime === null
+                                ? "Payment proof is still required before the payment window expires."
+                                : `Payment time remaining: ${formatRemainingTime(
+                                    remainingPaymentTime
+                                  )}`}
+                            </p>
 
-                          <button
-                            type="button"
-                            onClick={() => handleUploadPaymentProof(booking)}
-                            className="rounded-2xl bg-emerald-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-900"
-                          >
-                            Upload Payment Proof
-                          </button>
-                        </>
+                            <button
+                              type="button"
+                              onClick={() => handleUploadPaymentProof(booking)}
+                              disabled={remainingPaymentTime === 0}
+                              className="rounded-2xl bg-emerald-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-900 disabled:cursor-not-allowed disabled:bg-slate-400"
+                            >
+                              Upload Payment Proof
+                            </button>
+                          </>
+                        )
                       ) : null}
 
                       {bookingStatus === "PAYMENT_UPLOADED" ? (

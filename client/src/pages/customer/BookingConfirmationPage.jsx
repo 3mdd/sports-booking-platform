@@ -50,6 +50,7 @@ function BookingConfirmationPage() {
           ...booking,
           bookingId: data.booking.id,
           bookingStatus: data.booking.status,
+          createdAt: data.booking.createdAt,
           totalPrice: Number(data.totalPrice),
         },
       });
