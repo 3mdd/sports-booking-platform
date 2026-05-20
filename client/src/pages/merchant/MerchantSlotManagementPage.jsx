@@ -114,6 +114,10 @@ function MerchantSlotManagementPage() {
   const [submitMessage, setSubmitMessage] = useState("");
   const [isSubmitSuccess, setIsSubmitSuccess] = useState(false);
   const [failureDetails, setFailureDetails] = useState([]);
+  const [blockReasons, setBlockReasons] = useState({});
+  const [processingSlotId, setProcessingSlotId] = useState(null);
+  const [slotActionMessage, setSlotActionMessage] = useState("");
+  const [isSlotActionSuccess, setIsSlotActionSuccess] = useState(false);
   const todayDate = getTodayDate();
   const maxBulkDate = getMaxBulkDate();
 
@@ -187,7 +191,9 @@ function MerchantSlotManagementPage() {
     return {
       total: slots.length,
       booked: slots.filter((slot) => slot.isBooked).length,
-      available: slots.filter((slot) => !slot.isBooked).length,
+      blocked: slots.filter((slot) => slot.isBlocked).length,
+      available: slots.filter((slot) => !slot.isBooked && !slot.isBlocked)
+        .length,
     };
   }, [slots]);
 
@@ -198,6 +204,85 @@ function MerchantSlotManagementPage() {
       ...currentForm,
       [name]: value,
     }));
+  };
+
+  const handleBlockReasonChange = (slotId, value) => {
+    setBlockReasons((currentReasons) => ({
+      ...currentReasons,
+      [slotId]: value,
+    }));
+  };
+
+  const handleBlockSlot = async (slotId) => {
+    try {
+      setProcessingSlotId(slotId);
+      setSlotActionMessage("");
+      setIsSlotActionSuccess(false);
+
+      const response = await fetch(
+        `http://localhost:5000/facilities/slots/${slotId}/block`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            blockReason: blockReasons[slotId] || "",
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to block slot");
+      }
+
+      setBlockReasons((currentReasons) => ({
+        ...currentReasons,
+        [slotId]: "",
+      }));
+      setIsSlotActionSuccess(true);
+      setSlotActionMessage(data.message);
+      await fetchSlots();
+    } catch (error) {
+      console.error("Block slot error:", error);
+      setIsSlotActionSuccess(false);
+      setSlotActionMessage(error.message || "Unable to block slot.");
+    } finally {
+      setProcessingSlotId(null);
+    }
+  };
+
+  const handleUnblockSlot = async (slotId) => {
+    try {
+      setProcessingSlotId(slotId);
+      setSlotActionMessage("");
+      setIsSlotActionSuccess(false);
+
+      const response = await fetch(
+        `http://localhost:5000/facilities/slots/${slotId}/unblock`,
+        {
+          method: "PATCH",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to unblock slot");
+      }
+
+      setIsSlotActionSuccess(true);
+      setSlotActionMessage(data.message);
+      await fetchSlots();
+    } catch (error) {
+      console.error("Unblock slot error:", error);
+      setIsSlotActionSuccess(false);
+      setSlotActionMessage(error.message || "Unable to unblock slot.");
+    } finally {
+      setProcessingSlotId(null);
+    }
   };
 
   const handleGenerateSlots = async (event) => {
@@ -567,6 +652,18 @@ function MerchantSlotManagementPage() {
               </div>
             ) : null}
 
+            {slotActionMessage ? (
+              <div
+                className={`mb-6 rounded-2xl px-5 py-4 text-sm font-semibold ${
+                  isSlotActionSuccess
+                    ? "bg-lime-50 text-emerald-800 ring-1 ring-lime-100"
+                    : "bg-red-50 text-red-700 ring-1 ring-red-100"
+                }`}
+              >
+                {slotActionMessage}
+              </div>
+            ) : null}
+
             {isSlotsLoading ? (
               <div className="rounded-2xl bg-gray-50 px-5 py-5 text-sm font-medium text-slate-500 ring-1 ring-gray-200">
                 Loading time slots...
@@ -581,36 +678,100 @@ function MerchantSlotManagementPage() {
 
             {!isSlotsLoading && !errorMessage && slots.length > 0 ? (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {slots.map((slot) => (
-                  <article
-                    key={slot.id}
-                    className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-500">
-                          Slot #{slot.id}
-                        </p>
-                        <p className="mt-2 text-lg font-black text-emerald-950">
-                          {formatTime(slot.startTime)}
-                        </p>
-                        <p className="text-sm font-semibold text-slate-700">
-                          to {formatTime(slot.endTime)}
-                        </p>
+                {slots.map((slot) => {
+                  const isProcessing = processingSlotId === slot.id;
+
+                  return (
+                    <article
+                      key={slot.id}
+                      className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-500">
+                            Slot #{slot.id}
+                          </p>
+                          <p className="mt-2 text-lg font-black text-emerald-950">
+                            {formatTime(slot.startTime)}
+                          </p>
+                          <p className="text-sm font-semibold text-slate-700">
+                            to {formatTime(slot.endTime)}
+                          </p>
+                        </div>
+
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-bold ${
+                            slot.isBooked
+                              ? "bg-amber-100 text-amber-700"
+                              : slot.isBlocked
+                              ? "bg-red-100 text-red-700"
+                              : "bg-lime-100 text-emerald-950"
+                          }`}
+                        >
+                          {slot.isBooked
+                            ? "Booked"
+                            : slot.isBlocked
+                            ? "Blocked"
+                            : "Available"}
+                        </span>
                       </div>
 
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-bold ${
-                          slot.isBooked
-                            ? "bg-amber-100 text-amber-700"
-                            : "bg-lime-100 text-emerald-950"
-                        }`}
-                      >
-                        {slot.isBooked ? "Booked" : "Available"}
-                      </span>
-                    </div>
-                  </article>
-                ))}
+                      {slot.blockReason ? (
+                        <p className="mt-3 rounded-xl bg-white px-3 py-2 text-xs font-medium text-slate-600 ring-1 ring-gray-200">
+                          Reason: {slot.blockReason}
+                        </p>
+                      ) : null}
+
+                      {!slot.isBooked && !slot.isBlocked ? (
+                        <div className="mt-4 grid gap-3">
+                          <input
+                            type="text"
+                            value={blockReasons[slot.id] || ""}
+                            onChange={(event) =>
+                              handleBlockReasonChange(slot.id, event.target.value)
+                            }
+                            placeholder="Block reason (optional)"
+                            className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-lime-400"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleBlockSlot(slot.id)}
+                            disabled={isProcessing}
+                            className={`rounded-xl px-4 py-2 text-sm font-semibold text-white transition ${
+                              isProcessing
+                                ? "cursor-not-allowed bg-slate-400"
+                                : "bg-emerald-950 hover:bg-emerald-900"
+                            }`}
+                          >
+                            {isProcessing ? "Blocking..." : "Block Slot"}
+                          </button>
+                        </div>
+                      ) : null}
+
+                      {!slot.isBooked && slot.isBlocked ? (
+                        <button
+                          type="button"
+                          onClick={() => handleUnblockSlot(slot.id)}
+                          disabled={isProcessing}
+                          className={`mt-4 w-full rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                            isProcessing
+                              ? "cursor-not-allowed border border-gray-200 bg-gray-100 text-slate-400"
+                              : "border border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                          }`}
+                        >
+                          {isProcessing ? "Unblocking..." : "Unblock Slot"}
+                        </button>
+                      ) : null}
+
+                      {slot.isBooked ? (
+                        <p className="mt-4 text-xs font-semibold text-amber-700">
+                          Booked/Locked. Customer-booked slots cannot be
+                          unblocked here.
+                        </p>
+                      ) : null}
+                    </article>
+                  );
+                })}
               </div>
             ) : null}
           </section>

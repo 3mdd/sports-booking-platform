@@ -248,8 +248,15 @@ function FacilityDetailsPage() {
     return Boolean(slot.isBooked);
   };
 
+  const isSlotBlocked = (slot) => {
+    if (!selectedDate) return false;
+
+    return Boolean(slot.isBlocked);
+  };
+
   const isSlotDisabled = (slot) => {
     if (isSlotBooked(slot)) return true;
+    if (isSlotBlocked(slot)) return true;
 
     if (!isTodaySelected || !selectedDate) return false;
 
@@ -553,6 +560,7 @@ function FacilityDetailsPage() {
                     (selectedSlot) => selectedSlot.id === slot.id
                   );
                   const isBooked = isSlotBooked(slot);
+                  const isBlocked = isSlotBlocked(slot);
                   const disabled = isSlotDisabled(slot);
 
                   return (
@@ -573,6 +581,11 @@ function FacilityDetailsPage() {
                       {isBooked ? (
                         <span className="mt-1 block text-xs font-semibold">
                           Booked
+                        </span>
+                      ) : null}
+                      {isBlocked ? (
+                        <span className="mt-1 block text-xs font-semibold">
+                          Blocked
                         </span>
                       ) : null}
                     </button>

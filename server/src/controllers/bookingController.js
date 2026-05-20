@@ -118,6 +118,14 @@ const createBooking = async (req, res) => {
       });
     }
 
+    const hasBlockedSlot = slots.some((slot) => slot.isBlocked);
+
+    if (hasBlockedSlot) {
+      return res.status(400).json({
+        message: "One or more selected slots are blocked by the merchant",
+      });
+    }
+
     for (let i = 0; i < slots.length - 1; i++) {
       const currentEnd = new Date(slots[i].endTime).getTime();
       const nextStart = new Date(slots[i + 1].startTime).getTime();

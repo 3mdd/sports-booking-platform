@@ -246,6 +246,93 @@ const getFacilitySlotsByDate = async (req, res) => {
   }
 };
 
+const blockTimeSlot = async (req, res) => {
+  try {
+    const { slotId } = req.params;
+    const { blockReason } = req.body;
+
+    const slot = await prisma.timeSlot.findUnique({
+      where: { id: Number(slotId) },
+    });
+
+    if (!slot) {
+      return res.status(404).json({
+        message: "Time slot not found",
+      });
+    }
+
+    if (slot.isBooked) {
+      return res.status(400).json({
+        message: "Booked slots cannot be blocked.",
+      });
+    }
+
+    const updatedSlot = await prisma.timeSlot.update({
+      where: { id: Number(slotId) },
+      data: {
+        isBlocked: true,
+        blockReason: blockReason || null,
+      },
+    });
+
+    return res.status(200).json({
+      message: "Time slot blocked successfully",
+      slot: updatedSlot,
+    });
+  } catch (error) {
+    console.error("Block time slot failed:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
+const unblockTimeSlot = async (req, res) => {
+  try {
+    const { slotId } = req.params;
+
+    const slot = await prisma.timeSlot.findUnique({
+      where: { id: Number(slotId) },
+    });
+
+    if (!slot) {
+      return res.status(404).json({
+        message: "Time slot not found",
+      });
+    }
+
+    if (slot.isBooked) {
+      return res.status(400).json({
+        message: "Booked slots cannot be unblocked from merchant blocking.",
+      });
+    }
+
+    if (!slot.isBlocked) {
+      return res.status(400).json({
+        message: "Only manually blocked slots can be unblocked.",
+      });
+    }
+
+    const updatedSlot = await prisma.timeSlot.update({
+      where: { id: Number(slotId) },
+      data: {
+        isBlocked: false,
+        blockReason: null,
+      },
+    });
+
+    return res.status(200).json({
+      message: "Time slot unblocked successfully",
+      slot: updatedSlot,
+    });
+  } catch (error) {
+    console.error("Unblock time slot failed:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
 
 module.exports = {
   createFacility,
@@ -253,4 +340,6 @@ module.exports = {
   getFacilityById,
   createTimeSlots,
   getFacilitySlotsByDate,
+  blockTimeSlot,
+  unblockTimeSlot,
 };
