@@ -7,6 +7,8 @@ const {
   getFacilitySlotsByDate,
   blockTimeSlot,
   unblockTimeSlot,
+  blockFacilityDaySlots,
+  unblockFacilityDaySlots,
 } = require("../controllers/facilityController");
 
 const router = express.Router();
@@ -18,5 +20,10 @@ router.post("/facilities/slots", createTimeSlots);
 router.get("/facilities/slots/by-date", getFacilitySlotsByDate);
 router.patch("/facilities/slots/:slotId/block", blockTimeSlot);
 router.patch("/facilities/slots/:slotId/unblock", unblockTimeSlot);
+router.patch("/facilities/:facilityId/slots/block-day", blockFacilityDaySlots);
+router.patch(
+  "/facilities/:facilityId/slots/unblock-day",
+  unblockFacilityDaySlots
+);
 
 module.exports = router;

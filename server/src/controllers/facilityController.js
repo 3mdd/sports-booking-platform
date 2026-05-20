@@ -333,6 +333,112 @@ const unblockTimeSlot = async (req, res) => {
   }
 };
 
+const blockFacilityDaySlots = async (req, res) => {
+  try {
+    const { facilityId } = req.params;
+    const { date, blockReason } = req.body;
+
+    if (!date) {
+      return res.status(400).json({
+        message: "date is required",
+      });
+    }
+
+    const facility = await prisma.facility.findUnique({
+      where: { id: Number(facilityId) },
+    });
+
+    if (!facility) {
+      return res.status(404).json({
+        message: "Facility not found",
+      });
+    }
+
+    const slotDate = new Date(`${date}T00:00:00`);
+
+    const [skippedBookedCount, blockResult] = await prisma.$transaction([
+      prisma.timeSlot.count({
+        where: {
+          facilityId: Number(facilityId),
+          slotDate,
+          isBooked: true,
+        },
+      }),
+      prisma.timeSlot.updateMany({
+        where: {
+          facilityId: Number(facilityId),
+          slotDate,
+          isBooked: false,
+          isBlocked: false,
+        },
+        data: {
+          isBlocked: true,
+          blockReason: blockReason || null,
+        },
+      }),
+    ]);
+
+    return res.status(200).json({
+      message: "Available slots blocked successfully",
+      blockedCount: blockResult.count,
+      skippedBookedCount,
+    });
+  } catch (error) {
+    console.error("Block facility day slots failed:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
+const unblockFacilityDaySlots = async (req, res) => {
+  try {
+    const { facilityId } = req.params;
+    const { date } = req.body;
+
+    if (!date) {
+      return res.status(400).json({
+        message: "date is required",
+      });
+    }
+
+    const facility = await prisma.facility.findUnique({
+      where: { id: Number(facilityId) },
+    });
+
+    if (!facility) {
+      return res.status(404).json({
+        message: "Facility not found",
+      });
+    }
+
+    const slotDate = new Date(`${date}T00:00:00`);
+
+    const unblockResult = await prisma.timeSlot.updateMany({
+      where: {
+        facilityId: Number(facilityId),
+        slotDate,
+        isBooked: false,
+        isBlocked: true,
+      },
+      data: {
+        isBlocked: false,
+        blockReason: null,
+      },
+    });
+
+    return res.status(200).json({
+      message: "Blocked slots unblocked successfully",
+      unblockedCount: unblockResult.count,
+    });
+  } catch (error) {
+    console.error("Unblock facility day slots failed:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
 
 module.exports = {
   createFacility,
@@ -342,4 +448,6 @@ module.exports = {
   getFacilitySlotsByDate,
   blockTimeSlot,
   unblockTimeSlot,
+  blockFacilityDaySlots,
+  unblockFacilityDaySlots,
 };

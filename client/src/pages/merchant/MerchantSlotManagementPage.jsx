@@ -118,6 +118,8 @@ function MerchantSlotManagementPage() {
   const [processingSlotId, setProcessingSlotId] = useState(null);
   const [slotActionMessage, setSlotActionMessage] = useState("");
   const [isSlotActionSuccess, setIsSlotActionSuccess] = useState(false);
+  const [dayBlockReason, setDayBlockReason] = useState("");
+  const [isDayActionProcessing, setIsDayActionProcessing] = useState(false);
   const todayDate = getTodayDate();
   const maxBulkDate = getMaxBulkDate();
 
@@ -282,6 +284,100 @@ function MerchantSlotManagementPage() {
       setSlotActionMessage(error.message || "Unable to unblock slot.");
     } finally {
       setProcessingSlotId(null);
+    }
+  };
+
+  const handleBlockDay = async () => {
+    if (!selectedDate) {
+      setIsSlotActionSuccess(false);
+      setSlotActionMessage("Please select a date before blocking slots.");
+      return;
+    }
+
+    try {
+      setIsDayActionProcessing(true);
+      setSlotActionMessage("");
+      setIsSlotActionSuccess(false);
+
+      const response = await fetch(
+        `http://localhost:5000/facilities/${facilityId}/slots/block-day`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            date: selectedDate,
+            blockReason: dayBlockReason || "",
+          }),
+        }
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to block day slots");
+      }
+
+      setDayBlockReason("");
+      setIsSlotActionSuccess(true);
+      setSlotActionMessage(
+        `${data.blockedCount || 0} available slot(s) blocked. ${
+          data.skippedBookedCount || 0
+        } booked slot(s) skipped.`
+      );
+      await fetchSlots();
+    } catch (error) {
+      console.error("Block day slots error:", error);
+      setIsSlotActionSuccess(false);
+      setSlotActionMessage(error.message || "Unable to block slots for this day.");
+    } finally {
+      setIsDayActionProcessing(false);
+    }
+  };
+
+  const handleUnblockDay = async () => {
+    if (!selectedDate) {
+      setIsSlotActionSuccess(false);
+      setSlotActionMessage("Please select a date before unblocking slots.");
+      return;
+    }
+
+    try {
+      setIsDayActionProcessing(true);
+      setSlotActionMessage("");
+      setIsSlotActionSuccess(false);
+
+      const response = await fetch(
+        `http://localhost:5000/facilities/${facilityId}/slots/unblock-day`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            date: selectedDate,
+          }),
+        }
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to unblock day slots");
+      }
+
+      setIsSlotActionSuccess(true);
+      setSlotActionMessage(
+        `${data.unblockedCount || 0} blocked slot(s) unblocked.`
+      );
+      await fetchSlots();
+    } catch (error) {
+      console.error("Unblock day slots error:", error);
+      setIsSlotActionSuccess(false);
+      setSlotActionMessage(
+        error.message || "Unable to unblock slots for this day."
+      );
+    } finally {
+      setIsDayActionProcessing(false);
     }
   };
 
@@ -644,6 +740,61 @@ function MerchantSlotManagementPage() {
                 }}
                 className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-lime-400"
               />
+            </div>
+
+            <div className="mb-6 rounded-2xl bg-gray-50 p-4 ring-1 ring-gray-200">
+              <h3 className="text-sm font-black uppercase tracking-[0.18em] text-emerald-900">
+                Day Controls
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Block available slots for maintenance or private events.
+                Customer-booked slots stay locked and unchanged.
+              </p>
+
+              <div className="mt-4">
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Day Block Reason
+                </label>
+                <input
+                  type="text"
+                  value={dayBlockReason}
+                  onChange={(event) => setDayBlockReason(event.target.value)}
+                  placeholder="Optional reason"
+                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-lime-400"
+                />
+              </div>
+
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={handleBlockDay}
+                  disabled={isDayActionProcessing}
+                  className={`rounded-2xl px-4 py-3 text-sm font-semibold text-white transition ${
+                    isDayActionProcessing
+                      ? "cursor-not-allowed bg-slate-400"
+                      : "bg-emerald-950 hover:bg-emerald-900"
+                  }`}
+                >
+                  {isDayActionProcessing
+                    ? "Processing..."
+                    : "Block Available Slots for This Day"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleUnblockDay}
+                  disabled={isDayActionProcessing}
+                  className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                    isDayActionProcessing
+                      ? "cursor-not-allowed border border-gray-200 bg-gray-100 text-slate-400"
+                      : "border border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                  }`}
+                >
+                  {isDayActionProcessing
+                    ? "Processing..."
+                    : "Unblock Blocked Slots for This Day"}
+                </button>
+              </div>
             </div>
 
             {errorMessage ? (
