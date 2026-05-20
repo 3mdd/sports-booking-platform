@@ -4,9 +4,14 @@ import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 
 const initialSlotForm = {
+  startDate: getTodayDate(),
+  endDate: getTodayDate(),
   startTime: "",
   endTime: "",
 };
+
+const DUPLICATE_SLOT_MESSAGE =
+  "This time slot already exists for this facility and date.";
 
 function getTodayDate() {
   const currentDate = new Date();
@@ -14,6 +19,29 @@ function getTodayDate() {
   return `${currentDate.getFullYear()}-${String(
     currentDate.getMonth() + 1
   ).padStart(2, "0")}-${String(currentDate.getDate()).padStart(2, "0")}`;
+}
+
+function getMaxBulkDate() {
+  const maxDate = new Date();
+  maxDate.setDate(maxDate.getDate() + 14);
+
+  return `${maxDate.getFullYear()}-${String(maxDate.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}-${String(maxDate.getDate()).padStart(2, "0")}`;
+}
+
+function parseDateInput(dateValue) {
+  const [year, month, day] = dateValue.split("-").map(Number);
+
+  return new Date(year, month - 1, day);
+}
+
+function formatDateInput(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 function formatTime(dateValue) {
@@ -59,6 +87,19 @@ function buildThirtyMinuteSlots(startTime, endTime) {
   return generatedSlots;
 }
 
+function buildDateRange(startDate, endDate) {
+  const dates = [];
+  const currentDate = parseDateInput(startDate);
+  const finalDate = parseDateInput(endDate);
+
+  while (currentDate <= finalDate) {
+    dates.push(formatDateInput(currentDate));
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  return dates;
+}
+
 function MerchantSlotManagementPage() {
   const { facilityId } = useParams();
 
@@ -72,6 +113,9 @@ function MerchantSlotManagementPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
   const [isSubmitSuccess, setIsSubmitSuccess] = useState(false);
+  const [failureDetails, setFailureDetails] = useState([]);
+  const todayDate = getTodayDate();
+  const maxBulkDate = getMaxBulkDate();
 
   useEffect(() => {
     const fetchFacility = async () => {
@@ -159,14 +203,44 @@ function MerchantSlotManagementPage() {
   const handleGenerateSlots = async (event) => {
     event.preventDefault();
 
-    if (!selectedDate || !slotForm.startTime || !slotForm.endTime) {
+    if (
+      !slotForm.startDate ||
+      !slotForm.endDate ||
+      !slotForm.startTime ||
+      !slotForm.endTime
+    ) {
       setIsSubmitSuccess(false);
-      setSubmitMessage("Date, start time, and end time are required.");
+      setFailureDetails([]);
+      setSubmitMessage(
+        "Start date, end date, start time, and end time are required."
+      );
+      return;
+    }
+
+    if (parseDateInput(slotForm.startDate) < parseDateInput(todayDate)) {
+      setIsSubmitSuccess(false);
+      setFailureDetails([]);
+      setSubmitMessage("Start date cannot be in the past.");
+      return;
+    }
+
+    if (parseDateInput(slotForm.endDate) > parseDateInput(maxBulkDate)) {
+      setIsSubmitSuccess(false);
+      setFailureDetails([]);
+      setSubmitMessage("End date cannot be more than 14 days ahead.");
+      return;
+    }
+
+    if (parseDateInput(slotForm.endDate) < parseDateInput(slotForm.startDate)) {
+      setIsSubmitSuccess(false);
+      setFailureDetails([]);
+      setSubmitMessage("End date cannot be before start date.");
       return;
     }
 
     if (slotForm.startTime >= slotForm.endTime) {
       setIsSubmitSuccess(false);
+      setFailureDetails([]);
       setSubmitMessage(
         "After-midnight slot generation will be supported in a future enhancement."
       );
@@ -179,6 +253,7 @@ function MerchantSlotManagementPage() {
 
     if (totalMinutes % 30 !== 0) {
       setIsSubmitSuccess(false);
+      setFailureDetails([]);
       setSubmitMessage(
         "Time range must divide evenly into 30-minute slots."
       );
@@ -189,52 +264,75 @@ function MerchantSlotManagementPage() {
       slotForm.startTime,
       slotForm.endTime
     );
+    const generatedDates = buildDateRange(slotForm.startDate, slotForm.endDate);
 
     try {
       setIsSubmitting(true);
       setIsSubmitSuccess(false);
       setSubmitMessage("");
+      setFailureDetails([]);
 
       const failures = [];
+      let duplicateCount = 0;
       let createdCount = 0;
 
-      for (const generatedSlot of generatedSlots) {
-        try {
-          const response = await fetch("http://localhost:5000/facilities/slots", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              facilityId: Number(facilityId),
-              date: selectedDate,
-              startTime: generatedSlot.startTime,
-              endTime: generatedSlot.endTime,
-            }),
-          });
+      for (const generatedDate of generatedDates) {
+        for (const generatedSlot of generatedSlots) {
+          try {
+            const response = await fetch(
+              "http://localhost:5000/facilities/slots",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  facilityId: Number(facilityId),
+                  date: generatedDate,
+                  startTime: generatedSlot.startTime,
+                  endTime: generatedSlot.endTime,
+                }),
+              }
+            );
 
-          const data = await response.json();
+            const data = await response.json();
 
-          if (!response.ok) {
-            throw new Error(data.message || "Failed to create slot");
+            if (!response.ok) {
+              throw new Error(data.message || "Failed to create slot");
+            }
+
+            createdCount += Number(data.totalCreated || 0);
+          } catch (error) {
+            const errorMessage = error.message || "Failed";
+            const isDuplicate = errorMessage === DUPLICATE_SLOT_MESSAGE;
+
+            if (isDuplicate) {
+              duplicateCount += 1;
+            } else {
+              failures.push(
+                `${generatedDate} ${generatedSlot.startTime} - ${generatedSlot.endTime}: ${errorMessage}`
+              );
+            }
           }
-
-          createdCount += Number(data.totalCreated || 0);
-        } catch (error) {
-          failures.push(
-            `${generatedSlot.startTime} - ${generatedSlot.endTime}: ${
-              error.message || "Failed"
-            }`
-          );
         }
       }
 
-      if (failures.length > 0) {
+      setFailureDetails(failures);
+
+      if (createdCount === 0 && duplicateCount > 0 && failures.length === 0) {
         setIsSubmitSuccess(false);
         setSubmitMessage(
-          `${createdCount} slot(s) created, but ${failures.length} request(s) failed. ${failures.join(
-            " "
-          )}`
+          "No new slots were created. All selected slots already exist."
+        );
+      } else if (createdCount > 0 && duplicateCount > 0 && failures.length === 0) {
+        setIsSubmitSuccess(true);
+        setSubmitMessage(
+          `${createdCount} slots created. ${duplicateCount} selected slots already existed and were skipped.`
+        );
+      } else if (failures.length > 0) {
+        setIsSubmitSuccess(false);
+        setSubmitMessage(
+          `${createdCount} slot(s) created. ${failures.length} slot request(s) failed.`
         );
       } else {
         setSlotForm(initialSlotForm);
@@ -248,6 +346,7 @@ function MerchantSlotManagementPage() {
     } catch (error) {
       console.error("Create slots error:", error);
       setIsSubmitSuccess(false);
+      setFailureDetails([]);
       setSubmitMessage(error.message || "Unable to create time slots.");
     } finally {
       setIsSubmitting(false);
@@ -319,24 +418,59 @@ function MerchantSlotManagementPage() {
             className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-gray-200 md:p-8"
           >
             <h2 className="text-2xl font-black text-emerald-950">
-              Auto-Generate Slots
+              Bulk Generate Slots
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Select a date and time range. The system will split the range
-              into connected 30-minute slots.
+              Choose a date range and daily hours. The system will create
+              connected 30-minute slots for each date.
             </p>
 
             <div className="mt-6 grid gap-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Start Date
+                  </label>
+                  <input
+                    name="startDate"
+                    type="date"
+                    min={todayDate}
+                    max={maxBulkDate}
+                    value={slotForm.startDate}
+                    onChange={handleSlotFormChange}
+                    className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    End Date
+                  </label>
+                  <input
+                    name="endDate"
+                    type="date"
+                    min={todayDate}
+                    max={maxBulkDate}
+                    value={slotForm.endDate}
+                    onChange={handleSlotFormChange}
+                    className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Slot Date
+                  View Slots Date
                 </label>
                 <input
                   type="date"
+                  min={todayDate}
+                  max={maxBulkDate}
                   value={selectedDate}
                   onChange={(event) => {
                     setSelectedDate(event.target.value);
                     setSubmitMessage("");
+                    setFailureDetails([]);
                   }}
                   className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
                 />
@@ -379,7 +513,20 @@ function MerchantSlotManagementPage() {
                     : "border border-red-200 bg-red-50 text-red-700"
                 }`}
               >
-                {submitMessage}
+                <p>{submitMessage}</p>
+
+                {failureDetails.length > 0 ? (
+                  <details className="mt-3">
+                    <summary className="cursor-pointer font-semibold">
+                      View failed slot details
+                    </summary>
+                    <ul className="mt-2 list-disc space-y-1 pl-5">
+                      {failureDetails.map((failure) => (
+                        <li key={failure}>{failure}</li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : null}
               </div>
             ) : null}
 
@@ -394,7 +541,7 @@ function MerchantSlotManagementPage() {
             >
               {isSubmitting
                 ? "Generating Slots..."
-                : "Generate 30-Minute Slots"}
+                : "Generate Slots for Date Range"}
             </button>
           </form>
 

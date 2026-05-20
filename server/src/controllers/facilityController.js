@@ -167,6 +167,23 @@ const createTimeSlots = async (req, res) => {
       current.setMinutes(current.getMinutes() + 30);
     }
 
+    const duplicateSlots = await prisma.timeSlot.findMany({
+      where: {
+        facilityId: Number(facilityId),
+        OR: slots.map((slot) => ({
+          slotDate: slot.slotDate,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+        })),
+      },
+    });
+
+    if (duplicateSlots.length > 0) {
+      return res.status(409).json({
+        message: "This time slot already exists for this facility and date.",
+      });
+    }
+
     const createdSlots = await prisma.timeSlot.createMany({
       data: slots,
     });
