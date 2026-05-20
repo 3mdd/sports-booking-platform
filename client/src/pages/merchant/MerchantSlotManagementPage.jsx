@@ -458,24 +458,6 @@ function MerchantSlotManagementPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  View Slots Date
-                </label>
-                <input
-                  type="date"
-                  min={todayDate}
-                  max={maxBulkDate}
-                  value={selectedDate}
-                  onChange={(event) => {
-                    setSelectedDate(event.target.value);
-                    setSubmitMessage("");
-                    setFailureDetails([]);
-                  }}
-                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
-                />
-              </div>
-
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-slate-700">
@@ -559,6 +541,24 @@ function MerchantSlotManagementPage() {
               <span className="rounded-full bg-lime-100 px-4 py-2 text-sm font-semibold text-emerald-950">
                 {slotStats.total} slots
               </span>
+            </div>
+
+            <div className="mb-6 rounded-2xl bg-gray-50 p-4 ring-1 ring-gray-200">
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
+                View Slots Date
+              </label>
+              <input
+                type="date"
+                min={todayDate}
+                max={maxBulkDate}
+                value={selectedDate}
+                onChange={(event) => {
+                  setSelectedDate(event.target.value);
+                  setSubmitMessage("");
+                  setFailureDetails([]);
+                }}
+                className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-lime-400"
+              />
             </div>
 
             {errorMessage ? (
