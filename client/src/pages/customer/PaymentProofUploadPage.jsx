@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
+import { formatDisplaySlotLabel } from "../../utils/timeFormat";
 
 const PAYMENT_WINDOW_MS = 30 * 60 * 1000;
 
@@ -43,6 +44,9 @@ function PaymentProofUploadPage() {
   const bookingStatus = isSuccess
     ? "PAYMENT_UPLOADED"
     : booking?.bookingStatus || "PENDING_PAYMENT";
+  const bookingSlotTimes = Array.isArray(booking?.selectedSlots)
+    ? booking.selectedSlots.map((slot) => formatDisplaySlotLabel(slot))
+    : [];
 
   useEffect(() => {
     if (bookingStatus !== "PENDING_PAYMENT" || !booking?.createdAt) {
@@ -299,9 +303,18 @@ function PaymentProofUploadPage() {
                 <div className="flex justify-between">
                   <span className="text-slate-500">Duration</span>
                   <span className="font-semibold text-slate-900">
-                    {booking.durationLabel}
+                    {formatDisplaySlotLabel(booking.durationLabel)}
                   </span>
                 </div>
+
+                {bookingSlotTimes.length > 0 ? (
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500">Time</span>
+                    <span className="text-right font-semibold text-slate-900">
+                      {bookingSlotTimes.join(", ")}
+                    </span>
+                  </div>
+                ) : null}
               </div>
             </div>
 

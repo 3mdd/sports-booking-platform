@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
+import { formatDisplayTimeRange } from "../../utils/timeFormat";
 
 const TEMP_CUSTOMER_ID = 1;
 const PAYMENT_WINDOW_MS = 30 * 60 * 1000;
@@ -15,18 +16,6 @@ function formatDate(dateValue) {
     day: "numeric",
     month: "long",
     year: "numeric",
-  });
-}
-
-function formatTime(dateValue) {
-  if (!dateValue) return "";
-
-  const date = new Date(dateValue);
-
-  return date.toLocaleTimeString("en-MY", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
   });
 }
 
@@ -52,7 +41,7 @@ function getBookingTime(booking) {
   const firstSlot = sortedSlots[0].timeSlot;
   const lastSlot = sortedSlots[sortedSlots.length - 1].timeSlot;
 
-  return `${formatTime(firstSlot.startTime)} - ${formatTime(lastSlot.endTime)}`;
+  return formatDisplayTimeRange(firstSlot.startTime, lastSlot.endTime);
 }
 
 function getStatusClass(status) {

@@ -4,6 +4,7 @@ import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import padelImage from "../../assets/images/padel.jpg";
 import badmintonImage from "../../assets/images/badminton.jpg";
+import { formatDisplayTimeRange } from "../../utils/timeFormat";
 
 const fallbackImages = {
   Football:
@@ -24,7 +25,7 @@ const durationOptions = [
   { label: "3 Hours", value: "3", slotCount: 6 },
 ];
 
-function formatSlotTime(dateValue) {
+function formatSlotValue(dateValue) {
   const date = new Date(dateValue);
 
   return date.toLocaleTimeString("en-MY", {
@@ -35,7 +36,9 @@ function formatSlotTime(dateValue) {
 }
 
 function formatSlotLabel(slot) {
-  return `${formatSlotTime(slot.startTime)} - ${formatSlotTime(slot.endTime)}`;
+  return `${formatSlotValue(slot.startTime)} - ${formatSlotValue(
+    slot.endTime
+  )}`;
 }
 
 function buildSlotStartDateTime(selectedDate, slotLabel) {
@@ -168,6 +171,7 @@ function FacilityDetailsPage() {
         const formattedSlots = (data.slots || []).map((slot) => ({
           ...slot,
           label: formatSlotLabel(slot),
+          displayLabel: formatDisplayTimeRange(slot.startTime, slot.endTime),
         }));
 
         setAvailableSlots(formattedSlots);
@@ -315,7 +319,9 @@ function FacilityDetailsPage() {
     );
   }, [availableSlots, selectedSlots]);
 
-  const selectedSlotLabels = sortedSelectedSlots.map((slot) => slot.label);
+  const selectedSlotLabels = sortedSelectedSlots.map(
+    (slot) => slot.displayLabel || slot.label
+  );
 
   const formattedSelectedDate = useMemo(() => {
     if (!selectedDate) return "No date selected yet";
@@ -577,7 +583,7 @@ function FacilityDetailsPage() {
                           : "border-gray-200 bg-gray-50 text-slate-800 hover:border-lime-400 hover:bg-white"
                       }`}
                     >
-                      <span>{slot.label}</span>
+                      <span>{slot.displayLabel || slot.label}</span>
                       {isBooked ? (
                         <span className="mt-1 block text-xs font-semibold">
                           Booked

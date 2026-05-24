@@ -2,6 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
+import {
+  formatDisplayTime,
+  formatDisplayTimeRange,
+} from "../../utils/timeFormat";
 
 const initialSlotForm = {
   startDate: getTodayDate(),
@@ -42,18 +46,6 @@ function formatDateInput(date) {
     2,
     "0"
   )}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-function formatTime(dateValue) {
-  if (!dateValue) return "Not available";
-
-  const date = new Date(dateValue);
-
-  return date.toLocaleTimeString("en-MY", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
 }
 
 function timeToMinutes(timeValue) {
@@ -491,7 +483,10 @@ function MerchantSlotManagementPage() {
               duplicateCount += 1;
             } else {
               failures.push(
-                `${generatedDate} ${generatedSlot.startTime} - ${generatedSlot.endTime}: ${errorMessage}`
+                `${generatedDate} ${formatDisplayTimeRange(
+                  generatedSlot.startTime,
+                  generatedSlot.endTime
+                )}: ${errorMessage}`
               );
             }
           }
@@ -843,10 +838,10 @@ function MerchantSlotManagementPage() {
                             Slot #{slot.id}
                           </p>
                           <p className="mt-2 text-lg font-black text-emerald-950">
-                            {formatTime(slot.startTime)}
+                            {formatDisplayTime(slot.startTime)}
                           </p>
                           <p className="text-sm font-semibold text-slate-700">
-                            to {formatTime(slot.endTime)}
+                            to {formatDisplayTime(slot.endTime)}
                           </p>
                         </div>
 

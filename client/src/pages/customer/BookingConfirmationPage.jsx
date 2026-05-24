@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
+import { formatDisplaySlotLabel } from "../../utils/timeFormat";
 
 const TEMP_CUSTOMER_ID = 1;
 
@@ -159,7 +160,7 @@ function BookingConfirmationPage() {
                       key={slot}
                       className="rounded-full bg-lime-100 px-4 py-2 text-xs font-semibold text-emerald-950"
                     >
-                      {slot}
+                      {formatDisplaySlotLabel(slot)}
                     </span>
                   ))}
                 </div>
