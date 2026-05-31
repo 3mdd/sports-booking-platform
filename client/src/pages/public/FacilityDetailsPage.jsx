@@ -154,6 +154,14 @@ function FacilityDetailsPage() {
         return;
       }
 
+      if (!facility.isActive) {
+        setAvailableSlots([]);
+        setSlotsMessage(
+          "This facility is currently inactive and cannot be booked."
+        );
+        return;
+      }
+
       try {
         setIsSlotsLoading(true);
         setSlotsMessage("");
@@ -214,6 +222,7 @@ function FacilityDetailsPage() {
 
   const pricePerSlot = Number(facility?.pricePerSlot || 0);
   const pricePerHour = pricePerSlot * 2;
+  const isFacilityInactive = facility ? !facility.isActive : false;
 
   const handleDateChange = (event) => {
     const chosenDate = event.target.value;
@@ -339,6 +348,11 @@ function FacilityDetailsPage() {
   const totalPrice = pricePerSlot * slotCount;
 
   const handleContinueToBooking = () => {
+    if (isFacilityInactive) {
+      setSlotError("This facility is currently inactive and cannot be booked.");
+      return;
+    }
+
     if (!selectedDate) {
       setSlotError("Please select a booking date before continuing.");
       return;
@@ -442,6 +456,13 @@ function FacilityDetailsPage() {
               </span>
             </div>
 
+            {isFacilityInactive ? (
+              <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-800">
+                This facility is currently unavailable for booking. Please
+                choose another active facility.
+              </div>
+            ) : null}
+
             <div className="mt-8 border-t border-gray-200 pt-6">
               <h2 className="text-lg font-bold text-emerald-950">
                 Facility Description
@@ -463,8 +484,16 @@ function FacilityDetailsPage() {
                 </p>
               </div>
 
-              <button className="rounded-2xl bg-lime-400 px-6 py-3 text-sm font-bold text-emerald-950 transition hover:bg-lime-300">
-                Book This Facility
+              <button
+                type="button"
+                disabled={isFacilityInactive}
+                className={`rounded-2xl px-6 py-3 text-sm font-bold text-emerald-950 transition ${
+                  isFacilityInactive
+                    ? "cursor-not-allowed bg-gray-200 text-slate-500"
+                    : "bg-lime-400 hover:bg-lime-300"
+                }`}
+              >
+                {isFacilityInactive ? "Unavailable" : "Book This Facility"}
               </button>
             </div>
           </div>
@@ -510,7 +539,8 @@ function FacilityDetailsPage() {
                   max={maxBookingDateValue}
                   value={selectedDate}
                   onChange={handleDateChange}
-                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
+                  disabled={isFacilityInactive}
+                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white disabled:cursor-not-allowed disabled:text-slate-400"
                 />
                 <p className="mt-2 text-sm font-medium text-slate-500">
                   Bookings are available up to 14 days in advance.
@@ -524,7 +554,8 @@ function FacilityDetailsPage() {
                 <select
                   value={selectedDuration.value}
                   onChange={handleDurationChange}
-                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
+                  disabled={isFacilityInactive}
+                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white disabled:cursor-not-allowed disabled:text-slate-400"
                 >
                   {durationOptions.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -680,14 +711,14 @@ function FacilityDetailsPage() {
             <button
               type="button"
               onClick={handleContinueToBooking}
-              disabled={Boolean(selectedDateError)}
+              disabled={isFacilityInactive || Boolean(selectedDateError)}
               className={`mt-8 w-full rounded-2xl px-6 py-3.5 text-sm font-semibold text-white transition ${
-                selectedDateError
+                isFacilityInactive || selectedDateError
                   ? "cursor-not-allowed bg-slate-400"
                   : "bg-emerald-950 hover:bg-emerald-900"
               }`}
             >
-              Continue to Booking
+              {isFacilityInactive ? "Facility Unavailable" : "Continue to Booking"}
             </button>
           </div>
         </section>

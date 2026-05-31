@@ -62,6 +62,12 @@ const createBooking = async (req, res) => {
       });
     }
 
+    if (!facility.isActive) {
+      return res.status(400).json({
+        message: "This facility is currently inactive and cannot be booked.",
+      });
+    }
+
     const slots = await prisma.timeSlot.findMany({
       where: {
         id: { in: timeSlotIds.map(Number) },

@@ -126,6 +126,165 @@ const getFacilityById = async (req, res) => {
   }
 };
 
+const getSportTypes = async (req, res) => {
+  try {
+    const sportTypes = await prisma.sportType.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+      orderBy: {
+        name: "asc",
+      },
+    });
+
+    return res.status(200).json({
+      message: "Sport types fetched successfully",
+      sportTypes,
+    });
+  } catch (error) {
+    console.error("Fetch sport types failed:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
+const updateFacility = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      name,
+      description,
+      location,
+      sportTypeId,
+      pricePerSlot,
+      isActive,
+    } = req.body;
+
+    const facilityId = Number(id);
+
+    if (!Number.isInteger(facilityId) || facilityId <= 0) {
+      return res.status(400).json({
+        message: "Valid facility ID is required",
+      });
+    }
+
+    const existingFacility = await prisma.facility.findUnique({
+      where: { id: facilityId },
+    });
+
+    if (!existingFacility) {
+      return res.status(404).json({
+        message: "Facility not found",
+      });
+    }
+
+    const updateData = {};
+
+    if (name !== undefined) {
+      const trimmedName = String(name).trim();
+
+      if (!trimmedName) {
+        return res.status(400).json({
+          message: "Facility name cannot be empty",
+        });
+      }
+
+      updateData.name = trimmedName;
+    }
+
+    if (description !== undefined) {
+      const trimmedDescription = String(description || "").trim();
+      updateData.description = trimmedDescription || null;
+    }
+
+    if (location !== undefined) {
+      const trimmedLocation = String(location).trim();
+
+      if (!trimmedLocation) {
+        return res.status(400).json({
+          message: "Facility location cannot be empty",
+        });
+      }
+
+      updateData.location = trimmedLocation;
+    }
+
+    if (sportTypeId !== undefined) {
+      const parsedSportTypeId = Number(sportTypeId);
+
+      if (!Number.isInteger(parsedSportTypeId) || parsedSportTypeId <= 0) {
+        return res.status(400).json({
+          message: "Valid sport type is required",
+        });
+      }
+
+      const sportType = await prisma.sportType.findUnique({
+        where: { id: parsedSportTypeId },
+      });
+
+      if (!sportType) {
+        return res.status(404).json({
+          message: "Sport type not found",
+        });
+      }
+
+      updateData.sportTypeId = parsedSportTypeId;
+    }
+
+    if (pricePerSlot !== undefined) {
+      const parsedPricePerSlot = Number(pricePerSlot);
+
+      if (!Number.isFinite(parsedPricePerSlot) || parsedPricePerSlot <= 0) {
+        return res.status(400).json({
+          message: "Price per slot must be a positive number",
+        });
+      }
+
+      updateData.pricePerSlot = parsedPricePerSlot;
+    }
+
+    if (isActive !== undefined) {
+      if (typeof isActive === "boolean") {
+        updateData.isActive = isActive;
+      } else if (isActive === "true" || isActive === "false") {
+        updateData.isActive = isActive === "true";
+      } else {
+        return res.status(400).json({
+          message: "isActive must be true or false",
+        });
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        message: "No facility details provided to update",
+      });
+    }
+
+    const updatedFacility = await prisma.facility.update({
+      where: { id: facilityId },
+      data: updateData,
+      include: {
+        sportType: true,
+        merchantProfile: true,
+        images: true,
+      },
+    });
+
+    return res.status(200).json({
+      message: "Facility updated successfully",
+      facility: updatedFacility,
+    });
+  } catch (error) {
+    console.error("Update facility failed:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
 const createTimeSlots = async (req, res) => {
   try {
     const { facilityId, date, startTime, endTime } = req.body;
@@ -444,6 +603,8 @@ module.exports = {
   createFacility,
   getAllFacilities,
   getFacilityById,
+  getSportTypes,
+  updateFacility,
   createTimeSlots,
   getFacilitySlotsByDate,
   blockTimeSlot,

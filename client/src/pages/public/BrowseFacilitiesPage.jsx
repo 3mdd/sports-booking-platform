@@ -38,7 +38,11 @@ function BrowseFacilitiesPage() {
         }
 
         const data = await response.json();
-        setFacilities(data.facilities || []);
+        const activeFacilities = (data.facilities || []).filter(
+          (facility) => facility.isActive
+        );
+
+        setFacilities(activeFacilities);
       } catch (error) {
         console.error("Fetch facilities error:", error);
         setErrorMessage(
