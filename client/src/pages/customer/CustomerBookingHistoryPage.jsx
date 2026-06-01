@@ -88,6 +88,33 @@ const initialReviewFormData = {
   comment: "",
 };
 
+const ratingLabels = {
+  1: "Poor",
+  2: "Fair",
+  3: "Good",
+  4: "Very Good",
+  5: "Excellent",
+};
+
+function StarRatingDisplay({ rating, sizeClass = "text-lg" }) {
+  const roundedRating = Math.round(Number(rating || 0));
+
+  return (
+    <div className={`flex items-center gap-1 ${sizeClass}`}>
+      {[1, 2, 3, 4, 5].map((starValue) => (
+        <span
+          key={starValue}
+          className={
+            starValue <= roundedRating ? "text-lime-500" : "text-gray-300"
+          }
+        >
+          ★
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function CustomerBookingHistoryPage() {
   const navigate = useNavigate();
 
@@ -97,6 +124,7 @@ function CustomerBookingHistoryPage() {
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [reviewFormBookingId, setReviewFormBookingId] = useState(null);
   const [reviewFormData, setReviewFormData] = useState(initialReviewFormData);
+  const [hoveredReviewRating, setHoveredReviewRating] = useState(null);
   const [isReviewSubmitting, setIsReviewSubmitting] = useState(false);
   const [reviewMessage, setReviewMessage] = useState({
     bookingId: null,
@@ -195,6 +223,7 @@ function CustomerBookingHistoryPage() {
   const handleCancelReview = () => {
     setReviewFormBookingId(null);
     setReviewFormData(initialReviewFormData);
+    setHoveredReviewRating(null);
   };
 
   const handleReviewInputChange = (event) => {
@@ -203,6 +232,13 @@ function CustomerBookingHistoryPage() {
     setReviewFormData((currentFormData) => ({
       ...currentFormData,
       [name]: value,
+    }));
+  };
+
+  const handleReviewRatingChange = (rating) => {
+    setReviewFormData((currentFormData) => ({
+      ...currentFormData,
+      rating: String(rating),
     }));
   };
 
@@ -399,6 +435,9 @@ function CustomerBookingHistoryPage() {
                 const isReviewMessageVisible =
                   reviewMessage.bookingId === booking.id &&
                   reviewMessage.message;
+                const selectedReviewRating = Number(reviewFormData.rating);
+                const activeReviewRating =
+                  hoveredReviewRating || selectedReviewRating;
 
                 return (
                   <article
@@ -512,22 +551,36 @@ function CustomerBookingHistoryPage() {
                     {bookingStatus === "CONFIRMED" ? (
                       <div className="mt-5 border-t border-gray-200 pt-5">
                         {hasReview ? (
-                          <div className="rounded-2xl bg-white p-4 text-sm ring-1 ring-gray-200">
-                            <p className="font-semibold text-emerald-950">
-                              Your Review
-                            </p>
-                            <p className="mt-2 font-semibold text-slate-900">
-                              Rating: {booking.review.rating}/5
-                            </p>
-                            {booking.review.comment ? (
-                              <p className="mt-2 leading-6 text-slate-600">
-                                {booking.review.comment}
+                          <div className="rounded-2xl bg-white p-5 text-sm ring-1 ring-gray-200">
+                            <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                                  Your Review
+                                </p>
+                                <div className="mt-2 flex flex-wrap items-center gap-3">
+                                  <StarRatingDisplay
+                                    rating={booking.review.rating}
+                                  />
+                                  <span className="rounded-full bg-lime-100 px-3 py-1 text-xs font-bold text-emerald-950">
+                                    {ratingLabels[booking.review.rating] ||
+                                      `${booking.review.rating}/5`}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {booking.review.createdAt ? (
+                                <p className="text-xs font-medium text-slate-500">
+                                  {formatDate(booking.review.createdAt)}
+                                </p>
+                              ) : null}
+                            </div>
+
+                            <div className="mt-4 rounded-2xl bg-gray-50 px-4 py-4 ring-1 ring-gray-100">
+                              <p className="text-sm leading-6 text-slate-600">
+                                {booking.review.comment ||
+                                  "No written comment added."}
                               </p>
-                            ) : (
-                              <p className="mt-2 text-slate-500">
-                                No comment added.
-                              </p>
-                            )}
+                            </div>
                           </div>
                         ) : (
                           <div>
@@ -546,16 +599,20 @@ function CustomerBookingHistoryPage() {
                                 onSubmit={(event) =>
                                   handleSubmitReview(event, booking)
                                 }
-                                className="rounded-2xl bg-white p-4 ring-1 ring-gray-200"
+                                className="rounded-[1.5rem] bg-white p-5 ring-1 ring-gray-200"
                               >
                                 <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
                                   <div>
-                                    <p className="font-semibold text-emerald-950">
+                                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                                      Facility Feedback
+                                    </p>
+                                    <p className="mt-2 text-xl font-black text-emerald-950">
                                       Leave a Review
                                     </p>
                                     <p className="mt-1 text-sm text-slate-500">
-                                      Share your experience after this confirmed
-                                      booking.
+                                      Share details about facility quality,
+                                      cleanliness, staff, booking experience, or
+                                      court condition.
                                     </p>
                                   </div>
 
@@ -568,39 +625,66 @@ function CustomerBookingHistoryPage() {
                                   </button>
                                 </div>
 
-                                <div className="mt-4 grid gap-4 md:grid-cols-[180px_1fr]">
-                                  <div>
-                                    <label className="mb-2 block text-sm font-semibold text-slate-700">
-                                      Rating
-                                    </label>
-                                    <select
-                                      name="rating"
-                                      value={reviewFormData.rating}
-                                      onChange={handleReviewInputChange}
-                                      className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
-                                    >
-                                      {[5, 4, 3, 2, 1].map((rating) => (
-                                        <option key={rating} value={rating}>
-                                          {rating}/5
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </div>
+                                <div className="mt-5 rounded-2xl bg-gray-50 p-4 ring-1 ring-gray-200">
+                                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                    <div>
+                                      <p className="text-sm font-semibold text-slate-700">
+                                        Overall Rating
+                                      </p>
+                                      <p className="mt-1 text-sm font-medium text-emerald-950">
+                                        {activeReviewRating}/5 -{" "}
+                                        {ratingLabels[activeReviewRating]}
+                                      </p>
+                                    </div>
 
-                                  <div>
-                                    <label className="mb-2 block text-sm font-semibold text-slate-700">
-                                      Comment
-                                    </label>
-                                    <textarea
-                                      name="comment"
-                                      rows="3"
-                                      value={reviewFormData.comment}
-                                      onChange={handleReviewInputChange}
-                                      maxLength="1000"
-                                      className="w-full resize-none rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
-                                      placeholder="Optional feedback for this facility"
-                                    />
-                                    <p className="mt-1 text-xs text-slate-500">
+                                    <div className="flex items-center gap-2">
+                                      {[1, 2, 3, 4, 5].map((rating) => (
+                                        <button
+                                          key={rating}
+                                          type="button"
+                                          onClick={() =>
+                                            handleReviewRatingChange(rating)
+                                          }
+                                          onMouseEnter={() =>
+                                            setHoveredReviewRating(rating)
+                                          }
+                                          onMouseLeave={() =>
+                                            setHoveredReviewRating(null)
+                                          }
+                                          className={`text-3xl leading-none transition ${
+                                            rating <= activeReviewRating
+                                              ? "text-lime-500"
+                                              : "text-gray-300 hover:text-lime-300"
+                                          }`}
+                                          aria-label={`Rate ${rating} out of 5`}
+                                        >
+                                          ★
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="mt-5">
+                                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                                    Written Feedback
+                                  </label>
+                                  <textarea
+                                    name="comment"
+                                    rows="4"
+                                    value={reviewFormData.comment}
+                                    onChange={handleReviewInputChange}
+                                    maxLength="1000"
+                                    className="w-full resize-none rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm leading-6 outline-none focus:border-lime-400 focus:bg-white"
+                                    placeholder="What stood out during your booking?"
+                                  />
+                                  <div className="mt-2 flex flex-col justify-between gap-2 text-xs text-slate-500 md:flex-row md:items-center">
+                                    <p>
+                                      Your written feedback may be analyzed
+                                      later to help merchants understand
+                                      customer satisfaction.
+                                    </p>
+                                    <p className="font-semibold">
                                       {reviewFormData.comment.length}/1000
                                       characters
                                     </p>

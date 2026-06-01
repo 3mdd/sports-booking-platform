@@ -54,6 +54,25 @@ function formatReviewDate(dateValue) {
   });
 }
 
+function StarRatingDisplay({ rating, sizeClass = "text-lg" }) {
+  const roundedRating = Math.round(Number(rating || 0));
+
+  return (
+    <div className={`flex items-center gap-1 ${sizeClass}`}>
+      {[1, 2, 3, 4, 5].map((starValue) => (
+        <span
+          key={starValue}
+          className={
+            starValue <= roundedRating ? "text-lime-500" : "text-gray-300"
+          }
+        >
+          ★
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function buildSlotStartDateTime(selectedDate, slotLabel) {
   if (!selectedDate) return null;
 
@@ -587,9 +606,10 @@ function FacilityDetailsPage() {
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
-              <span className="rounded-full bg-lime-100 px-4 py-2 text-sm font-semibold text-emerald-950">
-                Rating: {ratingLabel}
-              </span>
+              <div className="flex items-center gap-2 rounded-full bg-lime-100 px-4 py-2 text-sm font-semibold text-emerald-950">
+                <StarRatingDisplay rating={averageRating} sizeClass="text-sm" />
+                <span>{ratingLabel}</span>
+              </div>
               <span className="rounded-full bg-gray-100 px-4 py-2 text-sm font-semibold text-slate-700">
                 {sportName} Facility
               </span>
@@ -942,9 +962,10 @@ function FacilityDetailsPage() {
               </p>
             </div>
 
-            <span className="w-fit rounded-full bg-lime-100 px-4 py-2 text-sm font-semibold text-emerald-950">
-              {ratingLabel}
-            </span>
+            <div className="flex w-fit items-center gap-2 rounded-full bg-lime-100 px-4 py-2 text-sm font-semibold text-emerald-950">
+              <StarRatingDisplay rating={averageRating} sizeClass="text-sm" />
+              <span>{ratingLabel}</span>
+            </div>
           </div>
 
           {isReviewsLoading ? (
@@ -986,14 +1007,22 @@ function FacilityDetailsPage() {
                         </p>
                       </div>
 
-                      <span className="rounded-full bg-lime-100 px-3 py-1 text-sm font-bold text-emerald-950">
-                        {review.rating}/5
-                      </span>
+                      <div className="text-right">
+                        <StarRatingDisplay
+                          rating={review.rating}
+                          sizeClass="text-base"
+                        />
+                        <p className="mt-1 text-xs font-bold text-emerald-950">
+                          {review.rating}/5
+                        </p>
+                      </div>
                     </div>
 
-                    <p className="mt-4 text-sm leading-6 text-slate-600">
-                      {review.comment || "No comment added."}
-                    </p>
+                    <div className="mt-4 rounded-2xl bg-white px-4 py-4 ring-1 ring-gray-100">
+                      <p className="text-sm leading-6 text-slate-600">
+                        {review.comment || "No comment added."}
+                      </p>
+                    </div>
                   </article>
                 );
               })}
