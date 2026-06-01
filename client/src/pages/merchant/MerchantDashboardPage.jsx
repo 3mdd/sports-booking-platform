@@ -174,12 +174,21 @@ function MerchantDashboardPage() {
             </p>
           </div>
 
-          <Link
-            to="/merchant/payments"
-            className="rounded-2xl bg-lime-400 px-6 py-3 text-sm font-bold text-emerald-950 transition hover:bg-lime-300"
-          >
-            Review Payments
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              to="/merchant/reviews"
+              className="rounded-2xl border border-emerald-950 px-6 py-3 text-sm font-bold text-emerald-950 transition hover:bg-emerald-50"
+            >
+              Review Insights
+            </Link>
+
+            <Link
+              to="/merchant/payments"
+              className="rounded-2xl bg-lime-400 px-6 py-3 text-sm font-bold text-emerald-950 transition hover:bg-lime-300"
+            >
+              Review Payments
+            </Link>
+          </div>
         </section>
 
         <section className="mb-8 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
@@ -381,9 +390,12 @@ function MerchantDashboardPage() {
                   Manage Facilities
                 </Link>
 
-                <button className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-gray-50">
-                  View Booking Schedule
-                </button>
+                <Link
+                  to="/merchant/reviews"
+                  className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-gray-50"
+                >
+                  View Review Insights
+                </Link>
               </div>
             </div>
           </div>

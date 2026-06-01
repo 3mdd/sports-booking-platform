@@ -211,8 +211,69 @@ const getReviewsByCustomer = async (req, res) => {
   }
 };
 
+const getReviewsByMerchant = async (req, res) => {
+  try {
+    const merchantId = parsePositiveInteger(req.params.merchantId);
+
+    if (!merchantId) {
+      return res.status(400).json({
+        message: "Valid merchant ID is required",
+      });
+    }
+
+    const merchant = await prisma.merchantProfile.findUnique({
+      where: { id: merchantId },
+      select: { id: true },
+    });
+
+    if (!merchant) {
+      return res.status(404).json({
+        message: "Merchant profile not found",
+      });
+    }
+
+    const reviews = await prisma.review.findMany({
+      where: {
+        facility: {
+          merchantProfileId: merchantId,
+        },
+      },
+      include: {
+        customer: {
+          include: {
+            user: {
+              select: {
+                fullName: true,
+              },
+            },
+          },
+        },
+        facility: {
+          include: {
+            sportType: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return res.status(200).json({
+      message: "Merchant reviews fetched successfully",
+      reviews,
+    });
+  } catch (error) {
+    console.error("Fetch merchant reviews failed:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
 module.exports = {
   createReview,
   getReviewsByFacility,
   getReviewsByCustomer,
+  getReviewsByMerchant,
 };

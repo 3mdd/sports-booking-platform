@@ -11,6 +11,7 @@ import PaymentVerificationPage from "./pages/merchant/PaymentVerificationPage";
 import MerchantDashboardPage from "./pages/merchant/MerchantDashboardPage";
 import MerchantFacilityManagementPage from "./pages/merchant/MerchantFacilityManagementPage";
 import MerchantSlotManagementPage from "./pages/merchant/MerchantSlotManagementPage";
+import MerchantReviewInsightsPage from "./pages/merchant/MerchantReviewInsightsPage";
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
         <Route path="/payment-proof" element={<PaymentProofUploadPage />} />
         <Route path="/merchant/payments" element={<PaymentVerificationPage />} />
         <Route path="/merchant/dashboard" element={<MerchantDashboardPage />} />
+        <Route path="/merchant/reviews" element={<MerchantReviewInsightsPage />} />
         <Route path="/merchant/facilities" element={<MerchantFacilityManagementPage />} />
         <Route path="/merchant/facilities/:facilityId/slots" element={<MerchantSlotManagementPage />} />
       </Routes>
