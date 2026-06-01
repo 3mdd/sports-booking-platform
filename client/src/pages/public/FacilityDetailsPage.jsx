@@ -4,7 +4,7 @@ import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import padelImage from "../../assets/images/padel.jpg";
 import badmintonImage from "../../assets/images/badminton.jpg";
-import { formatDisplayTimeRange } from "../../utils/timeFormat";
+import { formatDisplayTime, formatDisplayTimeRange } from "../../utils/timeFormat";
 import { getUploadFileUrl } from "../../utils/uploadUrl";
 
 const fallbackImages = {
@@ -99,7 +99,8 @@ function FacilityDetailsPage() {
   const [slotsMessage, setSlotsMessage] = useState("");
 
   const [selectedDate, setSelectedDate] = useState("");
-  const [selectedDuration, setSelectedDuration] = useState(durationOptions[0]);
+  const [selectedStartSlot, setSelectedStartSlot] = useState(null);
+  const [selectedDuration, setSelectedDuration] = useState(null);
   const [selectedSlots, setSelectedSlots] = useState([]);
   const [slotError, setSlotError] = useState("");
 
@@ -234,6 +235,8 @@ function FacilityDetailsPage() {
     );
 
     setSelectedDate(chosenDate);
+    setSelectedStartSlot(null);
+    setSelectedDuration(null);
     setSelectedSlots([]);
 
     if (dateError) {
@@ -243,16 +246,6 @@ function FacilityDetailsPage() {
       return;
     }
 
-    setSlotError("");
-  };
-
-  const handleDurationChange = (event) => {
-    const chosenDuration = durationOptions.find(
-      (option) => option.value === event.target.value
-    );
-
-    setSelectedDuration(chosenDuration);
-    setSelectedSlots([]);
     setSlotError("");
   };
 
@@ -279,47 +272,115 @@ function FacilityDetailsPage() {
     return slotDateTime < currentTimePlusTwoHours;
   };
 
-  const handleSlotSelection = (clickedSlot) => {
+  const getConnectedAvailableSlots = (startSlot) => {
+    const startIndex = availableSlots.findIndex(
+      (slot) => slot.id === startSlot.id
+    );
+
+    if (startIndex === -1 || isSlotDisabled(startSlot)) {
+      return [];
+    }
+
+    const connectedSlots = [];
+
+    for (
+      let index = startIndex;
+      index < availableSlots.length && connectedSlots.length < 6;
+      index++
+    ) {
+      const slot = availableSlots[index];
+
+      if (isSlotDisabled(slot)) {
+        break;
+      }
+
+      if (index > startIndex) {
+        const previousSlot = availableSlots[index - 1];
+        const previousEndTime = new Date(previousSlot.endTime).getTime();
+        const currentStartTime = new Date(slot.startTime).getTime();
+
+        if (previousEndTime !== currentStartTime) {
+          break;
+        }
+      }
+
+      connectedSlots.push(slot);
+    }
+
+    return connectedSlots;
+  };
+
+  const durationAvailability = selectedStartSlot
+    ? durationOptions.map((durationOption) => {
+        const connectedSlots = getConnectedAvailableSlots(selectedStartSlot);
+
+        return {
+          ...durationOption,
+          isAvailable: connectedSlots.length >= durationOption.slotCount,
+          slots: connectedSlots.slice(0, durationOption.slotCount),
+        };
+      })
+    : [];
+
+  const hasAvailableDuration = durationAvailability.some(
+    (durationOption) => durationOption.isAvailable
+  );
+
+  const handleStartTimeSelection = (clickedSlot) => {
     if (!selectedDate) {
-      setSlotError("Please select a booking date before choosing a slot.");
+      setSlotError("Please select a booking date before choosing a start time.");
       return;
     }
 
     if (isSlotDisabled(clickedSlot)) {
       setSlotError(
-        "The selected booking duration includes unavailable slot(s). Please choose another starting time."
+        "This start time is unavailable. Please choose another start time."
       );
+      setSelectedStartSlot(null);
+      setSelectedDuration(null);
       setSelectedSlots([]);
       return;
     }
 
-    const startIndex = availableSlots.findIndex(
-      (slot) => slot.id === clickedSlot.id
-    );
-    const endIndex = startIndex + selectedDuration.slotCount;
-    const connectedSlots = availableSlots.slice(startIndex, endIndex);
+    const connectedSlots = getConnectedAvailableSlots(clickedSlot);
 
-    if (connectedSlots.length < selectedDuration.slotCount) {
+    setSelectedStartSlot(clickedSlot);
+    setSelectedDuration(null);
+    setSelectedSlots([]);
+
+    if (connectedSlots.length < 2) {
       setSlotError(
-        `Not enough connected slots available for ${selectedDuration.label}. Please choose an earlier start time.`
+        "No booking duration is available from this start time. Please choose another start time."
       );
-      setSelectedSlots([]);
       return;
     }
 
-    const hasDisabledConnectedSlot = connectedSlots.some((slot) =>
-      isSlotDisabled(slot)
+    setSlotError("");
+  };
+
+  const handleDurationSelection = (durationOption) => {
+    if (!selectedStartSlot) {
+      setSlotError("Please choose a start time before selecting a duration.");
+      return;
+    }
+
+    const connectedSlots = getConnectedAvailableSlots(selectedStartSlot);
+    const selectedConnectedSlots = connectedSlots.slice(
+      0,
+      durationOption.slotCount
     );
 
-    if (hasDisabledConnectedSlot) {
+    if (selectedConnectedSlots.length < durationOption.slotCount) {
       setSlotError(
-        "The selected booking duration includes slot(s) that are unavailable or no longer allowed due to the 2-hour advance booking rule."
+        `Not enough connected slots available for ${durationOption.label}. Please choose another duration or start time.`
       );
+      setSelectedDuration(null);
       setSelectedSlots([]);
       return;
     }
 
-    setSelectedSlots(connectedSlots);
+    setSelectedDuration(durationOption);
+    setSelectedSlots(selectedConnectedSlots);
     setSlotError("");
   };
 
@@ -345,8 +406,22 @@ function FacilityDetailsPage() {
   }, [selectedDate]);
 
   const slotCount = selectedSlots.length;
-  const durationHours = slotCount * 0.5;
+  const durationHours = selectedDuration ? Number(selectedDuration.value) : 0;
   const totalPrice = pricePerSlot * slotCount;
+  const selectedEndSlot = sortedSelectedSlots[sortedSelectedSlots.length - 1];
+  const selectedStartTime = selectedStartSlot
+    ? formatDisplayTime(selectedStartSlot.startTime)
+    : "No start time selected";
+  const selectedEndTime = selectedEndSlot
+    ? formatDisplayTime(selectedEndSlot.endTime)
+    : "No end time selected";
+  const canContinueToBooking =
+    !isFacilityInactive &&
+    !selectedDateError &&
+    Boolean(selectedDate) &&
+    Boolean(selectedStartSlot) &&
+    Boolean(selectedDuration) &&
+    selectedSlots.length === selectedDuration?.slotCount;
 
   const handleContinueToBooking = () => {
     if (isFacilityInactive) {
@@ -359,9 +434,19 @@ function FacilityDetailsPage() {
       return;
     }
 
+    if (!selectedStartSlot) {
+      setSlotError("Please choose a start time before continuing.");
+      return;
+    }
+
+    if (!selectedDuration) {
+      setSlotError("Please choose a booking duration before continuing.");
+      return;
+    }
+
     if (selectedSlots.length === 0) {
       setSlotError(
-        "Please select available connected time slots before continuing."
+        "Please choose a valid start time and duration before continuing."
       );
       return;
     }
@@ -506,8 +591,8 @@ function FacilityDetailsPage() {
               Available Time Slots
             </h2>
             <p className="mt-2 text-sm text-slate-600">
-              Select a date first, then choose the booking duration and starting
-              slot.
+              Select a date first, then choose an available start time and
+              booking duration.
             </p>
 
             {isTodaySelected ? (
@@ -548,22 +633,14 @@ function FacilityDetailsPage() {
                 </p>
               </div>
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Booking Duration
-                </label>
-                <select
-                  value={selectedDuration.value}
-                  onChange={handleDurationChange}
-                  disabled={isFacilityInactive}
-                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white disabled:cursor-not-allowed disabled:text-slate-400"
-                >
-                  {durationOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+              <div className="rounded-2xl bg-gray-50 px-5 py-4 ring-1 ring-gray-200">
+                <p className="text-sm font-semibold text-emerald-950">
+                  Booking Order
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Start times appear after slots load. Durations unlock based on
+                  connected available 30-minute slots.
+                </p>
               </div>
             </div>
 
@@ -592,43 +669,103 @@ function FacilityDetailsPage() {
             ) : null}
 
             {!isSlotsLoading && availableSlots.length > 0 ? (
-              <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {availableSlots.map((slot) => {
-                  const isSelected = selectedSlots.some(
-                    (selectedSlot) => selectedSlot.id === slot.id
-                  );
-                  const isBooked = isSlotBooked(slot);
-                  const isBlocked = isSlotBlocked(slot);
-                  const disabled = isSlotDisabled(slot);
+              <div className="mt-6">
+                <h3 className="text-lg font-black text-emerald-950">
+                  Choose Start Time
+                </h3>
+                <p className="mt-2 text-sm text-slate-600">
+                  Only available, unblocked start times that satisfy the
+                  same-day 2-hour rule can be selected.
+                </p>
 
-                  return (
-                    <button
-                      key={slot.id}
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => handleSlotSelection(slot)}
-                      className={`rounded-2xl border px-4 py-4 text-sm font-semibold transition ${
-                        isSelected
-                          ? "border-emerald-950 bg-emerald-950 text-white"
-                          : disabled
-                          ? "cursor-not-allowed border-gray-200 bg-gray-100 text-slate-400 opacity-60"
-                          : "border-gray-200 bg-gray-50 text-slate-800 hover:border-lime-400 hover:bg-white"
-                      }`}
-                    >
-                      <span>{slot.displayLabel || slot.label}</span>
-                      {isBooked ? (
+                <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {availableSlots.map((slot) => {
+                    const isSelected = selectedStartSlot?.id === slot.id;
+                    const isBooked = isSlotBooked(slot);
+                    const isBlocked = isSlotBlocked(slot);
+                    const disabled = isSlotDisabled(slot);
+
+                    return (
+                      <button
+                        key={slot.id}
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => handleStartTimeSelection(slot)}
+                        className={`rounded-2xl border px-4 py-4 text-sm font-semibold transition ${
+                          isSelected
+                            ? "border-emerald-950 bg-emerald-950 text-white"
+                            : disabled
+                            ? "cursor-not-allowed border-gray-200 bg-gray-100 text-slate-400 opacity-60"
+                            : "border-gray-200 bg-gray-50 text-slate-800 hover:border-lime-400 hover:bg-white"
+                        }`}
+                      >
+                        <span>{formatDisplayTime(slot.startTime)}</span>
+                        {isBooked ? (
+                          <span className="mt-1 block text-xs font-semibold">
+                            Booked
+                          </span>
+                        ) : null}
+                        {isBlocked ? (
+                          <span className="mt-1 block text-xs font-semibold">
+                            Blocked
+                          </span>
+                        ) : null}
+                        {!isBooked && !isBlocked && disabled ? (
+                          <span className="mt-1 block text-xs font-semibold">
+                            Too soon
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            {selectedStartSlot ? (
+              <div className="mt-8">
+                <h3 className="text-lg font-black text-emerald-950">
+                  Choose Duration
+                </h3>
+                <p className="mt-2 text-sm text-slate-600">
+                  Durations are enabled only when the required connected slots
+                  are available after {formatDisplayTime(selectedStartSlot.startTime)}.
+                </p>
+
+                {!hasAvailableDuration ? (
+                  <div className="mt-4 rounded-2xl bg-amber-50 px-5 py-4 text-sm font-medium text-amber-700 ring-1 ring-amber-100">
+                    No booking duration is available from this start time.
+                    Please choose another start time.
+                  </div>
+                ) : null}
+
+                <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {durationAvailability.map((durationOption) => {
+                    const isSelected =
+                      selectedDuration?.value === durationOption.value;
+
+                    return (
+                      <button
+                        key={durationOption.value}
+                        type="button"
+                        disabled={!durationOption.isAvailable}
+                        onClick={() => handleDurationSelection(durationOption)}
+                        className={`rounded-2xl border px-4 py-4 text-sm font-semibold transition ${
+                          isSelected
+                            ? "border-emerald-950 bg-emerald-950 text-white"
+                            : durationOption.isAvailable
+                            ? "border-gray-200 bg-gray-50 text-slate-800 hover:border-lime-400 hover:bg-white"
+                            : "cursor-not-allowed border-gray-200 bg-gray-100 text-slate-400 opacity-60"
+                        }`}
+                      >
+                        <span>{durationOption.label}</span>
                         <span className="mt-1 block text-xs font-semibold">
-                          Booked
+                          {durationOption.slotCount} slots
                         </span>
-                      ) : null}
-                      {isBlocked ? (
-                        <span className="mt-1 block text-xs font-semibold">
-                          Blocked
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             ) : null}
           </div>
@@ -661,9 +798,23 @@ function FacilityDetailsPage() {
               </div>
 
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <span className="text-slate-500">Start Time</span>
+                <span className="font-semibold text-slate-900">
+                  {selectedStartTime}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <span className="text-slate-500">End Time</span>
+                <span className="font-semibold text-slate-900">
+                  {selectedEndTime}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <span className="text-slate-500">Chosen Duration</span>
                 <span className="font-semibold text-slate-900">
-                  {selectedDuration.label}
+                  {selectedDuration?.label || "No duration selected"}
                 </span>
               </div>
 
@@ -712,9 +863,9 @@ function FacilityDetailsPage() {
             <button
               type="button"
               onClick={handleContinueToBooking}
-              disabled={isFacilityInactive || Boolean(selectedDateError)}
+              disabled={!canContinueToBooking}
               className={`mt-8 w-full rounded-2xl px-6 py-3.5 text-sm font-semibold text-white transition ${
-                isFacilityInactive || selectedDateError
+                !canContinueToBooking
                   ? "cursor-not-allowed bg-slate-400"
                   : "bg-emerald-950 hover:bg-emerald-900"
               }`}
