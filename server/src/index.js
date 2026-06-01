@@ -5,6 +5,7 @@ const testRoutes = require("./routes/testRoutes");
 const authRoutes = require("./routes/authRoutes");
 const facilityRoutes = require("./routes/facilityRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
+const reviewRoutes = require("./routes/reviewRoutes");
 const path = require("path");
 
 dotenv.config();
@@ -24,6 +25,7 @@ app.use("/", testRoutes);
 app.use("/", authRoutes);
 app.use("/", facilityRoutes);
 app.use("/", bookingRoutes);
+app.use("/", reviewRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

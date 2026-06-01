@@ -42,6 +42,18 @@ function formatSlotLabel(slot) {
   )}`;
 }
 
+function formatReviewDate(dateValue) {
+  if (!dateValue) return "Date unavailable";
+
+  const date = new Date(dateValue);
+
+  return date.toLocaleDateString("en-MY", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 function buildSlotStartDateTime(selectedDate, slotLabel) {
   if (!selectedDate) return null;
 
@@ -93,6 +105,9 @@ function FacilityDetailsPage() {
   const [facility, setFacility] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [reviews, setReviews] = useState([]);
+  const [isReviewsLoading, setIsReviewsLoading] = useState(true);
+  const [reviewsError, setReviewsError] = useState("");
 
   const [availableSlots, setAvailableSlots] = useState([]);
   const [isSlotsLoading, setIsSlotsLoading] = useState(false);
@@ -140,6 +155,36 @@ function FacilityDetailsPage() {
     };
 
     fetchFacilityDetails();
+  }, [id]);
+
+  useEffect(() => {
+    const fetchFacilityReviews = async () => {
+      try {
+        setIsReviewsLoading(true);
+        setReviewsError("");
+
+        const response = await fetch(
+          `http://localhost:5000/reviews/facility/${id}`
+        );
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch facility reviews");
+        }
+
+        setReviews(data.reviews || []);
+      } catch (error) {
+        console.error("Fetch facility reviews error:", error);
+        setReviewsError(
+          error.message ||
+            "Unable to load facility reviews. Please make sure the backend server is running."
+        );
+      } finally {
+        setIsReviewsLoading(false);
+      }
+    };
+
+    fetchFacilityReviews();
   }, [id]);
 
   useEffect(() => {
@@ -225,6 +270,17 @@ function FacilityDetailsPage() {
   const pricePerSlot = Number(facility?.pricePerSlot || 0);
   const pricePerHour = pricePerSlot * 2;
   const isFacilityInactive = facility ? !facility.isActive : false;
+  const averageRating =
+    reviews.length > 0
+      ? reviews.reduce((total, review) => total + Number(review.rating || 0), 0) /
+        reviews.length
+      : 0;
+  const ratingLabel =
+    reviews.length > 0
+      ? `${averageRating.toFixed(1)}/5 (${reviews.length} review${
+          reviews.length === 1 ? "" : "s"
+        })`
+      : "No reviews yet";
 
   const handleDateChange = (event) => {
     const chosenDate = event.target.value;
@@ -532,7 +588,7 @@ function FacilityDetailsPage() {
 
             <div className="mt-6 flex flex-wrap gap-3">
               <span className="rounded-full bg-lime-100 px-4 py-2 text-sm font-semibold text-emerald-950">
-                Rating: 4.8 ★
+                Rating: {ratingLabel}
               </span>
               <span className="rounded-full bg-gray-100 px-4 py-2 text-sm font-semibold text-slate-700">
                 {sportName} Facility
@@ -873,6 +929,76 @@ function FacilityDetailsPage() {
               {isFacilityInactive ? "Facility Unavailable" : "Continue to Booking"}
             </button>
           </div>
+        </section>
+
+        <section className="mt-10 rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-gray-200">
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+            <div>
+              <h2 className="text-2xl font-black text-emerald-950">
+                Customer Reviews
+              </h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Feedback from customers with confirmed bookings.
+              </p>
+            </div>
+
+            <span className="w-fit rounded-full bg-lime-100 px-4 py-2 text-sm font-semibold text-emerald-950">
+              {ratingLabel}
+            </span>
+          </div>
+
+          {isReviewsLoading ? (
+            <div className="mt-6 rounded-2xl bg-gray-50 px-5 py-5 text-sm font-medium text-slate-500 ring-1 ring-gray-200">
+              Loading facility reviews...
+            </div>
+          ) : null}
+
+          {!isReviewsLoading && reviewsError ? (
+            <div className="mt-6 rounded-2xl bg-red-50 px-5 py-5 text-sm font-medium text-red-700 ring-1 ring-red-100">
+              {reviewsError}
+            </div>
+          ) : null}
+
+          {!isReviewsLoading && !reviewsError && reviews.length === 0 ? (
+            <div className="mt-6 rounded-2xl bg-gray-50 px-5 py-5 text-sm font-medium text-slate-500 ring-1 ring-gray-200">
+              No reviews have been submitted for this facility yet.
+            </div>
+          ) : null}
+
+          {!isReviewsLoading && !reviewsError && reviews.length > 0 ? (
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              {reviews.map((review) => {
+                const reviewerName =
+                  review.customer?.user?.fullName || "Customer";
+
+                return (
+                  <article
+                    key={review.id}
+                    className="rounded-2xl border border-gray-200 bg-gray-50 p-5"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="font-bold text-emerald-950">
+                          {reviewerName}
+                        </p>
+                        <p className="mt-1 text-xs font-medium text-slate-500">
+                          {formatReviewDate(review.createdAt)}
+                        </p>
+                      </div>
+
+                      <span className="rounded-full bg-lime-100 px-3 py-1 text-sm font-bold text-emerald-950">
+                        {review.rating}/5
+                      </span>
+                    </div>
+
+                    <p className="mt-4 text-sm leading-6 text-slate-600">
+                      {review.comment || "No comment added."}
+                    </p>
+                  </article>
+                );
+              })}
+            </div>
+          ) : null}
         </section>
       </main>
 
