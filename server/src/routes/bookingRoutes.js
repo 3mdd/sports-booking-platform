@@ -1,5 +1,5 @@
 const express = require("express");
-const upload = require("../config/multer");
+const { paymentProofUpload } = require("../config/multer");
 const {
   createBooking,
   getBookingsByCustomer,
@@ -16,7 +16,7 @@ router.get("/bookings/customer/:customerId", getBookingsByCustomer);
 router.get("/bookings/merchant/:merchantId", getBookingsByMerchant);
 router.post(
   "/bookings/payment-proof",
-  upload.single("paymentProof"),
+  paymentProofUpload.single("paymentProof"),
   uploadPaymentProof
 );
 router.patch("/bookings/:bookingId/approve-payment", approvePayment);

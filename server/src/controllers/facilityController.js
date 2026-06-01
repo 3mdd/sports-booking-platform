@@ -75,7 +75,11 @@ const getAllFacilities = async (req, res) => {
       include: {
         sportType: true,
         merchantProfile: true,
-        images: true,
+        images: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
@@ -103,7 +107,11 @@ const getFacilityById = async (req, res) => {
       include: {
         sportType: true,
         merchantProfile: true,
-        images: true,
+        images: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
         timeSlots: true,
       },
     });
@@ -144,6 +152,86 @@ const getSportTypes = async (req, res) => {
     });
   } catch (error) {
     console.error("Fetch sport types failed:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
+const uploadFacilityPhoto = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const facilityId = Number(id);
+
+    if (!Number.isInteger(facilityId) || facilityId <= 0) {
+      return res.status(400).json({
+        message: "Valid facility ID is required",
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        message: "Facility photo file is required",
+      });
+    }
+
+    const facility = await prisma.facility.findUnique({
+      where: { id: facilityId },
+      include: {
+        images: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    });
+
+    if (!facility) {
+      return res.status(404).json({
+        message: "Facility not found",
+      });
+    }
+
+    const imageUrl = `uploads/facilities/${req.file.filename}`;
+    const currentMainImage = facility.images[0];
+
+    if (currentMainImage) {
+      await prisma.facilityImage.update({
+        where: {
+          id: currentMainImage.id,
+        },
+        data: {
+          imageUrl,
+        },
+      });
+    } else {
+      await prisma.facilityImage.create({
+        data: {
+          facilityId,
+          imageUrl,
+        },
+      });
+    }
+
+    const updatedFacility = await prisma.facility.findUnique({
+      where: { id: facilityId },
+      include: {
+        sportType: true,
+        merchantProfile: true,
+        images: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
+      },
+    });
+
+    return res.status(200).json({
+      message: "Facility photo uploaded successfully",
+      facility: updatedFacility,
+    });
+  } catch (error) {
+    console.error("Upload facility photo failed:", error);
     return res.status(500).json({
       message: "Internal server error",
     });
@@ -269,7 +357,11 @@ const updateFacility = async (req, res) => {
       include: {
         sportType: true,
         merchantProfile: true,
-        images: true,
+        images: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
       },
     });
 
@@ -604,6 +696,7 @@ module.exports = {
   getAllFacilities,
   getFacilityById,
   getSportTypes,
+  uploadFacilityPhoto,
   updateFacility,
   createTimeSlots,
   getFacilitySlotsByDate,

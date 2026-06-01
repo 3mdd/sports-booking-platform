@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
+import { getUploadFileUrl } from "../../utils/uploadUrl";
 
 const TEMP_MERCHANT_ID = 1;
 
@@ -32,6 +33,10 @@ function getFacilityPricePerHour(facility) {
   return `RM ${(pricePerSlot * 2).toFixed(2)} / hour`;
 }
 
+function getFacilityPhotoUrl(facility) {
+  return getUploadFileUrl(facility.images?.[0]?.imageUrl);
+}
+
 function MerchantFacilityManagementPage() {
   const [facilities, setFacilities] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,6 +53,14 @@ function MerchantFacilityManagementPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [editMessage, setEditMessage] = useState("");
   const [isEditSuccess, setIsEditSuccess] = useState(false);
+  const [uploadingPhotoFacilityId, setUploadingPhotoFacilityId] =
+    useState(null);
+  const [photoUploadStatus, setPhotoUploadStatus] = useState({
+    facilityId: null,
+    message: "",
+    isSuccess: false,
+  });
+  const [photoPreviewUrls, setPhotoPreviewUrls] = useState({});
 
   const fetchFacilities = async () => {
     try {
@@ -150,6 +163,23 @@ function MerchantFacilityManagementPage() {
     setEditFormData((currentFormData) => ({
       ...currentFormData,
       [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handlePhotoInputChange = (event, facilityId) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      setPhotoPreviewUrls((currentPreviewUrls) => ({
+        ...currentPreviewUrls,
+        [facilityId]: "",
+      }));
+      return;
+    }
+
+    setPhotoPreviewUrls((currentPreviewUrls) => ({
+      ...currentPreviewUrls,
+      [facilityId]: URL.createObjectURL(file),
     }));
   };
 
@@ -305,6 +335,69 @@ function MerchantFacilityManagementPage() {
       setEditMessage(error.message || "Unable to update facility.");
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleFacilityPhotoUpload = async (event, facilityId) => {
+    event.preventDefault();
+
+    const formElement = event.currentTarget;
+    const selectedFile = formElement.facilityPhoto.files?.[0];
+
+    if (!selectedFile) {
+      setPhotoUploadStatus({
+        facilityId,
+        message: "Please choose a facility photo before uploading.",
+        isSuccess: false,
+      });
+      return;
+    }
+
+    try {
+      setUploadingPhotoFacilityId(facilityId);
+      setPhotoUploadStatus({
+        facilityId,
+        message: "",
+        isSuccess: false,
+      });
+
+      const uploadFormData = new FormData();
+      uploadFormData.append("facilityPhoto", selectedFile);
+
+      const response = await fetch(
+        `http://localhost:5000/facilities/${facilityId}/photo`,
+        {
+          method: "PATCH",
+          body: uploadFormData,
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to upload facility photo");
+      }
+
+      setPhotoUploadStatus({
+        facilityId,
+        message: "Facility photo uploaded successfully.",
+        isSuccess: true,
+      });
+      setPhotoPreviewUrls((currentPreviewUrls) => ({
+        ...currentPreviewUrls,
+        [facilityId]: "",
+      }));
+      formElement.reset();
+      await fetchFacilities();
+    } catch (error) {
+      console.error("Upload facility photo error:", error);
+      setPhotoUploadStatus({
+        facilityId,
+        message: error.message || "Unable to upload facility photo.",
+        isSuccess: false,
+      });
+    } finally {
+      setUploadingPhotoFacilityId(null);
     }
   };
 
@@ -570,6 +663,78 @@ function MerchantFacilityManagementPage() {
                         {facility.description}
                       </p>
                     ) : null}
+
+                    <div className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-gray-200">
+                      <div className="flex flex-col gap-4 md:flex-row md:items-start">
+                        {photoPreviewUrls[facility.id] ||
+                        getFacilityPhotoUrl(facility) ? (
+                          <img
+                            src={
+                              photoPreviewUrls[facility.id] ||
+                              getFacilityPhotoUrl(facility)
+                            }
+                            alt={`${facility.name} preview`}
+                            className="h-32 w-full rounded-2xl object-cover ring-1 ring-gray-200 md:w-44"
+                          />
+                        ) : (
+                          <div className="flex h-32 w-full items-center justify-center rounded-2xl bg-gray-100 px-4 text-center text-sm font-medium text-slate-500 ring-1 ring-gray-200 md:w-44">
+                            No facility photo uploaded
+                          </div>
+                        )}
+
+                        <form
+                          onSubmit={(event) =>
+                            handleFacilityPhotoUpload(event, facility.id)
+                          }
+                          className="flex-1"
+                        >
+                          <h4 className="text-sm font-black text-emerald-950">
+                            Facility Photo
+                          </h4>
+                          <p className="mt-1 text-xs leading-5 text-slate-500">
+                            Upload one main photo for customer browse and
+                            details pages. JPG, PNG, and WEBP are supported.
+                          </p>
+
+                          <input
+                            name="facilityPhoto"
+                            type="file"
+                            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                            onChange={(event) =>
+                              handlePhotoInputChange(event, facility.id)
+                            }
+                            className="mt-4 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none file:mr-4 file:rounded-xl file:border-0 file:bg-lime-100 file:px-4 file:py-2 file:text-xs file:font-bold file:text-emerald-950 focus:border-lime-400 focus:bg-white"
+                          />
+
+                          {photoUploadStatus.facilityId === facility.id &&
+                          photoUploadStatus.message ? (
+                            <div
+                              className={`mt-3 rounded-2xl px-4 py-3 text-sm font-medium ${
+                                photoUploadStatus.isSuccess
+                                  ? "border border-lime-200 bg-lime-50 text-emerald-800"
+                                  : "border border-red-200 bg-red-50 text-red-700"
+                              }`}
+                            >
+                              {photoUploadStatus.message}
+                            </div>
+                          ) : null}
+
+                          <button
+                            type="submit"
+                            disabled={uploadingPhotoFacilityId === facility.id}
+                            className={`mt-4 rounded-2xl px-5 py-3 text-sm font-semibold text-white transition ${
+                              uploadingPhotoFacilityId === facility.id
+                                ? "cursor-not-allowed bg-slate-400"
+                                : "bg-emerald-950 hover:bg-emerald-900"
+                            }`}
+                          >
+                            {uploadingPhotoFacilityId === facility.id
+                              ? "Uploading..."
+                              : "Upload Photo"}
+                          </button>
+                        </form>
+                      </div>
+                    </div>
 
                     {editingFacilityId === facility.id ? (
                       <form

@@ -4,6 +4,7 @@ import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import padelImage from "../../assets/images/padel.jpg";
 import badmintonImage from "../../assets/images/badminton.jpg";
+import { getUploadFileUrl } from "../../utils/uploadUrl";
 
 const fallbackImages = {
   Football:
@@ -95,7 +96,7 @@ function BrowseFacilitiesPage() {
     const firstImage = facility.images?.[0]?.imageUrl;
 
     if (firstImage) {
-      return firstImage;
+      return getUploadFileUrl(firstImage);
     }
 
     return fallbackImages[sportName] || fallbackImages.Default;

@@ -1,9 +1,11 @@
 const express = require("express");
+const { facilityPhotoUpload } = require("../config/multer");
 const {
   createFacility,
   getAllFacilities,
   getFacilityById,
   getSportTypes,
+  uploadFacilityPhoto,
   updateFacility,
   createTimeSlots,
   getFacilitySlotsByDate,
@@ -15,10 +17,27 @@ const {
 
 const router = express.Router();
 
+const handleFacilityPhotoUpload = (req, res, next) => {
+  facilityPhotoUpload.single("facilityPhoto")(req, res, (error) => {
+    if (error) {
+      return res.status(400).json({
+        message: error.message,
+      });
+    }
+
+    return next();
+  });
+};
+
 router.post("/facilities", createFacility);
 router.get("/facilities", getAllFacilities);
 router.get("/facilities/sport-types", getSportTypes);
 router.get("/facilities/:id", getFacilityById);
+router.patch(
+  "/facilities/:id/photo",
+  handleFacilityPhotoUpload,
+  uploadFacilityPhoto
+);
 router.patch("/facilities/:id", updateFacility);
 router.post("/facilities/slots", createTimeSlots);
 router.get("/facilities/slots/by-date", getFacilitySlotsByDate);
