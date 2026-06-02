@@ -1,4 +1,5 @@
 const prisma = require("../lib/prisma");
+const { analyzeReviewSentiment } = require("../services/sentimentService");
 
 const MAX_COMMENT_LENGTH = 1000;
 
@@ -76,6 +77,8 @@ const createReview = async (req, res) => {
       });
     }
 
+    const sentimentAnalysis = await analyzeReviewSentiment(trimmedComment);
+
     const review = await prisma.review.create({
       data: {
         bookingId: parsedBookingId,
@@ -83,6 +86,10 @@ const createReview = async (req, res) => {
         facilityId: parsedFacilityId,
         rating: parsedRating,
         comment: trimmedComment || null,
+        sentimentLabel: sentimentAnalysis.sentimentLabel,
+        sentimentScore: sentimentAnalysis.sentimentScore,
+        sentimentProvider: sentimentAnalysis.sentimentProvider,
+        sentimentAnalyzedAt: sentimentAnalysis.sentimentAnalyzedAt,
       },
       include: {
         customer: {

@@ -5,6 +5,12 @@ import Footer from "../../components/layout/Footer";
 
 const TEMP_MERCHANT_ID = 1;
 const ratingOptions = [5, 4, 3, 2, 1];
+const sentimentOptions = ["POSITIVE", "NEUTRAL", "NEGATIVE"];
+const sentimentLabels = {
+  POSITIVE: "Positive",
+  NEUTRAL: "Neutral",
+  NEGATIVE: "Negative",
+};
 
 function formatDate(dateValue) {
   if (!dateValue) return "Date unavailable";
@@ -35,6 +41,18 @@ function StarRatingDisplay({ rating, sizeClass = "text-lg" }) {
       ))}
     </div>
   );
+}
+
+function getSentimentBadgeClass(sentimentLabel) {
+  if (sentimentLabel === "POSITIVE") {
+    return "bg-lime-100 text-emerald-800 ring-lime-200";
+  }
+
+  if (sentimentLabel === "NEGATIVE") {
+    return "bg-red-50 text-red-700 ring-red-100";
+  }
+
+  return "bg-slate-100 text-slate-700 ring-slate-200";
 }
 
 function MerchantReviewInsightsPage() {
@@ -109,11 +127,19 @@ function MerchantReviewInsightsPage() {
 
       return counts;
     }, {});
+    const sentimentCounts = sentimentOptions.reduce((counts, sentimentLabel) => {
+      counts[sentimentLabel] = reviews.filter(
+        (review) => review.sentimentLabel === sentimentLabel
+      ).length;
+
+      return counts;
+    }, {});
 
     return {
       totalReviews,
       averageRating,
       ratingCounts,
+      sentimentCounts,
     };
   }, [reviews]);
 
@@ -213,6 +239,35 @@ function MerchantReviewInsightsPage() {
               <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
                 <div>
                   <h2 className="text-2xl font-black text-emerald-950">
+                    Sentiment Snapshot
+                  </h2>
+                  <p className="mt-2 text-sm text-slate-600">
+                    Sentiment analysis is prepared for API integration.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-3">
+                {sentimentOptions.map((sentimentLabel) => (
+                  <div
+                    key={sentimentLabel}
+                    className="rounded-2xl bg-gray-50 px-5 py-4 ring-1 ring-gray-200"
+                  >
+                    <p className="text-sm font-bold text-slate-500">
+                      {sentimentLabels[sentimentLabel]}
+                    </p>
+                    <p className="mt-2 text-3xl font-black text-emerald-950">
+                      {reviewStats.sentimentCounts[sentimentLabel] || 0}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="mb-8 rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-gray-200 md:p-8">
+              <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+                <div>
+                  <h2 className="text-2xl font-black text-emerald-950">
                     Filters
                   </h2>
                   <p className="mt-2 text-sm text-slate-600">
@@ -304,6 +359,16 @@ function MerchantReviewInsightsPage() {
                             <p className="mt-1 text-xs font-bold text-emerald-950">
                               {review.rating}/5
                             </p>
+                            {review.sentimentLabel ? (
+                              <span
+                                className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-bold ring-1 ${getSentimentBadgeClass(
+                                  review.sentimentLabel
+                                )}`}
+                              >
+                                {sentimentLabels[review.sentimentLabel] ||
+                                  review.sentimentLabel}
+                              </span>
+                            ) : null}
                           </div>
                         </div>
 
