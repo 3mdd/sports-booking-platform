@@ -54,31 +54,6 @@ function timeToMinutes(timeValue) {
   return hours * 60 + minutes;
 }
 
-function minutesToTime(totalMinutes) {
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-
-  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
-    2,
-    "0"
-  )}`;
-}
-
-function buildThirtyMinuteSlots(startTime, endTime) {
-  const startMinutes = timeToMinutes(startTime);
-  const endMinutes = timeToMinutes(endTime);
-  const generatedSlots = [];
-
-  for (let current = startMinutes; current < endMinutes; current += 30) {
-    generatedSlots.push({
-      startTime: minutesToTime(current),
-      endTime: minutesToTime(current + 30),
-    });
-  }
-
-  return generatedSlots;
-}
-
 function buildDateRange(startDate, endDate) {
   const dates = [];
   const currentDate = parseDateInput(startDate);
@@ -411,18 +386,11 @@ function MerchantSlotManagementPage() {
       return;
     }
 
-    if (slotForm.startTime >= slotForm.endTime) {
-      setIsSubmitSuccess(false);
-      setFailureDetails([]);
-      setSubmitMessage(
-        "After-midnight slot generation will be supported in a future enhancement."
-      );
-      return;
-    }
-
     const startMinutes = timeToMinutes(slotForm.startTime);
     const endMinutes = timeToMinutes(slotForm.endTime);
-    const totalMinutes = endMinutes - startMinutes;
+    const isAfterMidnight = endMinutes <= startMinutes;
+    const totalMinutes =
+      endMinutes - startMinutes + (isAfterMidnight ? 24 * 60 : 0);
 
     if (totalMinutes % 30 !== 0) {
       setIsSubmitSuccess(false);
@@ -433,11 +401,11 @@ function MerchantSlotManagementPage() {
       return;
     }
 
-    const generatedSlots = buildThirtyMinuteSlots(
-      slotForm.startTime,
-      slotForm.endTime
-    );
     const generatedDates = buildDateRange(slotForm.startDate, slotForm.endDate);
+    const slotsPerDate = totalMinutes / 30;
+    const nextDayMessage = isAfterMidnight
+      ? " The range continues after midnight and includes next-day slots."
+      : "";
 
     try {
       setIsSubmitting(true);
@@ -450,45 +418,50 @@ function MerchantSlotManagementPage() {
       let createdCount = 0;
 
       for (const generatedDate of generatedDates) {
-        for (const generatedSlot of generatedSlots) {
-          try {
-            const response = await fetch(
-              "http://localhost:5000/facilities/slots",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  facilityId: Number(facilityId),
-                  date: generatedDate,
-                  startTime: generatedSlot.startTime,
-                  endTime: generatedSlot.endTime,
-                }),
-              }
+        try {
+          const response = await fetch(
+            "http://localhost:5000/facilities/slots",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                facilityId: Number(facilityId),
+                date: generatedDate,
+                startTime: slotForm.startTime,
+                endTime: slotForm.endTime,
+              }),
+            }
+          );
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            const requestError = new Error(
+              data.message || "Failed to create slots"
             );
+            requestError.duplicateCount = Number(data.duplicateCount || 0);
+            throw requestError;
+          }
 
-            const data = await response.json();
+          createdCount += Number(data.totalCreated || 0);
+          duplicateCount += Number(data.duplicateCount || 0);
+        } catch (error) {
+          const errorMessage = error.message || "Failed";
+          const isDuplicate = errorMessage === DUPLICATE_SLOT_MESSAGE;
 
-            if (!response.ok) {
-              throw new Error(data.message || "Failed to create slot");
-            }
-
-            createdCount += Number(data.totalCreated || 0);
-          } catch (error) {
-            const errorMessage = error.message || "Failed";
-            const isDuplicate = errorMessage === DUPLICATE_SLOT_MESSAGE;
-
-            if (isDuplicate) {
-              duplicateCount += 1;
-            } else {
-              failures.push(
-                `${generatedDate} ${formatDisplayTimeRange(
-                  generatedSlot.startTime,
-                  generatedSlot.endTime
-                )}: ${errorMessage}`
-              );
-            }
+          if (isDuplicate) {
+            duplicateCount += error.duplicateCount || slotsPerDate;
+          } else {
+            failures.push(
+              `${generatedDate} ${formatDisplayTimeRange(
+                slotForm.startTime,
+                slotForm.endTime
+              )}${isAfterMidnight ? " (continues next day)" : ""}: ${
+                errorMessage
+              }`
+            );
           }
         }
       }
@@ -498,23 +471,23 @@ function MerchantSlotManagementPage() {
       if (createdCount === 0 && duplicateCount > 0 && failures.length === 0) {
         setIsSubmitSuccess(false);
         setSubmitMessage(
-          "No new slots were created. All selected slots already exist."
+          `No new slots were created. All selected slots already exist.${nextDayMessage}`
         );
       } else if (createdCount > 0 && duplicateCount > 0 && failures.length === 0) {
         setIsSubmitSuccess(true);
         setSubmitMessage(
-          `${createdCount} slots created. ${duplicateCount} selected slots already existed and were skipped.`
+          `${createdCount} slots created. ${duplicateCount} selected slots already existed and were skipped.${nextDayMessage}`
         );
       } else if (failures.length > 0) {
         setIsSubmitSuccess(false);
         setSubmitMessage(
-          `${createdCount} slot(s) created. ${failures.length} slot request(s) failed.`
+          `${createdCount} slot(s) created. ${failures.length} date request(s) failed.${nextDayMessage}`
         );
       } else {
         setSlotForm(initialSlotForm);
         setIsSubmitSuccess(true);
         setSubmitMessage(
-          `${createdCount} 30-minute slot(s) generated successfully.`
+          `${createdCount} 30-minute slot(s) generated successfully.${nextDayMessage}`
         );
       }
 
@@ -661,6 +634,11 @@ function MerchantSlotManagementPage() {
                   />
                 </div>
               </div>
+
+              <p className="text-xs leading-5 text-slate-500">
+                If end time is earlier than start time, slots will continue
+                after midnight into the next day.
+              </p>
             </div>
 
             {submitMessage ? (

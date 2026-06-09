@@ -73,23 +73,6 @@ function StarRatingDisplay({ rating, sizeClass = "text-lg" }) {
   );
 }
 
-function buildSlotStartDateTime(selectedDate, slotLabel) {
-  if (!selectedDate) return null;
-
-  const [year, month, day] = selectedDate.split("-").map(Number);
-  const startTime = slotLabel.split(" - ")[0];
-  const [hour, minute] = startTime.split(":").map(Number);
-
-  const date = new Date(year, month - 1, day, hour, minute);
-
-  // Treat early-morning slots as part of the selected facility day.
-  if (hour >= 0 && hour < 6) {
-    date.setDate(date.getDate() + 1);
-  }
-
-  return date;
-}
-
 function buildDateInputValue(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
     2,
@@ -101,6 +84,16 @@ function buildLocalDate(dateValue) {
   const [year, month, day] = dateValue.split("-").map(Number);
 
   return new Date(year, month - 1, day);
+}
+
+function isAfterSelectedDate(dateValue, selectedDate) {
+  if (!dateValue || !selectedDate) return false;
+
+  const date = new Date(dateValue);
+  const selectedLocalDate = buildLocalDate(selectedDate);
+  date.setHours(0, 0, 0, 0);
+
+  return date > selectedLocalDate;
 }
 
 function getBookingDateError(dateValue, todayDate, maxBookingDateValue) {
@@ -234,7 +227,7 @@ function FacilityDetailsPage() {
         setSlotError("");
 
         const response = await fetch(
-          `http://localhost:5000/facilities/slots/by-date?facilityId=${facility.id}&date=${selectedDate}`
+          `http://localhost:5000/facilities/slots/by-date?facilityId=${facility.id}&date=${selectedDate}&includeNextDay=true`
         );
 
         if (!response.ok) {
@@ -242,11 +235,17 @@ function FacilityDetailsPage() {
         }
 
         const data = await response.json();
-        const formattedSlots = (data.slots || []).map((slot) => ({
-          ...slot,
-          label: formatSlotLabel(slot),
-          displayLabel: formatDisplayTimeRange(slot.startTime, slot.endTime),
-        }));
+        const formattedSlots = (data.slots || [])
+          .map((slot) => ({
+            ...slot,
+            label: formatSlotLabel(slot),
+            displayLabel: formatDisplayTimeRange(slot.startTime, slot.endTime),
+          }))
+          .sort(
+            (a, b) =>
+              new Date(a.startTime).getTime() -
+              new Date(b.startTime).getTime()
+          );
 
         setAvailableSlots(formattedSlots);
 
@@ -342,7 +341,7 @@ function FacilityDetailsPage() {
 
     if (!isTodaySelected || !selectedDate) return false;
 
-    const slotDateTime = buildSlotStartDateTime(selectedDate, slot.label);
+    const slotDateTime = new Date(slot.startTime);
 
     return slotDateTime < currentTimePlusTwoHours;
   };
@@ -399,6 +398,9 @@ function FacilityDetailsPage() {
 
   const hasAvailableDuration = durationAvailability.some(
     (durationOption) => durationOption.isAvailable
+  );
+  const availableStartSlots = availableSlots.filter(
+    (slot) => !isAfterSelectedDate(slot.startTime, selectedDate)
   );
 
   const handleStartTimeSelection = (clickedSlot) => {
@@ -490,6 +492,16 @@ function FacilityDetailsPage() {
   const selectedEndTime = selectedEndSlot
     ? formatDisplayTime(selectedEndSlot.endTime)
     : "No end time selected";
+  const bookingTimeLabel =
+    selectedStartSlot && selectedEndSlot
+      ? formatDisplayTimeRange(
+          selectedStartSlot.startTime,
+          selectedEndSlot.endTime
+        )
+      : "No time selected";
+  const bookingEndsNextDay = selectedEndSlot
+    ? isAfterSelectedDate(selectedEndSlot.endTime, selectedDate)
+    : false;
   const canContinueToBooking =
     !isFacilityInactive &&
     !selectedDateError &&
@@ -535,6 +547,7 @@ function FacilityDetailsPage() {
         selectedDate,
         formattedDate: formattedSelectedDate,
         durationLabel: selectedDuration.label,
+        bookingTimeLabel,
         selectedSlots: selectedSlotLabels,
         selectedSlotIds: selectedSlots.map((slot) => slot.id),
         totalPrice,
@@ -742,7 +755,7 @@ function FacilityDetailsPage() {
                 </p>
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {availableSlots.map((slot) => {
+                  {availableStartSlots.map((slot) => {
                     const isSelected = selectedStartSlot?.id === slot.id;
                     const isBooked = isSlotBooked(slot);
                     const isBlocked = isSlotBlocked(slot);
@@ -792,7 +805,8 @@ function FacilityDetailsPage() {
                 </h3>
                 <p className="mt-2 text-sm text-slate-600">
                   Durations are enabled only when the required connected slots
-                  are available after {formatDisplayTime(selectedStartSlot.startTime)}.
+                  are available after{" "}
+                  {formatDisplayTime(selectedStartSlot.startTime)}.
                 </p>
 
                 {!hasAvailableDuration ? (
@@ -871,6 +885,14 @@ function FacilityDetailsPage() {
                 <span className="text-slate-500">End Time</span>
                 <span className="font-semibold text-slate-900">
                   {selectedEndTime}
+                  {bookingEndsNextDay ? " (next day)" : ""}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <span className="text-slate-500">Booking Time</span>
+                <span className="text-right font-semibold text-slate-900">
+                  {bookingTimeLabel}
                 </span>
               </div>
 

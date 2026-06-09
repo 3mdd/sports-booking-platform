@@ -36,8 +36,32 @@ export function formatDisplayTime(timeValue, fallback = "Not available") {
     .replace(/\b(am|pm)\b/i, (period) => period.toUpperCase());
 }
 
+function isLaterCalendarDate(startTime, endTime) {
+  const startDate = new Date(startTime);
+  const endDate = new Date(endTime);
+
+  if (
+    Number.isNaN(startDate.getTime()) ||
+    Number.isNaN(endDate.getTime())
+  ) {
+    return false;
+  }
+
+  return (
+    endDate.getFullYear() !== startDate.getFullYear() ||
+    endDate.getMonth() !== startDate.getMonth() ||
+    endDate.getDate() !== startDate.getDate()
+  );
+}
+
 export function formatDisplayTimeRange(startTime, endTime) {
-  return `${formatDisplayTime(startTime)} - ${formatDisplayTime(endTime)}`;
+  const range = `${formatDisplayTime(startTime)} - ${formatDisplayTime(
+    endTime
+  )}`;
+
+  return isLaterCalendarDate(startTime, endTime)
+    ? `${range} (next day)`
+    : range;
 }
 
 export function formatDisplaySlotLabel(slotLabel, fallback = "Not available") {

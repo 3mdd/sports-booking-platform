@@ -27,6 +27,17 @@ function getStartOfSlotDate(slotDate) {
   return date;
 }
 
+function isSameLocalDate(firstDateValue, secondDateValue) {
+  const firstDate = new Date(firstDateValue);
+  const secondDate = new Date(secondDateValue);
+
+  return (
+    firstDate.getFullYear() === secondDate.getFullYear() &&
+    firstDate.getMonth() === secondDate.getMonth() &&
+    firstDate.getDate() === secondDate.getDate()
+  );
+}
+
 const createBooking = async (req, res) => {
   try {
     const { customerId, facilityId, timeSlotIds, notes } = req.body;
@@ -86,23 +97,32 @@ const createBooking = async (req, res) => {
     const todayStart = getStartOfToday();
     const maxBookingDate = getMaxBookingDate();
 
-    const hasPastSlotDate = slots.some(
-      (slot) => getStartOfSlotDate(slot.slotDate) < todayStart
-    );
+    const bookingStartSlot = slots[0];
+    const bookingStartDate = new Date(bookingStartSlot.startTime);
+    const bookingSlotDate = getStartOfSlotDate(bookingStartSlot.slotDate);
 
-    if (hasPastSlotDate) {
+    if (bookingSlotDate < todayStart) {
       return res.status(400).json({
         message: "Bookings cannot be made for past dates.",
       });
     }
 
-    const hasTooFarSlotDate = slots.some(
-      (slot) => getStartOfSlotDate(slot.slotDate) > maxBookingDate
-    );
-
-    if (hasTooFarSlotDate) {
+    if (bookingSlotDate > maxBookingDate) {
       return res.status(400).json({
         message: "Bookings are only available up to 14 days in advance.",
+      });
+    }
+
+    const now = new Date();
+    const minimumSameDayStart = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+
+    if (
+      isSameLocalDate(bookingStartDate, now) &&
+      bookingStartDate < minimumSameDayStart
+    ) {
+      return res.status(400).json({
+        message:
+          "Same-day bookings must start at least 2 hours from the current time.",
       });
     }
 

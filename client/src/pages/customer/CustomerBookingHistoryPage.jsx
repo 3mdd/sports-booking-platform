@@ -203,6 +203,7 @@ function CustomerBookingHistoryPage() {
         facilityName: booking.facility?.name || "Facility",
         formattedDate,
         durationLabel: bookingTime,
+        bookingTimeLabel: bookingTime,
         totalPrice: Number(booking.totalPrice || 0),
         bookingStatus: booking.status,
         createdAt: booking.createdAt,

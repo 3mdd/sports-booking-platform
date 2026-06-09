@@ -6,6 +6,43 @@ const {
 const isOptionalString = (value) =>
   value === undefined || value === null || typeof value === "string";
 
+function parseLocalDateTime(dateValue, timeValue) {
+  const dateMatch = String(dateValue).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const timeMatch = String(timeValue).match(/^(\d{2}):(\d{2})$/);
+
+  if (!dateMatch || !timeMatch) {
+    return null;
+  }
+
+  const [, yearText, monthText, dayText] = dateMatch;
+  const [, hourText, minuteText] = timeMatch;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  const date = new Date(year, month - 1, day, hour, minute, 0, 0);
+
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day ||
+    date.getHours() !== hour ||
+    date.getMinutes() !== minute
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
+function getStartOfLocalDay(dateValue) {
+  const date = new Date(dateValue);
+  date.setHours(0, 0, 0, 0);
+
+  return date;
+}
+
 const createFacility = async (req, res) => {
   try {
     const {
@@ -447,8 +484,28 @@ const createTimeSlots = async (req, res) => {
     }
 
     const slots = [];
-    const current = new Date(`${date}T${startTime}:00`);
-    const end = new Date(`${date}T${endTime}:00`);
+    const current = parseLocalDateTime(date, startTime);
+    const end = parseLocalDateTime(date, endTime);
+
+    if (!current || !end) {
+      return res.status(400).json({
+        message: "Valid date, startTime, and endTime values are required",
+      });
+    }
+
+    const continuesNextDay = end <= current;
+
+    if (continuesNextDay) {
+      end.setDate(end.getDate() + 1);
+    }
+
+    const totalMinutes = (end.getTime() - current.getTime()) / (60 * 1000);
+
+    if (totalMinutes % 30 !== 0) {
+      return res.status(400).json({
+        message: "Time range must divide evenly into 30-minute slots.",
+      });
+    }
 
     while (current < end) {
       const slotStart = new Date(current);
@@ -459,7 +516,7 @@ const createTimeSlots = async (req, res) => {
 
       slots.push({
         facilityId: Number(facilityId),
-        slotDate: new Date(`${date}T00:00:00`),
+        slotDate: getStartOfLocalDay(slotStart),
         startTime: slotStart,
         endTime: slotEnd,
       });
@@ -478,19 +535,38 @@ const createTimeSlots = async (req, res) => {
       },
     });
 
-    if (duplicateSlots.length > 0) {
+    const duplicateKeys = new Set(
+      duplicateSlots.map(
+        (slot) =>
+          `${slot.slotDate.toISOString()}|${slot.startTime.toISOString()}|${slot.endTime.toISOString()}`
+      )
+    );
+    const newSlots = slots.filter(
+      (slot) =>
+        !duplicateKeys.has(
+          `${slot.slotDate.toISOString()}|${slot.startTime.toISOString()}|${slot.endTime.toISOString()}`
+        )
+    );
+
+    if (newSlots.length === 0) {
       return res.status(409).json({
         message: "This time slot already exists for this facility and date.",
+        duplicateCount: duplicateSlots.length,
       });
     }
 
     const createdSlots = await prisma.timeSlot.createMany({
-      data: slots,
+      data: newSlots,
     });
 
     return res.status(201).json({
-      message: "Time slots created successfully",
+      message:
+        duplicateSlots.length > 0
+          ? "Time slots created successfully. Existing duplicates were skipped."
+          : "Time slots created successfully",
       totalCreated: createdSlots.count,
+      duplicateCount: duplicateSlots.length,
+      continuesNextDay,
     });
   } catch (error) {
     console.error("Create time slots failed:", error);
@@ -502,7 +578,7 @@ const createTimeSlots = async (req, res) => {
 
 const getFacilitySlotsByDate = async (req, res) => {
   try {
-    const { facilityId, date } = req.query;
+    const { facilityId, date, includeNextDay } = req.query;
 
     if (!facilityId || !date) {
       return res.status(400).json({
@@ -522,17 +598,66 @@ const getFacilitySlotsByDate = async (req, res) => {
 
     await expireOldPendingBookings();
 
-    const slotDate = new Date(`${date}T00:00:00`);
+    const slotDate = parseLocalDateTime(date, "00:00");
 
-    const slots = await prisma.timeSlot.findMany({
+    if (!slotDate) {
+      return res.status(400).json({
+        message: "Valid date is required",
+      });
+    }
+
+    const nextSlotDate = new Date(slotDate);
+    nextSlotDate.setDate(nextSlotDate.getDate() + 1);
+    const shouldIncludeNextDay = includeNextDay === "true";
+
+    const fetchedSlots = await prisma.timeSlot.findMany({
       where: {
         facilityId: Number(facilityId),
-        slotDate,
+        slotDate: shouldIncludeNextDay
+          ? {
+              in: [slotDate, nextSlotDate],
+            }
+          : slotDate,
       },
       orderBy: {
         startTime: "asc",
       },
     });
+
+    const selectedDateSlots = fetchedSlots.filter(
+      (slot) => new Date(slot.slotDate).getTime() === slotDate.getTime()
+    );
+    let slots = selectedDateSlots;
+
+    if (shouldIncludeNextDay && selectedDateSlots.length > 0) {
+      const nextDaySlots = fetchedSlots.filter(
+        (slot) => new Date(slot.slotDate).getTime() === nextSlotDate.getTime()
+      );
+      const hasMidnightConnection = selectedDateSlots.some(
+        (slot) => new Date(slot.endTime).getTime() === nextSlotDate.getTime()
+      );
+
+      if (hasMidnightConnection) {
+        const continuationSlots = [];
+        let expectedStartTime = nextSlotDate.getTime();
+
+        for (const slot of nextDaySlots) {
+          const slotStartTime = new Date(slot.startTime).getTime();
+
+          if (slotStartTime !== expectedStartTime) {
+            break;
+          }
+
+          continuationSlots.push(slot);
+          expectedStartTime = new Date(slot.endTime).getTime();
+        }
+
+        slots = [...selectedDateSlots, ...continuationSlots].sort(
+          (a, b) =>
+            new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+        );
+      }
+    }
 
     return res.status(200).json({
       message: "Facility slots fetched successfully",

@@ -157,6 +157,15 @@ function BookingConfirmationPage() {
                 </span>
               </div>
 
+              {booking.bookingTimeLabel ? (
+                <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                  <span className="text-slate-500">Booking Time</span>
+                  <span className="text-right font-semibold text-slate-900">
+                    {booking.bookingTimeLabel}
+                  </span>
+                </div>
+              ) : null}
+
               <div className="border-b border-gray-100 pb-4">
                 <p className="text-slate-500">Selected Time Slots</p>
                 <div className="mt-3 flex flex-wrap gap-2">

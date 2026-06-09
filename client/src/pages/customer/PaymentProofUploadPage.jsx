@@ -437,6 +437,15 @@ function PaymentProofUploadPage() {
                   </span>
                 </div>
 
+                {booking.bookingTimeLabel ? (
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500">Booking Time</span>
+                    <span className="text-right font-semibold text-slate-900">
+                      {booking.bookingTimeLabel}
+                    </span>
+                  </div>
+                ) : null}
+
                 {bookingSlotTimes.length > 0 ? (
                   <div className="flex justify-between gap-4">
                     <span className="text-slate-500">Time</span>
