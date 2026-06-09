@@ -74,7 +74,12 @@ const getAllFacilities = async (req, res) => {
     const facilities = await prisma.facility.findMany({
       include: {
         sportType: true,
-        merchantProfile: true,
+        merchantProfile: {
+          select: {
+            id: true,
+            businessName: true,
+          },
+        },
         images: {
           orderBy: {
             createdAt: "asc",
@@ -106,7 +111,12 @@ const getFacilityById = async (req, res) => {
       where: { id: Number(id) },
       include: {
         sportType: true,
-        merchantProfile: true,
+        merchantProfile: {
+          select: {
+            id: true,
+            businessName: true,
+          },
+        },
         images: {
           orderBy: {
             createdAt: "asc",
@@ -217,7 +227,12 @@ const uploadFacilityPhoto = async (req, res) => {
       where: { id: facilityId },
       include: {
         sportType: true,
-        merchantProfile: true,
+        merchantProfile: {
+          select: {
+            id: true,
+            businessName: true,
+          },
+        },
         images: {
           orderBy: {
             createdAt: "asc",
@@ -356,7 +371,12 @@ const updateFacility = async (req, res) => {
       data: updateData,
       include: {
         sportType: true,
-        merchantProfile: true,
+        merchantProfile: {
+          select: {
+            id: true,
+            businessName: true,
+          },
+        },
         images: {
           orderBy: {
             createdAt: "asc",

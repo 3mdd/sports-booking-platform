@@ -14,6 +14,7 @@ import MerchantDashboardPage from "./pages/merchant/MerchantDashboardPage";
 import MerchantFacilityManagementPage from "./pages/merchant/MerchantFacilityManagementPage";
 import MerchantSlotManagementPage from "./pages/merchant/MerchantSlotManagementPage";
 import MerchantReviewInsightsPage from "./pages/merchant/MerchantReviewInsightsPage";
+import MerchantPaymentSettingsPage from "./pages/merchant/MerchantPaymentSettingsPage";
 import RequireRole from "./components/auth/RequireRole";
 import RequireAuth from "./components/auth/RequireAuth";
 
@@ -72,6 +73,14 @@ function App() {
           element={
             <RequireRole role="MERCHANT">
               <PaymentVerificationPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/merchant/payment-settings"
+          element={
+            <RequireRole role="MERCHANT">
+              <MerchantPaymentSettingsPage />
             </RequireRole>
           }
         />

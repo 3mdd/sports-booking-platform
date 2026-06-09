@@ -23,6 +23,7 @@ const merchantNavigation = [
   { label: "Dashboard", to: "/merchant/dashboard" },
   { label: "Facilities", to: "/merchant/facilities" },
   { label: "Payments", to: "/merchant/payments" },
+  { label: "Payment Setup", to: "/merchant/payment-settings" },
   { label: "Reviews", to: "/merchant/reviews" },
 ];
 

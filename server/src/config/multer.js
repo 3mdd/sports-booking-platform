@@ -7,10 +7,12 @@ const paymentProofUploadPath = path.join(
   "../../uploads/payment-proofs"
 );
 const facilityUploadPath = path.join(__dirname, "../../uploads/facilities");
+const paymentQrUploadPath = path.join(__dirname, "../../uploads/payment-qr");
 
 // Create folder if it does not exist
 fs.mkdirSync(paymentProofUploadPath, { recursive: true });
 fs.mkdirSync(facilityUploadPath, { recursive: true });
+fs.mkdirSync(paymentQrUploadPath, { recursive: true });
 
 const paymentProofStorage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -31,6 +33,17 @@ const facilityPhotoStorage = multer.diskStorage({
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     const ext = path.extname(file.originalname).toLowerCase();
     cb(null, `facility-photo-${uniqueSuffix}${ext}`);
+  },
+});
+
+const paymentQrStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, paymentQrUploadPath);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `payment-qr-${uniqueSuffix}${ext}`);
   },
 });
 
@@ -82,7 +95,16 @@ const facilityPhotoUpload = multer({
   },
 });
 
+const paymentQrUpload = multer({
+  storage: paymentQrStorage,
+  fileFilter: facilityPhotoFileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+});
+
 module.exports = {
   paymentProofUpload,
   facilityPhotoUpload,
+  paymentQrUpload,
 };

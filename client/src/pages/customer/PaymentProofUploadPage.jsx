@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import { formatDisplaySlotLabel } from "../../utils/timeFormat";
+import { getUploadFileUrl } from "../../utils/uploadUrl";
 
 const PAYMENT_WINDOW_MS = 30 * 60 * 1000;
 
@@ -40,6 +41,9 @@ function PaymentProofUploadPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [currentTime, setCurrentTime] = useState(Date.now());
+  const [paymentDetails, setPaymentDetails] = useState(null);
+  const [isPaymentDetailsLoading, setIsPaymentDetailsLoading] = useState(true);
+  const [paymentDetailsError, setPaymentDetailsError] = useState("");
 
   const bookingStatus = isSuccess
     ? "PAYMENT_UPLOADED"
@@ -60,6 +64,63 @@ function PaymentProofUploadPage() {
     return () => window.clearInterval(timerId);
   }, [booking?.createdAt, bookingStatus]);
 
+  useEffect(() => {
+    const fetchMerchantPaymentDetails = async () => {
+      if (!booking?.facilityId) {
+        setIsPaymentDetailsLoading(false);
+        setPaymentDetailsError(
+          "Payment details are not available yet. Please contact the merchant."
+        );
+        return;
+      }
+
+      try {
+        setIsPaymentDetailsLoading(true);
+        setPaymentDetailsError("");
+
+        const facilityResponse = await fetch(
+          `http://localhost:5000/facilities/${booking.facilityId}`
+        );
+        const facilityData = await facilityResponse.json();
+
+        if (!facilityResponse.ok) {
+          throw new Error(
+            facilityData.message || "Failed to load facility merchant"
+          );
+        }
+
+        const merchantId = facilityData.facility?.merchantProfile?.id;
+
+        if (!merchantId) {
+          throw new Error("Merchant profile is unavailable");
+        }
+
+        const paymentResponse = await fetch(
+          `http://localhost:5000/merchants/${merchantId}/payment-details`
+        );
+        const paymentData = await paymentResponse.json();
+
+        if (!paymentResponse.ok) {
+          throw new Error(
+            paymentData.message || "Failed to load merchant payment details"
+          );
+        }
+
+        setPaymentDetails(paymentData.paymentDetails || null);
+      } catch (error) {
+        console.error("Fetch merchant payment details error:", error);
+        setPaymentDetails(null);
+        setPaymentDetailsError(
+          "Payment details are not available yet. Please contact the merchant."
+        );
+      } finally {
+        setIsPaymentDetailsLoading(false);
+      }
+    };
+
+    fetchMerchantPaymentDetails();
+  }, [booking?.facilityId]);
+
   const remainingPaymentTime = useMemo(
     () => getRemainingPaymentTime(booking?.createdAt, currentTime),
     [booking?.createdAt, currentTime]
@@ -67,6 +128,13 @@ function PaymentProofUploadPage() {
 
   const isPaymentWindowExpired =
     bookingStatus === "PENDING_PAYMENT" && remainingPaymentTime === 0;
+  const hasPaymentDetails = Boolean(
+    paymentDetails?.paymentBankName ||
+      paymentDetails?.paymentAccountName ||
+      paymentDetails?.paymentAccountNumber ||
+      paymentDetails?.paymentInstructions ||
+      paymentDetails?.paymentQrImageUrl
+  );
 
   const handleSubmitPaymentProof = async () => {
     if (!booking?.bookingId) {
@@ -177,24 +245,88 @@ function PaymentProofUploadPage() {
               Payment Details
             </h2>
 
-            <div className="mt-5 rounded-lg bg-lime-50 p-4 ring-1 ring-lime-100">
-              <p className="text-sm font-bold text-emerald-950">
-                Bank transfer payment
-              </p>
-              <p className="mt-1 text-sm leading-6 text-slate-600">
-                Use the booking reference below when completing your transfer,
-                then upload the receipt for verification.
-              </p>
-            </div>
-
-            <div className="mt-6 space-y-4 text-sm">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                <span className="text-slate-500">Account Name</span>
-                <span className="font-semibold text-slate-900">
-                  EliteSport Merchant
-                </span>
+            {isPaymentDetailsLoading ? (
+              <div className="mt-5 rounded-lg bg-gray-50 p-4 text-sm font-medium text-slate-500 ring-1 ring-gray-200">
+                Loading merchant payment details...
               </div>
+            ) : null}
 
+            {!isPaymentDetailsLoading && paymentDetails?.businessName ? (
+              <p className="mt-5 text-sm font-semibold text-emerald-950">
+                Merchant: {paymentDetails.businessName}
+              </p>
+            ) : null}
+
+            {!isPaymentDetailsLoading && !hasPaymentDetails ? (
+              <div className="mt-5 rounded-lg bg-amber-50 p-4 text-sm font-semibold text-amber-700 ring-1 ring-amber-100">
+                {paymentDetailsError ||
+                  "Payment details are not available yet. Please contact the merchant."}
+              </div>
+            ) : null}
+
+            {!isPaymentDetailsLoading && hasPaymentDetails ? (
+              <>
+                <div className="mt-5 rounded-lg bg-lime-50 p-4 ring-1 ring-lime-100">
+                  <p className="text-sm font-bold text-emerald-950">
+                    {paymentDetails.businessName || "Merchant"} payment
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">
+                    Complete the transfer using these details, then upload your
+                    receipt for verification.
+                  </p>
+                </div>
+
+                {paymentDetails.paymentQrImageUrl ? (
+                  <img
+                    src={getUploadFileUrl(paymentDetails.paymentQrImageUrl)}
+                    alt={`${paymentDetails.businessName || "Merchant"} payment QR`}
+                    className="mx-auto mt-5 aspect-square w-full max-w-64 rounded-xl object-contain ring-1 ring-gray-200"
+                  />
+                ) : null}
+
+                <div className="mt-5 space-y-3 text-sm">
+                  {paymentDetails.paymentBankName ? (
+                    <div className="flex items-center justify-between gap-4 border-b border-gray-100 pb-3">
+                      <span className="text-slate-500">Bank</span>
+                      <span className="text-right font-semibold text-slate-900">
+                        {paymentDetails.paymentBankName}
+                      </span>
+                    </div>
+                  ) : null}
+
+                  {paymentDetails.paymentAccountName ? (
+                    <div className="flex items-center justify-between gap-4 border-b border-gray-100 pb-3">
+                      <span className="text-slate-500">Account Holder</span>
+                      <span className="text-right font-semibold text-slate-900">
+                        {paymentDetails.paymentAccountName}
+                      </span>
+                    </div>
+                  ) : null}
+
+                  {paymentDetails.paymentAccountNumber ? (
+                    <div className="flex items-center justify-between gap-4 border-b border-gray-100 pb-3">
+                      <span className="text-slate-500">Account Number</span>
+                      <span className="text-right font-semibold text-slate-900">
+                        {paymentDetails.paymentAccountNumber}
+                      </span>
+                    </div>
+                  ) : null}
+
+                  {paymentDetails.paymentInstructions ? (
+                    <div className="rounded-lg bg-gray-50 p-4 ring-1 ring-gray-200">
+                      <p className="font-semibold text-emerald-950">
+                        Payment Instructions
+                      </p>
+                      <p className="mt-2 whitespace-pre-wrap leading-6 text-slate-600">
+                        {paymentDetails.paymentInstructions}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              </>
+            ) : null}
+
+            <div className="mt-5 space-y-4 text-sm">
               <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                 <span className="text-slate-500">Reference</span>
                 <span className="font-semibold text-slate-900">

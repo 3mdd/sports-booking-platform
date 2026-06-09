@@ -36,12 +36,17 @@ model CustomerProfile {
 }
 
 model MerchantProfile {
-  id           Int      @id @default(autoincrement())
-  userId        Int      @unique
-  businessName  String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                   Int      @id @default(autoincrement())
+  userId               Int      @unique
+  businessName         String
+  paymentBankName      String?
+  paymentAccountName   String?
+  paymentAccountNumber String?
+  paymentInstructions  String?
+  paymentQrImageUrl    String?
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
   facilities Facility[]
 }
 
