@@ -4,7 +4,13 @@ import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import padelImage from "../../assets/images/padel.jpg";
 import badmintonImage from "../../assets/images/badminton.jpg";
+import {
+  getAreasByState,
+  getStates,
+} from "../../data/malaysiaLocations";
 import { getUploadFileUrl } from "../../utils/uploadUrl";
+
+const malaysiaStates = getStates();
 
 const fallbackImages = {
   Football:
@@ -24,6 +30,8 @@ function BrowseFacilitiesPage() {
 
   const [searchText, setSearchText] = useState("");
   const [selectedSport, setSelectedSport] = useState("All Sports");
+  const [selectedState, setSelectedState] = useState("All States");
+  const [selectedArea, setSelectedArea] = useState("All Areas");
   const [selectedLocation, setSelectedLocation] = useState("Any Location");
 
   useEffect(() => {
@@ -73,6 +81,14 @@ function BrowseFacilitiesPage() {
     return ["Any Location", ...new Set(locations)];
   }, [facilities]);
 
+  const areaOptions = useMemo(
+    () =>
+      selectedState === "All States"
+        ? []
+        : getAreasByState(selectedState),
+    [selectedState]
+  );
+
   const filteredFacilities = useMemo(() => {
     return facilities.filter((facility) => {
       const facilityName = facility.name?.toLowerCase() || "";
@@ -84,12 +100,32 @@ function BrowseFacilitiesPage() {
       const matchesSport =
         selectedSport === "All Sports" || sportName === selectedSport;
 
+      const matchesState =
+        selectedState === "All States" ||
+        facility.stateName === selectedState;
+
+      const matchesArea =
+        selectedArea === "All Areas" || facility.areaName === selectedArea;
+
       const matchesLocation =
         selectedLocation === "Any Location" || locationName === selectedLocation;
 
-      return matchesSearch && matchesSport && matchesLocation;
+      return (
+        matchesSearch &&
+        matchesSport &&
+        matchesState &&
+        matchesArea &&
+        matchesLocation
+      );
     });
-  }, [facilities, searchText, selectedSport, selectedLocation]);
+  }, [
+    facilities,
+    searchText,
+    selectedSport,
+    selectedState,
+    selectedArea,
+    selectedLocation,
+  ]);
 
   const getFacilityImage = (facility) => {
     const sportName = facility.sportType?.name;
@@ -130,9 +166,10 @@ function BrowseFacilitiesPage() {
           </p>
         </section>
 
-        <section className="mb-6 grid gap-3 rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200 md:grid-cols-3">
+        <section className="mb-6 grid gap-3 rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200 md:grid-cols-2 xl:grid-cols-5">
           <input
             type="text"
+            aria-label="Search facility name"
             placeholder="Search facility name"
             value={searchText}
             onChange={(event) => setSearchText(event.target.value)}
@@ -140,6 +177,7 @@ function BrowseFacilitiesPage() {
           />
 
           <select
+            aria-label="Filter by sport"
             value={selectedSport}
             onChange={(event) => setSelectedSport(event.target.value)}
             className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm outline-none focus:border-lime-400 focus:bg-white"
@@ -150,6 +188,43 @@ function BrowseFacilitiesPage() {
           </select>
 
           <select
+            aria-label="Filter by state"
+            value={selectedState}
+            onChange={(event) => {
+              setSelectedState(event.target.value);
+              setSelectedArea("All Areas");
+            }}
+            className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm outline-none focus:border-lime-400 focus:bg-white"
+          >
+            <option value="All States">All States</option>
+            {malaysiaStates.map((stateName) => (
+              <option key={stateName} value={stateName}>
+                {stateName}
+              </option>
+            ))}
+          </select>
+
+          <select
+            aria-label="Filter by area"
+            value={selectedArea}
+            onChange={(event) => setSelectedArea(event.target.value)}
+            disabled={selectedState === "All States"}
+            className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm outline-none focus:border-lime-400 focus:bg-white disabled:cursor-not-allowed disabled:text-slate-400"
+          >
+            <option value="All Areas">
+              {selectedState === "All States"
+                ? "Select State First"
+                : "All Areas"}
+            </option>
+            {areaOptions.map((areaName) => (
+              <option key={areaName} value={areaName}>
+                {areaName}
+              </option>
+            ))}
+          </select>
+
+          <select
+            aria-label="Filter by address or location details"
             value={selectedLocation}
             onChange={(event) => setSelectedLocation(event.target.value)}
             className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm outline-none focus:border-lime-400 focus:bg-white"
@@ -213,6 +288,14 @@ function BrowseFacilitiesPage() {
                   <p className="mt-3 text-sm text-slate-500">
                     {facility.location}
                   </p>
+
+                  {facility.areaName || facility.stateName ? (
+                    <p className="mt-1 text-sm font-semibold text-emerald-800">
+                      {[facility.areaName, facility.stateName]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </p>
+                  ) : null}
 
                   {facility.description && (
                     <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-600">

@@ -66,6 +66,8 @@ model Facility {
   name              String
   description       String?
   location          String
+  stateName         String?
+  areaName          String?
   pricePerSlot      Decimal          @db.Decimal(10, 2)
   isActive          Boolean          @default(true)
   createdAt         DateTime         @default(now())

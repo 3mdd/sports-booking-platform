@@ -3,6 +3,9 @@ const {
   expireOldPendingBookings,
 } = require("../services/bookingExpiryService");
 
+const isOptionalString = (value) =>
+  value === undefined || value === null || typeof value === "string";
+
 const createFacility = async (req, res) => {
   try {
     const {
@@ -11,6 +14,8 @@ const createFacility = async (req, res) => {
       name,
       description,
       location,
+      stateName,
+      areaName,
       pricePerSlot,
     } = req.body;
 
@@ -23,6 +28,12 @@ const createFacility = async (req, res) => {
     ) {
       return res.status(400).json({
         message: "merchantProfileId, sportTypeId, name, location, and pricePerSlot are required",
+      });
+    }
+
+    if (!isOptionalString(stateName) || !isOptionalString(areaName)) {
+      return res.status(400).json({
+        message: "stateName and areaName must be strings when provided",
       });
     }
 
@@ -53,6 +64,8 @@ const createFacility = async (req, res) => {
         name,
         description,
         location,
+        stateName: String(stateName || "").trim() || null,
+        areaName: String(areaName || "").trim() || null,
         pricePerSlot,
       },
     });
@@ -260,6 +273,8 @@ const updateFacility = async (req, res) => {
       name,
       description,
       location,
+      stateName,
+      areaName,
       sportTypeId,
       pricePerSlot,
       isActive,
@@ -280,6 +295,12 @@ const updateFacility = async (req, res) => {
     if (!existingFacility) {
       return res.status(404).json({
         message: "Facility not found",
+      });
+    }
+
+    if (!isOptionalString(stateName) || !isOptionalString(areaName)) {
+      return res.status(400).json({
+        message: "stateName and areaName must be strings when provided",
       });
     }
 
@@ -312,6 +333,14 @@ const updateFacility = async (req, res) => {
       }
 
       updateData.location = trimmedLocation;
+    }
+
+    if (stateName !== undefined) {
+      updateData.stateName = String(stateName || "").trim() || null;
+    }
+
+    if (areaName !== undefined) {
+      updateData.areaName = String(areaName || "").trim() || null;
     }
 
     if (sportTypeId !== undefined) {

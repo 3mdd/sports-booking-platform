@@ -601,6 +601,14 @@ function FacilityDetailsPage() {
               {facility.name}
             </h1>
 
+            {facility.areaName || facility.stateName ? (
+              <p className="mt-3 text-sm font-semibold text-emerald-800">
+                {[facility.areaName, facility.stateName]
+                  .filter(Boolean)
+                  .join(", ")}
+              </p>
+            ) : null}
+
             <p className="mt-3 text-base text-slate-500">
               {facility.location}
             </p>

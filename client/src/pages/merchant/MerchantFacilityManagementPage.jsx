@@ -2,13 +2,21 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
+import {
+  getAreasByState,
+  getStates,
+} from "../../data/malaysiaLocations";
 import { getUploadFileUrl } from "../../utils/uploadUrl";
 import { getMerchantProfileId } from "../../utils/auth";
+
+const malaysiaStates = getStates();
 
 const initialFormData = {
   sportTypeId: "",
   name: "",
   description: "",
+  stateName: "",
+  areaName: "",
   location: "",
   pricePerSlot: "",
 };
@@ -17,6 +25,8 @@ const initialEditFormData = {
   sportTypeId: "",
   name: "",
   description: "",
+  stateName: "",
+  areaName: "",
   location: "",
   pricePerSlot: "",
   isActive: true,
@@ -148,22 +158,52 @@ function MerchantFacilityManagementPage() {
   const isSportTypeSelectDisabled =
     isSportTypesLoading || Boolean(sportTypesError) || sportTypes.length === 0;
 
+  const addAreaOptions = useMemo(
+    () => getAreasByState(formData.stateName),
+    [formData.stateName]
+  );
+
+  const editAreaOptions = useMemo(
+    () => getAreasByState(editFormData.stateName),
+    [editFormData.stateName]
+  );
+
   const handleInputChange = (event) => {
     const { name, value } = event.target;
 
-    setFormData((currentFormData) => ({
-      ...currentFormData,
-      [name]: value,
-    }));
+    setFormData((currentFormData) => {
+      if (name === "stateName") {
+        return {
+          ...currentFormData,
+          stateName: value,
+          areaName: "",
+        };
+      }
+
+      return {
+        ...currentFormData,
+        [name]: value,
+      };
+    });
   };
 
   const handleEditInputChange = (event) => {
     const { checked, name, type, value } = event.target;
 
-    setEditFormData((currentFormData) => ({
-      ...currentFormData,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    setEditFormData((currentFormData) => {
+      if (name === "stateName") {
+        return {
+          ...currentFormData,
+          stateName: value,
+          areaName: "",
+        };
+      }
+
+      return {
+        ...currentFormData,
+        [name]: type === "checkbox" ? checked : value,
+      };
+    });
   };
 
   const handlePhotoInputChange = (event, facilityId) => {
@@ -191,6 +231,8 @@ function MerchantFacilityManagementPage() {
       sportTypeId: String(facility.sportTypeId || facility.sportType?.id || ""),
       name: facility.name || "",
       description: facility.description || "",
+      stateName: facility.stateName || "",
+      areaName: facility.areaName || "",
       location: facility.location || "",
       pricePerSlot: facility.pricePerSlot
         ? String(facility.pricePerSlot)
@@ -243,6 +285,8 @@ function MerchantFacilityManagementPage() {
           sportTypeId: Number(formData.sportTypeId),
           name: formData.name,
           description: formData.description || null,
+          stateName: formData.stateName || null,
+          areaName: formData.areaName || null,
           location: formData.location,
           pricePerSlot: Number(formData.pricePerSlot),
         }),
@@ -313,6 +357,8 @@ function MerchantFacilityManagementPage() {
             sportTypeId: Number(editFormData.sportTypeId),
             name: editFormData.name.trim(),
             description: editFormData.description.trim() || null,
+            stateName: editFormData.stateName || null,
+            areaName: editFormData.areaName || null,
             location: editFormData.location.trim(),
             pricePerSlot: parsedPricePerSlot,
             isActive: editFormData.isActive,
@@ -515,9 +561,54 @@ function MerchantFacilityManagementPage() {
                 </div>
               </div>
 
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    State
+                  </label>
+                  <select
+                    name="stateName"
+                    value={formData.stateName}
+                    onChange={handleInputChange}
+                    className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
+                  >
+                    <option value="">Select state (optional)</option>
+                    {malaysiaStates.map((stateName) => (
+                      <option key={stateName} value={stateName}>
+                        {stateName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Area
+                  </label>
+                  <select
+                    name="areaName"
+                    value={formData.areaName}
+                    onChange={handleInputChange}
+                    disabled={!formData.stateName}
+                    className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white disabled:cursor-not-allowed disabled:text-slate-400"
+                  >
+                    <option value="">
+                      {formData.stateName
+                        ? "Select area (optional)"
+                        : "Select a state first"}
+                    </option>
+                    {addAreaOptions.map((areaName) => (
+                      <option key={areaName} value={areaName}>
+                        {areaName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               <div>
                 <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Location
+                  Address / Location Details
                 </label>
                 <input
                   name="location"
@@ -525,7 +616,7 @@ function MerchantFacilityManagementPage() {
                   value={formData.location}
                   onChange={handleInputChange}
                   className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
-                  placeholder="e.g. Kuala Lumpur"
+                  placeholder="e.g. Lot 12, Jalan Stadium"
                 />
               </div>
 
@@ -622,6 +713,13 @@ function MerchantFacilityManagementPage() {
                         <p className="mt-2 text-sm text-slate-500">
                           {facility.location || "Location not set"}
                         </p>
+                        {facility.areaName || facility.stateName ? (
+                          <p className="mt-1 text-sm font-semibold text-emerald-800">
+                            {[facility.areaName, facility.stateName]
+                              .filter(Boolean)
+                              .join(", ")}
+                          </p>
+                        ) : null}
                       </div>
 
                       <span
@@ -825,9 +923,54 @@ function MerchantFacilityManagementPage() {
                             </div>
                           </div>
 
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <div>
+                              <label className="mb-2 block text-sm font-semibold text-slate-700">
+                                State
+                              </label>
+                              <select
+                                name="stateName"
+                                value={editFormData.stateName}
+                                onChange={handleEditInputChange}
+                                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
+                              >
+                                <option value="">Select state (optional)</option>
+                                {malaysiaStates.map((stateName) => (
+                                  <option key={stateName} value={stateName}>
+                                    {stateName}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="mb-2 block text-sm font-semibold text-slate-700">
+                                Area
+                              </label>
+                              <select
+                                name="areaName"
+                                value={editFormData.areaName}
+                                onChange={handleEditInputChange}
+                                disabled={!editFormData.stateName}
+                                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white disabled:cursor-not-allowed disabled:text-slate-400"
+                              >
+                                <option value="">
+                                  {editFormData.stateName
+                                    ? "Select area (optional)"
+                                    : "Select a state first"}
+                                </option>
+                                {editAreaOptions.map((areaName) => (
+                                  <option key={areaName} value={areaName}>
+                                    {areaName}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+
                           <div>
                             <label className="mb-2 block text-sm font-semibold text-slate-700">
-                              Location
+                              Address / Location Details
                             </label>
                             <input
                               name="location"
@@ -835,7 +978,7 @@ function MerchantFacilityManagementPage() {
                               value={editFormData.location}
                               onChange={handleEditInputChange}
                               className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
-                              placeholder="e.g. Kuala Lumpur"
+                              placeholder="e.g. Lot 12, Jalan Stadium"
                             />
                           </div>
 
