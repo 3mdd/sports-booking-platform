@@ -1,4 +1,9 @@
 const AUTH_STORAGE_KEY = "eliteSportAuthUser";
+export const AUTH_USER_UPDATED_EVENT = "eliteSportAuthUserUpdated";
+
+function notifyAuthUserUpdated() {
+  window.dispatchEvent(new Event(AUTH_USER_UPDATED_EVENT));
+}
 
 function toProfileId(value) {
   const parsedValue = Number(value);
@@ -17,6 +22,7 @@ export function saveAuthUser(user) {
   };
 
   localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authUser));
+  notifyAuthUserUpdated();
   return authUser;
 }
 
@@ -49,6 +55,26 @@ export function getMerchantProfileId() {
 
 export function logout() {
   localStorage.removeItem(AUTH_STORAGE_KEY);
+  notifyAuthUserUpdated();
+}
+
+export function updateStoredUserName(fullName) {
+  const authUser = getAuthUser();
+  const normalizedName = String(fullName || "").trim();
+
+  if (!authUser || !normalizedName) {
+    return null;
+  }
+
+  const updatedUser = {
+    ...authUser,
+    fullName: normalizedName,
+  };
+
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
+  notifyAuthUserUpdated();
+
+  return updatedUser;
 }
 
 export function isCustomer() {

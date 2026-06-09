@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import LandingPage from "./pages/public/LandingPage";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+import ProfilePage from "./pages/auth/ProfilePage";
 import BrowseFacilitiesPage from "./pages/public/BrowseFacilitiesPage";
 import FacilityDetailsPage from "./pages/public/FacilityDetailsPage";
 import BookingConfirmationPage from "./pages/customer/BookingConfirmationPage";
@@ -14,6 +15,7 @@ import MerchantFacilityManagementPage from "./pages/merchant/MerchantFacilityMan
 import MerchantSlotManagementPage from "./pages/merchant/MerchantSlotManagementPage";
 import MerchantReviewInsightsPage from "./pages/merchant/MerchantReviewInsightsPage";
 import RequireRole from "./components/auth/RequireRole";
+import RequireAuth from "./components/auth/RequireAuth";
 
 function App() {
   return (
@@ -30,6 +32,14 @@ function App() {
         <Route
           path="/register/merchant"
           element={<RegisterPage role="MERCHANT" />}
+        />
+        <Route
+          path="/profile"
+          element={
+            <RequireAuth>
+              <ProfilePage />
+            </RequireAuth>
+          }
         />
         <Route path="/facilities" element={<BrowseFacilitiesPage />} />
         <Route path="/facilities/:id" element={<FacilityDetailsPage />} />
