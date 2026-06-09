@@ -54,9 +54,56 @@ function getSentimentBadgeClass(sentimentLabel) {
   return "bg-slate-100 text-slate-700 ring-slate-200";
 }
 
+function getSatisfactionBadgeClass(satisfactionLevel) {
+  if (satisfactionLevel === "Excellent Satisfaction") {
+    return "bg-lime-100 text-emerald-800 ring-lime-200";
+  }
+
+  if (satisfactionLevel === "Good Satisfaction") {
+    return "bg-emerald-50 text-emerald-700 ring-emerald-100";
+  }
+
+  if (satisfactionLevel === "Needs Attention") {
+    return "bg-red-50 text-red-700 ring-red-100";
+  }
+
+  if (satisfactionLevel === "Good Rating, Needs Attention") {
+    return "bg-amber-50 text-amber-700 ring-amber-100";
+  }
+
+  return "bg-amber-50 text-amber-700 ring-amber-100";
+}
+
+function InsightList({ items, emptyText, tone = "neutral" }) {
+  const bulletClass =
+    tone === "positive"
+      ? "bg-lime-400"
+      : tone === "negative"
+      ? "bg-red-400"
+      : "bg-amber-400";
+
+  if (!items?.length) {
+    return <p className="text-sm leading-6 text-slate-500">{emptyText}</p>;
+  }
+
+  return (
+    <ul className="space-y-2">
+      {items.map((item) => (
+        <li key={item} className="flex gap-3 text-sm leading-6 text-slate-700">
+          <span
+            className={`mt-2 h-2 w-2 shrink-0 rounded-full ${bulletClass}`}
+          />
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function MerchantReviewInsightsPage() {
   const merchantProfileId = getMerchantProfileId();
   const [reviews, setReviews] = useState([]);
+  const [insightSummary, setInsightSummary] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [selectedRating, setSelectedRating] = useState("All Ratings");
@@ -78,8 +125,10 @@ function MerchantReviewInsightsPage() {
         }
 
         setReviews(data.reviews || []);
+        setInsightSummary(data.insightSummary || null);
       } catch (error) {
         console.error("Fetch merchant reviews error:", error);
+        setInsightSummary(null);
         setErrorMessage(
           error.message ||
             "Unable to load merchant reviews. Please make sure the backend server is running."
@@ -183,6 +232,90 @@ function MerchantReviewInsightsPage() {
 
         {!isLoading && !errorMessage ? (
           <>
+            <section className="mb-6 rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200 md:p-6">
+              <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                    AI-Assisted Analytics
+                  </p>
+                  <h2 className="mt-2 text-2xl font-black text-emerald-950">
+                    AI Review Insight Summary
+                  </h2>
+                </div>
+
+                {insightSummary?.totalReviews > 0 ? (
+                  <span
+                    className={`w-fit rounded-full px-4 py-2 text-sm font-bold ring-1 ${getSatisfactionBadgeClass(
+                      insightSummary.satisfactionLevel
+                    )}`}
+                  >
+                    {insightSummary.satisfactionLevel}
+                  </span>
+                ) : null}
+              </div>
+
+              {!insightSummary || insightSummary.totalReviews === 0 ? (
+                <div className="mt-5 rounded-lg bg-gray-50 px-4 py-4 text-sm font-medium text-slate-500 ring-1 ring-gray-200">
+                  Not enough review data yet. Insights will appear after
+                  customers submit reviews.
+                </div>
+              ) : (
+                <>
+                  <p className="mt-4 max-w-5xl text-sm leading-6 text-slate-600">
+                    {insightSummary.overallSummary}
+                  </p>
+
+                  <div className="mt-5 grid gap-5 border-y border-gray-100 py-5 lg:grid-cols-3">
+                    <div>
+                      <h3 className="mb-3 text-sm font-black text-emerald-950">
+                        Positive Points
+                      </h3>
+                      <InsightList
+                        items={insightSummary.positivePoints}
+                        emptyText="No repeated positive topic has been identified yet."
+                        tone="positive"
+                      />
+                    </div>
+
+                    <div>
+                      <h3 className="mb-3 text-sm font-black text-emerald-950">
+                        Common Complaints
+                      </h3>
+                      <InsightList
+                        items={insightSummary.commonComplaints}
+                        emptyText="No common complaint has been identified."
+                        tone="negative"
+                      />
+                    </div>
+
+                    <div>
+                      <h3 className="mb-3 text-sm font-black text-emerald-950">
+                        Suggested Improvements
+                      </h3>
+                      <InsightList
+                        items={insightSummary.suggestedImprovements}
+                        emptyText="Continue monitoring customer feedback."
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-5 rounded-lg bg-emerald-950 px-4 py-4 text-sm text-white">
+                    <p className="font-bold text-lime-300">
+                      Merchant Recommendation
+                    </p>
+                    <p className="mt-2 leading-6 text-emerald-50">
+                      {insightSummary.merchantRecommendation}
+                    </p>
+                  </div>
+
+                  <p className="mt-3 text-xs leading-5 text-slate-400">
+                    Generated from existing ratings, sentiment labels, and
+                    recurring keywords in customer comments.
+                  </p>
+                </>
+              )}
+            </section>
+
             <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
                 <p className="text-sm font-semibold text-slate-500">

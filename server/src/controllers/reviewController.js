@@ -1,5 +1,8 @@
 const prisma = require("../lib/prisma");
 const { analyzeReviewSentiment } = require("../services/sentimentService");
+const {
+  buildReviewInsightSummary,
+} = require("../services/reviewInsightService");
 
 const MAX_COMMENT_LENGTH = 1000;
 
@@ -269,6 +272,7 @@ const getReviewsByMerchant = async (req, res) => {
     return res.status(200).json({
       message: "Merchant reviews fetched successfully",
       reviews,
+      insightSummary: buildReviewInsightSummary(reviews),
     });
   } catch (error) {
     console.error("Fetch merchant reviews failed:", error);
