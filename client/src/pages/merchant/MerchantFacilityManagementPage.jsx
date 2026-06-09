@@ -3,8 +3,7 @@ import { Link } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import { getUploadFileUrl } from "../../utils/uploadUrl";
-
-const TEMP_MERCHANT_ID = 1;
+import { getMerchantProfileId } from "../../utils/auth";
 
 const initialFormData = {
   sportTypeId: "",
@@ -38,6 +37,7 @@ function getFacilityPhotoUrl(facility) {
 }
 
 function MerchantFacilityManagementPage() {
+  const merchantProfileId = getMerchantProfileId();
   const [facilities, setFacilities] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -133,9 +133,9 @@ function MerchantFacilityManagementPage() {
       const merchantId =
         facility.merchantProfileId || facility.merchantProfile?.id;
 
-      return Number(merchantId) === TEMP_MERCHANT_ID;
+      return Number(merchantId) === merchantProfileId;
     });
-  }, [facilities, hasMerchantOwnershipData]);
+  }, [facilities, hasMerchantOwnershipData, merchantProfileId]);
 
   const getSportTypeName = (sportTypeId) => {
     const sportType = sportTypes.find(
@@ -239,7 +239,7 @@ function MerchantFacilityManagementPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          merchantProfileId: TEMP_MERCHANT_ID,
+          merchantProfileId,
           sportTypeId: Number(formData.sportTypeId),
           name: formData.name,
           description: formData.description || null,
@@ -405,16 +405,16 @@ function MerchantFacilityManagementPage() {
     <div className="min-h-screen bg-[#f3f4f6] text-slate-900">
       <Navbar />
 
-      <main className="mx-auto max-w-7xl px-6 py-10 lg:px-8">
-        <section className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
+      <main className="mx-auto max-w-7xl px-6 py-7 lg:px-8">
+        <section className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">
               Merchant Portal
             </p>
-            <h1 className="mt-3 text-4xl font-black tracking-tight text-emerald-950 md:text-5xl">
+            <h1 className="mt-2 text-3xl font-black tracking-tight text-emerald-950 md:text-4xl">
               Facility Management
             </h1>
-            <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
               Manage listed sports facilities, review their details, and create
               new venues for customer bookings.
             </p>
@@ -422,16 +422,16 @@ function MerchantFacilityManagementPage() {
 
           <Link
             to="/merchant/dashboard"
-            className="rounded-2xl bg-lime-400 px-6 py-3 text-sm font-bold text-emerald-950 transition hover:bg-lime-300"
+            className="rounded-lg bg-lime-400 px-5 py-2.5 text-sm font-bold text-emerald-950 transition hover:bg-lime-300"
           >
             Back to Dashboard
           </Link>
         </section>
 
-        <section className="mb-8 grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+        <section className="mb-6 grid gap-5 lg:grid-cols-[0.85fr_1.15fr]">
           <form
             onSubmit={handleCreateFacility}
-            className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-gray-200 md:p-8"
+            className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200 md:p-6"
           >
             <h2 className="text-2xl font-black text-emerald-950">
               Add Facility
@@ -535,7 +535,7 @@ function MerchantFacilityManagementPage() {
                 </label>
                 <textarea
                   name="description"
-                  rows="4"
+                  rows="3"
                   value={formData.description}
                   onChange={handleInputChange}
                   className="w-full resize-none rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
@@ -559,7 +559,7 @@ function MerchantFacilityManagementPage() {
             <button
               type="submit"
               disabled={isSubmitting || isSportTypeSelectDisabled}
-              className={`mt-6 w-full rounded-2xl px-6 py-3.5 text-sm font-semibold text-white transition ${
+              className={`mt-5 w-full rounded-lg px-6 py-3 text-sm font-semibold text-white transition ${
                 isSubmitting || isSportTypeSelectDisabled
                   ? "cursor-not-allowed bg-slate-400"
                   : "bg-emerald-950 hover:bg-emerald-900"
@@ -569,14 +569,14 @@ function MerchantFacilityManagementPage() {
             </button>
           </form>
 
-          <section className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-gray-200 md:p-8">
+          <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200 md:p-6">
             <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
               <div>
                 <h2 className="text-2xl font-black text-emerald-950">
                   Listed Facilities
                 </h2>
                 <p className="mt-2 text-sm text-slate-600">
-                  Facilities connected to merchant #{TEMP_MERCHANT_ID}.
+                  Manage facility details, photos, availability, and slots.
                 </p>
               </div>
 
@@ -608,7 +608,7 @@ function MerchantFacilityManagementPage() {
                 {merchantFacilities.map((facility) => (
                   <article
                     key={facility.id}
-                    className="rounded-[1.5rem] border border-gray-200 bg-gray-50 p-5"
+                    className="rounded-xl border border-gray-200 bg-gray-50 p-4"
                   >
                     <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
                       <div>
@@ -635,7 +635,7 @@ function MerchantFacilityManagementPage() {
                       </span>
                     </div>
 
-                    <div className="mt-5 grid gap-4 text-sm md:grid-cols-3">
+                    <div className="mt-4 grid gap-3 text-sm md:grid-cols-3">
                       <div>
                         <p className="text-slate-500">Price</p>
                         <p className="mt-1 font-semibold text-slate-900">
@@ -664,7 +664,7 @@ function MerchantFacilityManagementPage() {
                       </p>
                     ) : null}
 
-                    <div className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-gray-200">
+                    <div className="mt-4 rounded-lg bg-white p-4 ring-1 ring-gray-200">
                       <div className="flex flex-col gap-4 md:flex-row md:items-start">
                         {photoPreviewUrls[facility.id] ||
                         getFacilityPhotoUrl(facility) ? (
@@ -674,10 +674,10 @@ function MerchantFacilityManagementPage() {
                               getFacilityPhotoUrl(facility)
                             }
                             alt={`${facility.name} preview`}
-                            className="h-32 w-full rounded-2xl object-cover ring-1 ring-gray-200 md:w-44"
+                            className="h-24 w-full rounded-lg object-cover ring-1 ring-gray-200 md:w-36"
                           />
                         ) : (
-                          <div className="flex h-32 w-full items-center justify-center rounded-2xl bg-gray-100 px-4 text-center text-sm font-medium text-slate-500 ring-1 ring-gray-200 md:w-44">
+                          <div className="flex h-24 w-full items-center justify-center rounded-lg bg-gray-100 px-4 text-center text-sm font-medium text-slate-500 ring-1 ring-gray-200 md:w-36">
                             No facility photo uploaded
                           </div>
                         )}
@@ -703,7 +703,7 @@ function MerchantFacilityManagementPage() {
                             onChange={(event) =>
                               handlePhotoInputChange(event, facility.id)
                             }
-                            className="mt-4 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none file:mr-4 file:rounded-xl file:border-0 file:bg-lime-100 file:px-4 file:py-2 file:text-xs file:font-bold file:text-emerald-950 focus:border-lime-400 focus:bg-white"
+                            className="mt-3 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none file:mr-3 file:rounded-lg file:border-0 file:bg-lime-100 file:px-3 file:py-2 file:text-xs file:font-bold file:text-emerald-950 focus:border-lime-400 focus:bg-white"
                           />
 
                           {photoUploadStatus.facilityId === facility.id &&
@@ -722,7 +722,7 @@ function MerchantFacilityManagementPage() {
                           <button
                             type="submit"
                             disabled={uploadingPhotoFacilityId === facility.id}
-                            className={`mt-4 rounded-2xl px-5 py-3 text-sm font-semibold text-white transition ${
+                            className={`mt-3 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition ${
                               uploadingPhotoFacilityId === facility.id
                                 ? "cursor-not-allowed bg-slate-400"
                                 : "bg-emerald-950 hover:bg-emerald-900"
@@ -739,7 +739,7 @@ function MerchantFacilityManagementPage() {
                     {editingFacilityId === facility.id ? (
                       <form
                         onSubmit={handleUpdateFacility}
-                        className="mt-5 rounded-2xl bg-white p-4 ring-1 ring-gray-200"
+                        className="mt-4 rounded-lg bg-white p-4 ring-1 ring-gray-200"
                       >
                         <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
                           <div>
@@ -891,20 +891,20 @@ function MerchantFacilityManagementPage() {
                       </form>
                     ) : null}
 
-                    <div className="mt-5 border-t border-gray-200 pt-5">
+                    <div className="mt-4 border-t border-gray-200 pt-4">
                       <div className="flex flex-wrap gap-3">
                         <button
                           type="button"
                           onClick={() => handleStartEdit(facility)}
                           disabled={isUpdating && editingFacilityId === facility.id}
-                          className="inline-flex rounded-2xl border border-emerald-950 px-5 py-3 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-slate-400"
+                          className="inline-flex rounded-lg border border-emerald-950 px-4 py-2.5 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-slate-400"
                         >
                           Edit
                         </button>
 
                         <Link
                           to={`/merchant/facilities/${facility.id}/slots`}
-                          className="inline-flex rounded-2xl bg-emerald-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-900"
+                          className="inline-flex rounded-lg bg-emerald-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-900"
                         >
                           Manage Slots
                         </Link>

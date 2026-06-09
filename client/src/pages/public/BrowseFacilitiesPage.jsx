@@ -116,33 +116,33 @@ function BrowseFacilitiesPage() {
     <div className="min-h-screen bg-[#f3f4f6] text-slate-900">
       <Navbar />
 
-      <main className="mx-auto max-w-7xl px-6 py-10 lg:px-8">
-        <section className="mb-10">
+      <main className="mx-auto max-w-7xl px-6 py-7 lg:px-8">
+        <section className="mb-6">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">
             Browse Facilities
           </p>
-          <h1 className="mt-3 text-4xl font-black tracking-tight text-emerald-950 md:text-5xl">
+          <h1 className="mt-2 max-w-4xl text-3xl font-black tracking-tight text-emerald-950 md:text-4xl">
             Find the right sports venue for your next booking
           </h1>
-          <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
             Explore available sports facilities, compare prices, view locations,
             and choose the best venue for your preferred game and schedule.
           </p>
         </section>
 
-        <section className="mb-8 grid gap-4 rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-gray-200 md:grid-cols-4">
+        <section className="mb-6 grid gap-3 rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200 md:grid-cols-3">
           <input
             type="text"
             placeholder="Search facility name"
             value={searchText}
             onChange={(event) => setSearchText(event.target.value)}
-            className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
+            className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm outline-none focus:border-lime-400 focus:bg-white"
           />
 
           <select
             value={selectedSport}
             onChange={(event) => setSelectedSport(event.target.value)}
-            className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
+            className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm outline-none focus:border-lime-400 focus:bg-white"
           >
             {sportOptions.map((sport) => (
               <option key={sport}>{sport}</option>
@@ -152,19 +152,13 @@ function BrowseFacilitiesPage() {
           <select
             value={selectedLocation}
             onChange={(event) => setSelectedLocation(event.target.value)}
-            className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
+            className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm outline-none focus:border-lime-400 focus:bg-white"
           >
             {locationOptions.map((location) => (
               <option key={location}>{location}</option>
             ))}
           </select>
 
-          <button
-            type="button"
-            className="rounded-2xl bg-emerald-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-900"
-          >
-            Search Facilities
-          </button>
         </section>
 
         {isLoading && (
@@ -192,32 +186,28 @@ function BrowseFacilitiesPage() {
         )}
 
         {!isLoading && !errorMessage && filteredFacilities.length > 0 && (
-          <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filteredFacilities.map((facility) => (
               <article
                 key={facility.id}
-                className="overflow-hidden rounded-[1.75rem] bg-white shadow-sm ring-1 ring-gray-200"
+                className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200"
               >
                 <img
                   src={getFacilityImage(facility)}
                   alt={facility.name}
-                  className="h-64 w-full object-cover"
+                  className="h-48 w-full object-cover"
                 />
 
-                <div className="p-6">
+                <div className="p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
                         {facility.sportType?.name || "Sport"}
                       </p>
-                      <h2 className="mt-2 text-2xl font-black text-emerald-950">
+                      <h2 className="mt-1 text-xl font-black text-emerald-950">
                         {facility.name}
                       </h2>
                     </div>
-
-                    <span className="rounded-full bg-lime-100 px-3 py-1 text-sm font-bold text-emerald-950">
-                      4.8 ★
-                    </span>
                   </div>
 
                   <p className="mt-3 text-sm text-slate-500">
@@ -230,14 +220,14 @@ function BrowseFacilitiesPage() {
                     </p>
                   )}
 
-                  <div className="mt-6 flex items-center justify-between">
-                    <span className="text-lg font-bold text-emerald-950">
+                  <div className="mt-4 flex items-center justify-between gap-3">
+                    <span className="text-base font-bold text-emerald-950">
                       {getFacilityPrice(facility)}
                     </span>
 
                     <Link
                       to={`/facilities/${facility.id}`}
-                      className="rounded-full bg-lime-400 px-5 py-2.5 text-sm font-semibold text-emerald-950 transition hover:bg-lime-300"
+                      className="rounded-lg bg-lime-400 px-4 py-2 text-sm font-semibold text-emerald-950 transition hover:bg-lime-300"
                     >
                       View Details
                     </Link>

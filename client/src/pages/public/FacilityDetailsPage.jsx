@@ -66,7 +66,7 @@ function StarRatingDisplay({ rating, sizeClass = "text-lg" }) {
             starValue <= roundedRating ? "text-lime-500" : "text-gray-300"
           }
         >
-          ★
+          &#9733;
         </span>
       ))}
     </div>
@@ -82,7 +82,7 @@ function buildSlotStartDateTime(selectedDate, slotLabel) {
 
   const date = new Date(year, month - 1, day, hour, minute);
 
-  // after midnight → treat as next day
+  // Treat early-morning slots as part of the selected facility day.
   if (hour >= 0 && hour < 6) {
     date.setDate(date.getDate() + 1);
   }
@@ -582,22 +582,22 @@ function FacilityDetailsPage() {
     <div className="min-h-screen bg-[#f3f4f6] text-slate-900">
       <Navbar />
 
-      <main className="mx-auto max-w-7xl px-6 py-10 lg:px-8">
-        <section className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="overflow-hidden rounded-[2rem] bg-white shadow-sm ring-1 ring-gray-200">
+      <main className="mx-auto max-w-7xl px-6 py-7 lg:px-8">
+        <section className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
             <img
               src={facilityImage}
               alt={facility.name}
-              className="h-[420px] w-full object-cover"
+              className="h-72 w-full object-cover lg:h-80"
             />
           </div>
 
-          <div className="rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-gray-200">
+          <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">
               {sportName}
             </p>
 
-            <h1 className="mt-3 text-4xl font-black tracking-tight text-emerald-950">
+            <h1 className="mt-2 text-3xl font-black tracking-tight text-emerald-950">
               {facility.name}
             </h1>
 
@@ -605,7 +605,7 @@ function FacilityDetailsPage() {
               {facility.location}
             </p>
 
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-4 flex flex-wrap gap-2">
               <div className="flex items-center gap-2 rounded-full bg-lime-100 px-4 py-2 text-sm font-semibold text-emerald-950">
                 <StarRatingDisplay rating={averageRating} sizeClass="text-sm" />
                 <span>{ratingLabel}</span>
@@ -625,7 +625,7 @@ function FacilityDetailsPage() {
               </div>
             ) : null}
 
-            <div className="mt-8 border-t border-gray-200 pt-6">
+            <div className="mt-5 border-t border-gray-200 pt-4">
               <h2 className="text-lg font-bold text-emerald-950">
                 Facility Description
               </h2>
@@ -635,34 +635,22 @@ function FacilityDetailsPage() {
               </p>
             </div>
 
-            <div className="mt-8 flex items-center justify-between border-t border-gray-200 pt-6">
+            <div className="mt-5 border-t border-gray-200 pt-4">
               <div>
                 <p className="text-sm text-slate-500">Price</p>
-                <p className="text-3xl font-black text-emerald-950">
+                <p className="text-2xl font-black text-emerald-950">
                   RM {pricePerHour.toFixed(2)} / hour
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
                   RM {pricePerSlot.toFixed(2)} / 30-minute slot
                 </p>
               </div>
-
-              <button
-                type="button"
-                disabled={isFacilityInactive}
-                className={`rounded-2xl px-6 py-3 text-sm font-bold text-emerald-950 transition ${
-                  isFacilityInactive
-                    ? "cursor-not-allowed bg-gray-200 text-slate-500"
-                    : "bg-lime-400 hover:bg-lime-300"
-                }`}
-              >
-                {isFacilityInactive ? "Unavailable" : "Book This Facility"}
-              </button>
             </div>
           </div>
         </section>
 
-        <section className="mt-10 grid gap-8 lg:grid-cols-[1fr_0.9fr]">
-          <div className="rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-gray-200">
+        <section className="mt-6 grid gap-5 lg:grid-cols-[1fr_0.8fr]">
+          <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
             <h2 className="text-2xl font-black text-emerald-950">
               Available Time Slots
             </h2>
@@ -690,7 +678,7 @@ function FacilityDetailsPage() {
               </span>
             </div>
 
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <div className="mt-5">
               <div>
                 <label className="mb-2 block text-sm font-semibold text-slate-700">
                   Booking Date
@@ -709,15 +697,6 @@ function FacilityDetailsPage() {
                 </p>
               </div>
 
-              <div className="rounded-2xl bg-gray-50 px-5 py-4 ring-1 ring-gray-200">
-                <p className="text-sm font-semibold text-emerald-950">
-                  Booking Order
-                </p>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Start times appear after slots load. Durations unlock based on
-                  connected available 30-minute slots.
-                </p>
-              </div>
             </div>
 
             {slotError ? (
@@ -754,7 +733,7 @@ function FacilityDetailsPage() {
                   same-day 2-hour rule can be selected.
                 </p>
 
-                <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {availableSlots.map((slot) => {
                     const isSelected = selectedStartSlot?.id === slot.id;
                     const isBooked = isSlotBooked(slot);
@@ -767,7 +746,7 @@ function FacilityDetailsPage() {
                         type="button"
                         disabled={disabled}
                         onClick={() => handleStartTimeSelection(slot)}
-                        className={`rounded-2xl border px-4 py-4 text-sm font-semibold transition ${
+                        className={`rounded-lg border px-4 py-3 text-sm font-semibold transition ${
                           isSelected
                             ? "border-emerald-950 bg-emerald-950 text-white"
                             : disabled
@@ -815,7 +794,7 @@ function FacilityDetailsPage() {
                   </div>
                 ) : null}
 
-                <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {durationAvailability.map((durationOption) => {
                     const isSelected =
                       selectedDuration?.value === durationOption.value;
@@ -826,7 +805,7 @@ function FacilityDetailsPage() {
                         type="button"
                         disabled={!durationOption.isAvailable}
                         onClick={() => handleDurationSelection(durationOption)}
-                        className={`rounded-2xl border px-4 py-4 text-sm font-semibold transition ${
+                        className={`rounded-lg border px-4 py-3 text-sm font-semibold transition ${
                           isSelected
                             ? "border-emerald-950 bg-emerald-950 text-white"
                             : durationOption.isAvailable
@@ -846,7 +825,7 @@ function FacilityDetailsPage() {
             ) : null}
           </div>
 
-          <div className="rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-gray-200">
+          <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200 lg:sticky lg:top-20 lg:self-start">
             <h2 className="text-2xl font-black text-emerald-950">
               Booking Summary
             </h2>
@@ -940,7 +919,7 @@ function FacilityDetailsPage() {
               type="button"
               onClick={handleContinueToBooking}
               disabled={!canContinueToBooking}
-              className={`mt-8 w-full rounded-2xl px-6 py-3.5 text-sm font-semibold text-white transition ${
+              className={`mt-6 w-full rounded-lg px-6 py-3 text-sm font-semibold text-white transition ${
                 !canContinueToBooking
                   ? "cursor-not-allowed bg-slate-400"
                   : "bg-emerald-950 hover:bg-emerald-900"
@@ -951,7 +930,7 @@ function FacilityDetailsPage() {
           </div>
         </section>
 
-        <section className="mt-10 rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-gray-200">
+        <section className="mt-6 rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
             <div>
               <h2 className="text-2xl font-black text-emerald-950">

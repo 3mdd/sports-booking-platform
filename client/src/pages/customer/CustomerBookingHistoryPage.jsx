@@ -3,8 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import { formatDisplayTimeRange } from "../../utils/timeFormat";
-
-const TEMP_CUSTOMER_ID = 1;
+import { getCustomerProfileId } from "../../utils/auth";
 const PAYMENT_WINDOW_MS = 30 * 60 * 1000;
 
 function formatDate(dateValue) {
@@ -108,7 +107,7 @@ function StarRatingDisplay({ rating, sizeClass = "text-lg" }) {
             starValue <= roundedRating ? "text-lime-500" : "text-gray-300"
           }
         >
-          ★
+          &#9733;
         </span>
       ))}
     </div>
@@ -117,6 +116,7 @@ function StarRatingDisplay({ rating, sizeClass = "text-lg" }) {
 
 function CustomerBookingHistoryPage() {
   const navigate = useNavigate();
+  const customerProfileId = getCustomerProfileId();
 
   const [bookings, setBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -155,7 +155,7 @@ function CustomerBookingHistoryPage() {
         setErrorMessage("");
 
         const response = await fetch(
-          `http://localhost:5000/bookings/customer/${TEMP_CUSTOMER_ID}`
+          `http://localhost:5000/bookings/customer/${customerProfileId}`
         );
 
         const data = await response.json();
@@ -177,7 +177,7 @@ function CustomerBookingHistoryPage() {
     };
 
     fetchCustomerBookings();
-  }, []);
+  }, [customerProfileId]);
 
   const bookingStats = useMemo(() => {
     return {
@@ -280,7 +280,7 @@ function CustomerBookingHistoryPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          customerId: TEMP_CUSTOMER_ID,
+          customerId: customerProfileId,
           facilityId: booking.facilityId,
           bookingId: booking.id,
           rating: parsedRating,
@@ -324,16 +324,16 @@ function CustomerBookingHistoryPage() {
     <div className="min-h-screen bg-[#f3f4f6] text-slate-900">
       <Navbar />
 
-      <main className="mx-auto max-w-7xl px-6 py-10 lg:px-8">
-        <section className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
+      <main className="mx-auto max-w-7xl px-6 py-7 lg:px-8">
+        <section className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">
               Customer Portal
             </p>
-            <h1 className="mt-3 text-4xl font-black tracking-tight text-emerald-950 md:text-5xl">
+            <h1 className="mt-2 text-3xl font-black tracking-tight text-emerald-950 md:text-4xl">
               Booking History
             </h1>
-            <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
               View your facility reservations, payment progress, and confirmed
               booking details in one place.
             </p>
@@ -341,55 +341,48 @@ function CustomerBookingHistoryPage() {
 
           <Link
             to="/facilities"
-            className="rounded-2xl bg-lime-400 px-6 py-3 text-sm font-bold text-emerald-950 transition hover:bg-lime-300"
+            className="rounded-lg bg-lime-400 px-5 py-2.5 text-sm font-bold text-emerald-950 transition hover:bg-lime-300"
           >
             Book Another Facility
           </Link>
         </section>
 
-        <section className="mb-8 grid gap-5 md:grid-cols-3">
-          <div className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-gray-200">
+        <section className="mb-6 grid gap-4 md:grid-cols-3">
+          <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
             <p className="text-sm font-semibold text-slate-500">
               Total Bookings
             </p>
-            <p className="mt-3 text-4xl font-black text-emerald-950">
+            <p className="mt-2 text-3xl font-black text-emerald-950">
               {bookingStats.total}
             </p>
           </div>
 
-          <div className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-gray-200">
+          <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
             <p className="text-sm font-semibold text-slate-500">
               Awaiting Payment Review
             </p>
-            <p className="mt-3 text-4xl font-black text-emerald-950">
+            <p className="mt-2 text-3xl font-black text-emerald-950">
               {bookingStats.pending}
             </p>
           </div>
 
-          <div className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-gray-200">
+          <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
             <p className="text-sm font-semibold text-slate-500">
               Confirmed Bookings
             </p>
-            <p className="mt-3 text-4xl font-black text-emerald-950">
+            <p className="mt-2 text-3xl font-black text-emerald-950">
               {bookingStats.confirmed}
             </p>
           </div>
         </section>
 
-        <section className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-gray-200 md:p-8">
-          <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
+        <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200 md:p-6">
+          <div className="mb-5">
             <div>
               <h2 className="text-2xl font-black text-emerald-950">
                 Your Bookings
               </h2>
-              <p className="mt-2 text-sm text-slate-600">
-                Showing records from the customer booking API.
-              </p>
             </div>
-
-            <span className="rounded-full bg-lime-100 px-4 py-2 text-sm font-semibold text-emerald-950">
-              Customer #{TEMP_CUSTOMER_ID}
-            </span>
           </div>
 
           {isLoading ? (
@@ -411,7 +404,7 @@ function CustomerBookingHistoryPage() {
           ) : null}
 
           {!isLoading && !errorMessage && bookings.length > 0 ? (
-            <div className="space-y-5">
+            <div className="space-y-4">
               {bookings.map((booking) => {
                 const facilityName = booking.facility?.name || "Facility";
                 const sportName = booking.facility?.sportType?.name || "Sport";
@@ -442,7 +435,7 @@ function CustomerBookingHistoryPage() {
                 return (
                   <article
                     key={booking.id}
-                    className="rounded-[1.5rem] border border-gray-200 bg-gray-50 p-5"
+                    className="rounded-xl border border-gray-200 bg-gray-50 p-4"
                   >
                     <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
                       <div>
@@ -476,7 +469,7 @@ function CustomerBookingHistoryPage() {
                       </div>
                     </div>
 
-                    <div className="mt-5 grid gap-4 text-sm md:grid-cols-4">
+                    <div className="mt-4 grid gap-3 text-sm md:grid-cols-4">
                       <div>
                         <p className="text-slate-500">Booking Date</p>
                         <p className="mt-1 font-semibold text-slate-900">
@@ -506,7 +499,7 @@ function CustomerBookingHistoryPage() {
                       </div>
                     </div>
 
-                    <div className="mt-5 flex flex-col gap-3 border-t border-gray-200 pt-5 md:flex-row md:items-center md:justify-between">
+                    <div className="mt-4 flex flex-col gap-3 border-t border-gray-200 pt-4 md:flex-row md:items-center md:justify-between">
                       {bookingStatus === "PENDING_PAYMENT" ? (
                         isPendingPaymentExpired ? (
                           <p className="text-sm font-semibold text-red-700">
@@ -658,7 +651,7 @@ function CustomerBookingHistoryPage() {
                                           }`}
                                           aria-label={`Rate ${rating} out of 5`}
                                         >
-                                          ★
+                                          &#9733;
                                         </button>
                                       ))}
                                     </div>

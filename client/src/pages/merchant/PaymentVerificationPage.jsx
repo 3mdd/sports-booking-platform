@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import { formatDisplayTimeRange } from "../../utils/timeFormat";
-
-const TEMP_MERCHANT_ID = 1;
+import { getMerchantProfileId } from "../../utils/auth";
 
 function formatDate(dateValue) {
   if (!dateValue) return "Not available";
@@ -37,6 +36,7 @@ function getBookingTime(booking) {
 }
 
 function PaymentVerificationPage() {
+  const merchantProfileId = getMerchantProfileId();
   const [bookings, setBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -50,7 +50,7 @@ function PaymentVerificationPage() {
         setErrorMessage("");
 
         const response = await fetch(
-          `http://localhost:5000/bookings/merchant/${TEMP_MERCHANT_ID}`
+          `http://localhost:5000/bookings/merchant/${merchantProfileId}`
         );
 
         const data = await response.json();
@@ -72,7 +72,7 @@ function PaymentVerificationPage() {
     };
 
     fetchMerchantBookings();
-  }, []);
+  }, [merchantProfileId]);
 
   const paymentProofBookings = useMemo(() => {
     return bookings.filter((booking) => booking.paymentProof);
@@ -131,64 +131,59 @@ const handlePaymentAction = async (bookingId, actionType) => {
     <div className="min-h-screen bg-[#f3f4f6] text-slate-900">
       <Navbar />
 
-      <main className="mx-auto max-w-7xl px-6 py-10 lg:px-8">
-        <section className="mb-10">
+      <main className="mx-auto max-w-7xl px-6 py-7 lg:px-8">
+        <section className="mb-6">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">
             Merchant Portal
           </p>
-          <h1 className="mt-3 text-4xl font-black tracking-tight text-emerald-950 md:text-5xl">
+          <h1 className="mt-2 text-3xl font-black tracking-tight text-emerald-950 md:text-4xl">
             Payment Verification
           </h1>
-          <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
             Review customer payment proof submissions and update booking payment
             status after checking the uploaded receipt.
           </p>
         </section>
 
-        <section className="mb-8 grid gap-5 md:grid-cols-3">
-          <div className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-gray-200">
+        <section className="mb-6 grid gap-4 md:grid-cols-3">
+          <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
             <p className="text-sm font-semibold text-slate-500">
               Pending Review
             </p>
-            <p className="mt-3 text-4xl font-black text-emerald-950">
+            <p className="mt-2 text-3xl font-black text-emerald-950">
               {pendingCount}
             </p>
           </div>
 
-          <div className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-gray-200">
+          <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
             <p className="text-sm font-semibold text-slate-500">
               Approved Proofs
             </p>
-            <p className="mt-3 text-4xl font-black text-emerald-950">
+            <p className="mt-2 text-3xl font-black text-emerald-950">
               {approvedCount}
             </p>
           </div>
 
-          <div className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-gray-200">
+          <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
             <p className="text-sm font-semibold text-slate-500">
               Rejected Proofs
             </p>
-            <p className="mt-3 text-4xl font-black text-emerald-950">
+            <p className="mt-2 text-3xl font-black text-emerald-950">
               {rejectedCount}
             </p>
           </div>
         </section>
 
-        <section className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-gray-200 md:p-8">
-          <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
+        <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200 md:p-6">
+          <div className="mb-5">
             <div>
               <h2 className="text-2xl font-black text-emerald-950">
                 Uploaded Payment Proofs
               </h2>
               <p className="mt-2 text-sm text-slate-600">
-                Merchant can review real uploaded payment proof records from the
-                backend.
+                Review uploaded receipts and approve or reject pending payments.
               </p>
             </div>
-
-            <span className="rounded-full bg-lime-100 px-4 py-2 text-sm font-semibold text-emerald-950">
-              Connected to backend
-            </span>
           </div>
 
           {actionMessage ? (
@@ -216,7 +211,7 @@ const handlePaymentAction = async (bookingId, actionType) => {
           ) : null}
 
           {!isLoading && !errorMessage && paymentProofBookings.length > 0 ? (
-            <div className="space-y-5">
+            <div className="space-y-4">
               {paymentProofBookings.map((booking) => {
                 const customerName =
                   booking.customer?.user?.fullName || "Customer";
@@ -243,7 +238,7 @@ const isImageFile = /\.(jpg|jpeg|png)$/i.test(fileName);
                 return (
                   <article
                     key={booking.id}
-                    className="grid gap-5 rounded-[1.5rem] border border-gray-200 bg-gray-50 p-5 lg:grid-cols-[1fr_220px]"
+                    className="grid gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 lg:grid-cols-[1fr_190px]"
                   >
                     <div>
                       <div className="flex flex-wrap items-center gap-3">
@@ -264,7 +259,7 @@ const isImageFile = /\.(jpg|jpeg|png)$/i.test(fileName);
                         </span>
                       </div>
 
-                      <div className="mt-5 grid gap-4 text-sm md:grid-cols-2">
+                      <div className="mt-4 grid gap-3 text-sm md:grid-cols-2">
                         <div>
                           <p className="text-slate-500">Customer</p>
                           <p className="mt-1 font-semibold text-slate-900">
@@ -308,7 +303,7 @@ const isImageFile = /\.(jpg|jpeg|png)$/i.test(fileName);
                         </div>
                       </div>
 
-                      <div className="mt-5 rounded-2xl bg-white p-4 text-sm ring-1 ring-gray-200">
+                      <div className="mt-4 rounded-lg bg-white p-4 text-sm ring-1 ring-gray-200">
   <p className="font-semibold text-emerald-950">
     Payment Proof File
   </p>
@@ -363,9 +358,6 @@ const isImageFile = /\.(jpg|jpeg|png)$/i.test(fileName);
                         {processingBookingId === booking.id ? "Processing..." : "Reject Payment"}
                         </button>
 
-                        <p className="text-center text-xs leading-5 text-slate-500">
-                        Buttons are enabled only for bookings with PAYMENT_UPLOADED status.
-                        </p>
                     </div>
                   </article>
                 );

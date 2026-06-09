@@ -533,16 +533,16 @@ function MerchantSlotManagementPage() {
     <div className="min-h-screen bg-[#f3f4f6] text-slate-900">
       <Navbar />
 
-      <main className="mx-auto max-w-7xl px-6 py-10 lg:px-8">
-        <section className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
+      <main className="mx-auto max-w-7xl px-6 py-7 lg:px-8">
+        <section className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">
               Merchant Portal
             </p>
-            <h1 className="mt-3 text-4xl font-black tracking-tight text-emerald-950 md:text-5xl">
+            <h1 className="mt-2 text-3xl font-black tracking-tight text-emerald-950 md:text-4xl">
               Slot Management
             </h1>
-            <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
               Create 30-minute booking slots and review daily slot availability
               for a facility.
             </p>
@@ -550,14 +550,14 @@ function MerchantSlotManagementPage() {
 
           <Link
             to="/merchant/facilities"
-            className="rounded-2xl bg-lime-400 px-6 py-3 text-sm font-bold text-emerald-950 transition hover:bg-lime-300"
+            className="rounded-lg bg-lime-400 px-5 py-2.5 text-sm font-bold text-emerald-950 transition hover:bg-lime-300"
           >
             Back to Facilities
           </Link>
         </section>
 
-        <section className="mb-8 grid gap-5 md:grid-cols-4">
-          <div className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-gray-200 md:col-span-2">
+        <section className="mb-6 grid gap-4 md:grid-cols-4">
+          <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200 md:col-span-2">
             <p className="text-sm font-semibold text-slate-500">Facility</p>
             <p className="mt-3 text-2xl font-black text-emerald-950">
               {isFacilityLoading
@@ -569,29 +569,29 @@ function MerchantSlotManagementPage() {
             </p>
           </div>
 
-          <div className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-gray-200">
+          <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
             <p className="text-sm font-semibold text-slate-500">
               Available Slots
             </p>
-            <p className="mt-3 text-4xl font-black text-emerald-950">
+            <p className="mt-2 text-3xl font-black text-emerald-950">
               {slotStats.available}
             </p>
           </div>
 
-          <div className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-gray-200">
+          <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
             <p className="text-sm font-semibold text-slate-500">
               Booked Slots
             </p>
-            <p className="mt-3 text-4xl font-black text-emerald-950">
+            <p className="mt-2 text-3xl font-black text-emerald-950">
               {slotStats.booked}
             </p>
           </div>
         </section>
 
-        <section className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr]">
+        <section className="grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
           <form
             onSubmit={handleGenerateSlots}
-            className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-gray-200 md:p-8"
+            className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200 md:p-6"
           >
             <h2 className="text-2xl font-black text-emerald-950">
               Bulk Generate Slots
@@ -691,7 +691,7 @@ function MerchantSlotManagementPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`mt-6 w-full rounded-2xl px-6 py-3.5 text-sm font-semibold text-white transition ${
+              className={`mt-5 w-full rounded-lg px-6 py-3 text-sm font-semibold text-white transition ${
                 isSubmitting
                   ? "cursor-not-allowed bg-slate-400"
                   : "bg-emerald-950 hover:bg-emerald-900"
@@ -703,7 +703,7 @@ function MerchantSlotManagementPage() {
             </button>
           </form>
 
-          <section className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-gray-200 md:p-8">
+          <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200 md:p-6">
             <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
               <div>
                 <h2 className="text-2xl font-black text-emerald-950">
@@ -719,7 +719,7 @@ function MerchantSlotManagementPage() {
               </span>
             </div>
 
-            <div className="mb-6 rounded-2xl bg-gray-50 p-4 ring-1 ring-gray-200">
+            <div className="mb-4 rounded-lg bg-gray-50 p-4 ring-1 ring-gray-200">
               <label className="mb-2 block text-sm font-semibold text-slate-700">
                 View Slots Date
               </label>
@@ -737,7 +737,7 @@ function MerchantSlotManagementPage() {
               />
             </div>
 
-            <div className="mb-6 rounded-2xl bg-gray-50 p-4 ring-1 ring-gray-200">
+            <div className="mb-4 rounded-lg bg-gray-50 p-4 ring-1 ring-gray-200">
               <h3 className="text-sm font-black uppercase tracking-[0.18em] text-emerald-900">
                 Day Controls
               </h3>
@@ -759,7 +759,7 @@ function MerchantSlotManagementPage() {
                 />
               </div>
 
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <button
                   type="button"
                   onClick={handleBlockDay}
@@ -823,14 +823,14 @@ function MerchantSlotManagementPage() {
             ) : null}
 
             {!isSlotsLoading && !errorMessage && slots.length > 0 ? (
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {slots.map((slot) => {
                   const isProcessing = processingSlotId === slot.id;
 
                   return (
                     <article
                       key={slot.id}
-                      className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
+                      className="rounded-lg border border-gray-200 bg-gray-50 p-4"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div>

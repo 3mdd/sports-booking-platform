@@ -3,14 +3,14 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import { formatDisplaySlotLabel } from "../../utils/timeFormat";
-
-const TEMP_CUSTOMER_ID = 1;
+import { getCustomerProfileId } from "../../utils/auth";
 
 function BookingConfirmationPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
   const booking = location.state;
+  const customerProfileId = getCustomerProfileId();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
@@ -20,6 +20,11 @@ function BookingConfirmationPage() {
       setSubmitMessage(
         "Booking data is missing. Please go back and select available slots again."
       );
+      return;
+    }
+
+    if (!customerProfileId) {
+      setSubmitMessage("Customer profile not found. Please log in again.");
       return;
     }
 
@@ -33,7 +38,7 @@ function BookingConfirmationPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          customerId: TEMP_CUSTOMER_ID,
+          customerId: customerProfileId,
           facilityId: booking.facilityId,
           timeSlotIds: booking.selectedSlotIds,
           notes: "",
@@ -96,27 +101,27 @@ function BookingConfirmationPage() {
     <div className="min-h-screen bg-[#f3f4f6] text-slate-900">
       <Navbar />
 
-      <main className="mx-auto max-w-7xl px-6 py-10 lg:px-8">
-        <section className="mb-10">
+      <main className="mx-auto max-w-6xl px-6 py-7 lg:px-8">
+        <section className="mb-6">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">
             Confirm Booking
           </p>
-          <h1 className="mt-3 text-4xl font-black tracking-tight text-emerald-950 md:text-5xl">
+          <h1 className="mt-2 text-3xl font-black tracking-tight text-emerald-950 md:text-4xl">
             Review your booking details
           </h1>
-          <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
             Please check your selected facility, date, duration, time slots, and
             total price before proceeding to payment proof submission.
           </p>
         </section>
 
-        <section className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-gray-200">
+        <section className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
             <h2 className="text-2xl font-black text-emerald-950">
               Booking Details
             </h2>
 
-            <div className="mt-8 space-y-5 text-sm">
+            <div className="mt-5 space-y-3 text-sm">
               <div className="flex items-center justify-between border-b border-gray-100 pb-4">
                 <span className="text-slate-500">Facility</span>
                 <span className="font-semibold text-slate-900">
@@ -177,12 +182,12 @@ function BookingConfirmationPage() {
             </div>
           </div>
 
-          <div className="rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-gray-200">
+          <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200 lg:self-start">
             <h2 className="text-2xl font-black text-emerald-950">
               Next Step
             </h2>
 
-            <div className="mt-6 rounded-2xl bg-lime-50 p-5 ring-1 ring-lime-100">
+            <div className="mt-5 rounded-lg bg-lime-50 p-4 ring-1 ring-lime-100">
               <p className="text-sm font-semibold text-emerald-950">
                 Your booking will be created before payment proof upload.
               </p>
@@ -203,7 +208,7 @@ function BookingConfirmationPage() {
               type="button"
               onClick={handleCreateBooking}
               disabled={isSubmitting}
-              className={`mt-8 w-full rounded-2xl px-6 py-3.5 text-sm font-semibold text-white transition ${
+              className={`mt-6 w-full rounded-lg px-6 py-3 text-sm font-semibold text-white transition ${
                 isSubmitting
                   ? "cursor-not-allowed bg-slate-400"
                   : "bg-emerald-950 hover:bg-emerald-900"
@@ -218,7 +223,7 @@ function BookingConfirmationPage() {
               type="button"
               onClick={() => navigate(-1)}
               disabled={isSubmitting}
-              className="mt-4 w-full rounded-2xl border border-gray-200 bg-white px-6 py-3.5 text-sm font-semibold text-slate-700 transition hover:bg-gray-50"
+              className="mt-3 w-full rounded-lg border border-gray-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-gray-50"
             >
               Back to Slot Selection
             </button>

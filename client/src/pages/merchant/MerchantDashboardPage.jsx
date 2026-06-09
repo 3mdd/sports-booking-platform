@@ -3,8 +3,7 @@ import { Link } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import { formatDisplayTimeRange } from "../../utils/timeFormat";
-
-const TEMP_MERCHANT_ID = 1;
+import { getMerchantProfileId } from "../../utils/auth";
 
 function formatDate(dateValue) {
   if (!dateValue) return "Not available";
@@ -64,6 +63,7 @@ function getStatusClass(status) {
 }
 
 function MerchantDashboardPage() {
+  const merchantProfileId = getMerchantProfileId();
   const [bookings, setBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -75,7 +75,7 @@ function MerchantDashboardPage() {
         setErrorMessage("");
 
         const response = await fetch(
-          `http://localhost:5000/bookings/merchant/${TEMP_MERCHANT_ID}`
+          `http://localhost:5000/bookings/merchant/${merchantProfileId}`
         );
 
         const data = await response.json();
@@ -97,7 +97,7 @@ function MerchantDashboardPage() {
     };
 
     fetchMerchantBookings();
-  }, []);
+  }, [merchantProfileId]);
 
   const dashboardStats = useMemo(() => {
     const pendingCount = bookings.filter(
@@ -159,16 +159,16 @@ function MerchantDashboardPage() {
     <div className="min-h-screen bg-[#f3f4f6] text-slate-900">
       <Navbar />
 
-      <main className="mx-auto max-w-7xl px-6 py-10 lg:px-8">
-        <section className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
+      <main className="mx-auto max-w-7xl px-6 py-7 lg:px-8">
+        <section className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">
               Merchant Portal
             </p>
-            <h1 className="mt-3 text-4xl font-black tracking-tight text-emerald-950 md:text-5xl">
+            <h1 className="mt-2 text-3xl font-black tracking-tight text-emerald-950 md:text-4xl">
               Merchant Dashboard
             </h1>
-            <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
               Monitor bookings, facility activity, revenue, and payment proof
               verification from one merchant workspace.
             </p>
@@ -177,64 +177,64 @@ function MerchantDashboardPage() {
           <div className="flex flex-wrap gap-3">
             <Link
               to="/merchant/reviews"
-              className="rounded-2xl border border-emerald-950 px-6 py-3 text-sm font-bold text-emerald-950 transition hover:bg-emerald-50"
+              className="rounded-lg border border-emerald-950 px-5 py-2.5 text-sm font-bold text-emerald-950 transition hover:bg-emerald-50"
             >
               Review Insights
             </Link>
 
             <Link
               to="/merchant/payments"
-              className="rounded-2xl bg-lime-400 px-6 py-3 text-sm font-bold text-emerald-950 transition hover:bg-lime-300"
+              className="rounded-lg bg-lime-400 px-5 py-2.5 text-sm font-bold text-emerald-950 transition hover:bg-lime-300"
             >
               Review Payments
             </Link>
           </div>
         </section>
 
-        <section className="mb-8 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
-          <div className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-gray-200">
+        <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
             <p className="text-sm font-semibold text-slate-500">
               Total Bookings
             </p>
-            <p className="mt-3 text-4xl font-black text-emerald-950">
+            <p className="mt-2 text-3xl font-black text-emerald-950">
               {dashboardStats.total}
             </p>
             <p className="mt-2 text-sm text-slate-500">All reservations</p>
           </div>
 
-          <div className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-gray-200">
+          <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
             <p className="text-sm font-semibold text-slate-500">
               Pending Payments
             </p>
-            <p className="mt-3 text-4xl font-black text-emerald-950">
+            <p className="mt-2 text-3xl font-black text-emerald-950">
               {dashboardStats.pending}
             </p>
             <p className="mt-2 text-sm text-amber-700">Needs action</p>
           </div>
 
-          <div className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-gray-200">
+          <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
             <p className="text-sm font-semibold text-slate-500">
               Confirmed
             </p>
-            <p className="mt-3 text-4xl font-black text-emerald-950">
+            <p className="mt-2 text-3xl font-black text-emerald-950">
               {dashboardStats.confirmed}
             </p>
             <p className="mt-2 text-sm text-emerald-700">Approved bookings</p>
           </div>
 
-          <div className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-gray-200">
+          <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
             <p className="text-sm font-semibold text-slate-500">Rejected</p>
-            <p className="mt-3 text-4xl font-black text-emerald-950">
+            <p className="mt-2 text-3xl font-black text-emerald-950">
               {dashboardStats.rejected}
             </p>
             <p className="mt-2 text-sm text-red-700">Declined payments</p>
           </div>
 
-          <div className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-gray-200">
+          <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
             <p className="text-sm font-semibold text-slate-500">
               Revenue
             </p>
-            <p className="mt-3 text-3xl font-black text-emerald-950">
+            <p className="mt-2 text-2xl font-black text-emerald-950">
               {formatCurrency(dashboardStats.estimatedRevenue)}
             </p>
             <p className="mt-2 text-sm text-emerald-700">Confirmed only</p>
@@ -253,8 +253,8 @@ function MerchantDashboardPage() {
           </div>
         ) : null}
 
-        <section className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-gray-200 md:p-8">
+        <section className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200 md:p-6">
             <div className="mb-6 flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-black text-emerald-950">
@@ -289,7 +289,7 @@ function MerchantDashboardPage() {
                   return (
                     <article
                       key={booking.id}
-                      className="rounded-[1.5rem] border border-gray-200 bg-gray-50 p-5"
+                      className="rounded-xl border border-gray-200 bg-gray-50 p-4"
                     >
                       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
                         <div>
@@ -339,14 +339,14 @@ function MerchantDashboardPage() {
             ) : null}
           </div>
 
-          <div className="space-y-8">
-            <div className="rounded-[2rem] bg-emerald-950 p-8 text-white shadow-sm">
+          <div className="space-y-5">
+            <div className="rounded-xl bg-emerald-950 p-6 text-white shadow-sm">
               <h2 className="text-2xl font-black">Facility Activity</h2>
               <p className="mt-3 text-sm leading-6 text-emerald-50/80">
                 Booking distribution across facilities for this merchant.
               </p>
 
-              <div className="mt-8 space-y-5">
+              <div className="mt-5 space-y-4">
                 {!isLoading && !errorMessage && facilityActivity.length === 0 ? (
                   <p className="text-sm font-medium text-emerald-50/80">
                     Facility activity will appear after bookings are created.
@@ -370,12 +370,12 @@ function MerchantDashboardPage() {
               </div>
             </div>
 
-            <div className="rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-gray-200">
+            <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
               <h2 className="text-2xl font-black text-emerald-950">
                 Quick Actions
               </h2>
 
-              <div className="mt-6 grid gap-3">
+              <div className="mt-4 grid gap-3">
                 <Link
                   to="/merchant/payments"
                   className="rounded-2xl bg-lime-400 px-5 py-3 text-center text-sm font-bold text-emerald-950 transition hover:bg-lime-300"

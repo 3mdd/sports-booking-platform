@@ -157,32 +157,34 @@ function PaymentProofUploadPage() {
     <div className="min-h-screen bg-[#f3f4f6] text-slate-900">
       <Navbar />
 
-      <main className="mx-auto max-w-7xl px-6 py-10 lg:px-8">
-        <section className="mb-10">
+      <main className="mx-auto max-w-6xl px-6 py-7 lg:px-8">
+        <section className="mb-6">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">
             Payment Proof
           </p>
-          <h1 className="mt-3 text-4xl font-black tracking-tight text-emerald-950 md:text-5xl">
+          <h1 className="mt-2 text-3xl font-black tracking-tight text-emerald-950 md:text-4xl">
             Upload your payment receipt
           </h1>
-          <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
             Complete your external payment using the payment details, then
             upload the receipt for merchant verification.
           </p>
         </section>
 
-        <section className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr]">
-          <div className="rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-gray-200">
+        <section className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
             <h2 className="text-2xl font-black text-emerald-950">
               Payment Details
             </h2>
 
-            <div className="mt-6 flex h-52 items-center justify-center rounded-3xl bg-gray-100 ring-1 ring-gray-200">
-              <div className="flex h-32 w-32 items-center justify-center rounded-2xl bg-white text-center text-xs font-bold text-slate-500 shadow-sm">
-                PAYMENT DETAILS
-                <br />
-                PLACEHOLDER
-              </div>
+            <div className="mt-5 rounded-lg bg-lime-50 p-4 ring-1 ring-lime-100">
+              <p className="text-sm font-bold text-emerald-950">
+                Bank transfer payment
+              </p>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                Use the booking reference below when completing your transfer,
+                then upload the receipt for verification.
+              </p>
             </div>
 
             <div className="mt-6 space-y-4 text-sm">
@@ -247,17 +249,13 @@ function PaymentProofUploadPage() {
             ) : null}
           </div>
 
-          <div className="rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-gray-200">
+          <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
             <h2 className="text-2xl font-black text-emerald-950">
               Upload Receipt
             </h2>
 
-            <div className="mt-6 rounded-3xl border-2 border-dashed border-gray-200 bg-gray-50 p-8 text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-lime-400 text-xl font-black text-emerald-950">
-                ↑
-              </div>
-
-              <p className="mt-5 text-lg font-bold text-emerald-950">
+            <div className="mt-5 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 p-5 text-center">
+              <p className="text-base font-bold text-emerald-950">
                 Choose payment proof file
               </p>
               <p className="mt-2 text-sm text-slate-500">
@@ -272,7 +270,7 @@ function PaymentProofUploadPage() {
                   setSubmitMessage("");
                   setIsSuccess(false);
                 }}
-                className="mt-6 w-full cursor-pointer rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-slate-700"
+                className="mt-4 w-full cursor-pointer rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-slate-700"
               />
 
               {selectedFile ? (
@@ -282,7 +280,7 @@ function PaymentProofUploadPage() {
               ) : null}
             </div>
 
-            <div className="mt-8 rounded-2xl bg-gray-50 p-5 ring-1 ring-gray-200">
+            <div className="mt-5 rounded-lg bg-gray-50 p-4 ring-1 ring-gray-200">
               <h3 className="font-bold text-emerald-950">Booking Summary</h3>
 
               <div className="mt-4 space-y-3 text-sm">
@@ -334,7 +332,7 @@ function PaymentProofUploadPage() {
               type="button"
               onClick={handleSubmitPaymentProof}
               disabled={isSubmitting || isSuccess || isPaymentWindowExpired}
-              className={`mt-8 w-full rounded-2xl px-6 py-3.5 text-sm font-semibold text-white transition ${
+              className={`mt-6 w-full rounded-lg px-6 py-3 text-sm font-semibold text-white transition ${
                 isSubmitting || isSuccess || isPaymentWindowExpired
                   ? "cursor-not-allowed bg-slate-400"
                   : "bg-emerald-950 hover:bg-emerald-900"
@@ -356,7 +354,7 @@ function PaymentProofUploadPage() {
               type="button"
               onClick={() => navigate("/customer/bookings")}
               disabled={isSubmitting}
-              className="mt-4 w-full rounded-2xl border border-gray-200 bg-white px-6 py-3.5 text-sm font-semibold text-slate-700 transition hover:bg-gray-50"
+              className="mt-3 w-full rounded-lg border border-gray-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-gray-50"
             >
               Pay Later / View My Bookings
             </button>

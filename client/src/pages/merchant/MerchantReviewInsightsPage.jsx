@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
-
-const TEMP_MERCHANT_ID = 1;
+import { getMerchantProfileId } from "../../utils/auth";
 const ratingOptions = [5, 4, 3, 2, 1];
 const sentimentOptions = ["POSITIVE", "NEUTRAL", "NEGATIVE"];
 const sentimentLabels = {
@@ -56,6 +55,7 @@ function getSentimentBadgeClass(sentimentLabel) {
 }
 
 function MerchantReviewInsightsPage() {
+  const merchantProfileId = getMerchantProfileId();
   const [reviews, setReviews] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -69,7 +69,7 @@ function MerchantReviewInsightsPage() {
         setErrorMessage("");
 
         const response = await fetch(
-          `http://localhost:5000/reviews/merchant/${TEMP_MERCHANT_ID}`
+          `http://localhost:5000/reviews/merchant/${merchantProfileId}`
         );
         const data = await response.json();
 
@@ -90,7 +90,7 @@ function MerchantReviewInsightsPage() {
     };
 
     fetchMerchantReviews();
-  }, []);
+  }, [merchantProfileId]);
 
   const facilityOptions = useMemo(() => {
     const facilityNames = reviews
@@ -147,24 +147,23 @@ function MerchantReviewInsightsPage() {
     <div className="min-h-screen bg-[#f3f4f6] text-slate-900">
       <Navbar />
 
-      <main className="mx-auto max-w-7xl px-6 py-10 lg:px-8">
-        <section className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
+      <main className="mx-auto max-w-7xl px-6 py-7 lg:px-8">
+        <section className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">
               Merchant Portal
             </p>
-            <h1 className="mt-3 text-4xl font-black tracking-tight text-emerald-950 md:text-5xl">
+            <h1 className="mt-2 text-3xl font-black tracking-tight text-emerald-950 md:text-4xl">
               Review Insights
             </h1>
-            <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
-              Track customer feedback across your facilities and spot rating
-              patterns before future sentiment analysis is added.
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+              Track customer ratings and sentiment across your facilities.
             </p>
           </div>
 
           <Link
             to="/merchant/dashboard"
-            className="rounded-2xl bg-lime-400 px-6 py-3 text-sm font-bold text-emerald-950 transition hover:bg-lime-300"
+            className="rounded-lg bg-lime-400 px-5 py-2.5 text-sm font-bold text-emerald-950 transition hover:bg-lime-300"
           >
             Back to Dashboard
           </Link>
@@ -184,12 +183,12 @@ function MerchantReviewInsightsPage() {
 
         {!isLoading && !errorMessage ? (
           <>
-            <section className="mb-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-gray-200">
+            <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
                 <p className="text-sm font-semibold text-slate-500">
                   Total Reviews
                 </p>
-                <p className="mt-3 text-4xl font-black text-emerald-950">
+                <p className="mt-2 text-3xl font-black text-emerald-950">
                   {reviewStats.totalReviews}
                 </p>
                 <p className="mt-2 text-sm text-slate-500">
@@ -197,12 +196,12 @@ function MerchantReviewInsightsPage() {
                 </p>
               </div>
 
-              <div className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-gray-200">
+              <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
                 <p className="text-sm font-semibold text-slate-500">
                   Average Rating
                 </p>
                 <div className="mt-3 flex items-center gap-3">
-                  <p className="text-4xl font-black text-emerald-950">
+                  <p className="text-3xl font-black text-emerald-950">
                     {reviewStats.averageRating.toFixed(1)}
                   </p>
                   <StarRatingDisplay
@@ -213,7 +212,7 @@ function MerchantReviewInsightsPage() {
                 <p className="mt-2 text-sm text-slate-500">Out of 5 stars</p>
               </div>
 
-              <div className="rounded-[1.5rem] bg-white p-6 shadow-sm ring-1 ring-gray-200 xl:col-span-2">
+              <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200 xl:col-span-2">
                 <p className="text-sm font-semibold text-slate-500">
                   Rating Distribution
                 </p>
@@ -235,28 +234,28 @@ function MerchantReviewInsightsPage() {
               </div>
             </section>
 
-            <section className="mb-8 rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-gray-200 md:p-8">
+            <section className="mb-6 rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200 md:p-6">
               <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
                 <div>
                   <h2 className="text-2xl font-black text-emerald-950">
                     Sentiment Snapshot
                   </h2>
                   <p className="mt-2 text-sm text-slate-600">
-                    Sentiment analysis is prepared for API integration.
+                    API sentiment analysis with an automatic rule-based fallback.
                   </p>
                 </div>
               </div>
 
-              <div className="mt-6 grid gap-4 md:grid-cols-3">
+              <div className="mt-4 grid gap-3 md:grid-cols-3">
                 {sentimentOptions.map((sentimentLabel) => (
                   <div
                     key={sentimentLabel}
-                    className="rounded-2xl bg-gray-50 px-5 py-4 ring-1 ring-gray-200"
+                    className="rounded-lg bg-gray-50 px-4 py-3 ring-1 ring-gray-200"
                   >
                     <p className="text-sm font-bold text-slate-500">
                       {sentimentLabels[sentimentLabel]}
                     </p>
-                    <p className="mt-2 text-3xl font-black text-emerald-950">
+                    <p className="mt-1 text-2xl font-black text-emerald-950">
                       {reviewStats.sentimentCounts[sentimentLabel] || 0}
                     </p>
                   </div>
@@ -264,7 +263,7 @@ function MerchantReviewInsightsPage() {
               </div>
             </section>
 
-            <section className="mb-8 rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-gray-200 md:p-8">
+            <section className="mb-6 rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200 md:p-6">
               <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
                 <div>
                   <h2 className="text-2xl font-black text-emerald-950">
@@ -280,11 +279,11 @@ function MerchantReviewInsightsPage() {
                 </span>
               </div>
 
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
                 <select
                   value={selectedRating}
                   onChange={(event) => setSelectedRating(event.target.value)}
-                  className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
+                  className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm outline-none focus:border-lime-400 focus:bg-white"
                 >
                   <option>All Ratings</option>
                   {ratingOptions.map((rating) => (
@@ -297,7 +296,7 @@ function MerchantReviewInsightsPage() {
                 <select
                   value={selectedFacility}
                   onChange={(event) => setSelectedFacility(event.target.value)}
-                  className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
+                  className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm outline-none focus:border-lime-400 focus:bg-white"
                 >
                   {facilityOptions.map((facilityName) => (
                     <option key={facilityName}>{facilityName}</option>
@@ -306,7 +305,7 @@ function MerchantReviewInsightsPage() {
               </div>
             </section>
 
-            <section className="rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-gray-200 md:p-8">
+            <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200 md:p-6">
               <div className="mb-6">
                 <h2 className="text-2xl font-black text-emerald-950">
                   Recent Reviews
@@ -339,7 +338,7 @@ function MerchantReviewInsightsPage() {
                     return (
                       <article
                         key={review.id}
-                        className="rounded-[1.5rem] border border-gray-200 bg-gray-50 p-5"
+                        className="rounded-xl border border-gray-200 bg-gray-50 p-4"
                       >
                         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
                           <div>
