@@ -72,6 +72,7 @@ function LoginPage() {
         email: user.email,
         phoneNumber: user.phoneNumber,
         role: user.role,
+        isActive: user.isActive,
         customerProfileId: user.customerProfile?.id,
         merchantProfileId: user.merchantProfile?.id,
         merchantApprovalStatus: user.merchantProfile?.approvalStatus,
@@ -80,7 +81,7 @@ function LoginPage() {
 
       const destination =
         user.role === "ADMIN"
-          ? "/admin/merchants"
+          ? "/admin/dashboard"
           : user.role === "MERCHANT"
           ? user.merchantProfile.approvalStatus === "APPROVED"
             ? "/merchant/dashboard"

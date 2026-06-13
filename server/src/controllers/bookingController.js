@@ -55,11 +55,24 @@ const createBooking = async (req, res) => {
 
     const customer = await prisma.customerProfile.findUnique({
       where: { id: Number(customerId) },
+      include: {
+        user: {
+          select: {
+            isActive: true,
+          },
+        },
+      },
     });
 
     if (!customer) {
       return res.status(404).json({
         message: "Customer profile not found",
+      });
+    }
+
+    if (!customer.user.isActive) {
+      return res.status(403).json({
+        message: "This customer account is inactive and cannot make bookings.",
       });
     }
 
@@ -69,6 +82,11 @@ const createBooking = async (req, res) => {
         merchantProfile: {
           select: {
             approvalStatus: true,
+            user: {
+              select: {
+                isActive: true,
+              },
+            },
           },
         },
       },
@@ -90,6 +108,13 @@ const createBooking = async (req, res) => {
       return res.status(400).json({
         message:
           "This facility is currently unavailable because the merchant is not approved.",
+      });
+    }
+
+    if (!facility.merchantProfile.user.isActive) {
+      return res.status(400).json({
+        message:
+          "This facility is currently unavailable because the merchant account is inactive.",
       });
     }
 

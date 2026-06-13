@@ -76,6 +76,7 @@ const registerCustomer = async (req, res) => {
         email: result.newUser.email,
         phoneNumber: result.newUser.phoneNumber,
         role: result.newUser.role,
+        isActive: result.newUser.isActive,
       },
       customerProfile: {
         id: result.customerProfile.id,
@@ -197,6 +198,7 @@ const registerMerchant = async (req, res) => {
         email: result.newUser.email,
         phoneNumber: result.newUser.phoneNumber,
         role: result.newUser.role,
+        isActive: result.newUser.isActive,
       },
       merchantProfile: {
         id: result.merchantProfile.id,
@@ -250,6 +252,12 @@ const loginUser = async (req, res) => {
       });
     }
 
+    if (!user.isActive) {
+      return res.status(403).json({
+        message: "This account is inactive. Please contact the administrator.",
+      });
+    }
+
     return res.status(200).json({
       message: "Login successful",
       user: {
@@ -258,6 +266,7 @@ const loginUser = async (req, res) => {
         email: user.email,
         phoneNumber: user.phoneNumber,
         role: user.role,
+        isActive: user.isActive,
         customerProfile: user.customerProfile,
         merchantProfile: user.merchantProfile,
       },

@@ -1,6 +1,7 @@
 const prisma = require("../lib/prisma");
 
 const MAX_APPROVAL_NOTE_LENGTH = 500;
+const PROTECTED_ADMIN_EMAIL = "admin@elitesport.test";
 
 function parsePositiveInteger(value) {
   const parsedValue = Number(value);
@@ -22,6 +23,7 @@ async function verifyAdminRequest(req, res) {
     where: {
       id: userId,
       role: "ADMIN",
+      isActive: true,
     },
     select: {
       id: true,
@@ -37,6 +39,328 @@ async function verifyAdminRequest(req, res) {
 
   return true;
 }
+
+function buildUserResponse(user) {
+  return {
+    userId: user.id,
+    fullName: user.fullName,
+    email: user.email,
+    phoneNumber: user.phoneNumber,
+    role: user.role,
+    isActive: user.isActive,
+    createdAt: user.createdAt,
+    customerProfileId: user.customerProfile?.id || null,
+    merchantProfileId: user.merchantProfile?.id || null,
+    businessName: user.merchantProfile?.businessName || null,
+    merchantApprovalStatus:
+      user.merchantProfile?.approvalStatus || null,
+  };
+}
+
+function buildFacilityResponse(facility) {
+  return {
+    facilityId: facility.id,
+    name: facility.name,
+    location: facility.location,
+    stateName: facility.stateName,
+    areaName: facility.areaName,
+    isActive: facility.isActive,
+    sportType: facility.sportType,
+    merchantProfileId: facility.merchantProfile.id,
+    businessName: facility.merchantProfile.businessName,
+    merchantApprovalStatus: facility.merchantProfile.approvalStatus,
+    merchantUserActive: facility.merchantProfile.user.isActive,
+    createdAt: facility.createdAt,
+  };
+}
+
+const getAdminDashboard = async (req, res) => {
+  try {
+    if (!(await verifyAdminRequest(req, res))) return;
+
+    const [
+      totalUsers,
+      customers,
+      merchants,
+      admins,
+      pendingMerchants,
+      facilities,
+      bookings,
+      confirmedBookings,
+      pendingVerification,
+      reviews,
+    ] = await prisma.$transaction([
+      prisma.user.count(),
+      prisma.user.count({ where: { role: "CUSTOMER" } }),
+      prisma.user.count({ where: { role: "MERCHANT" } }),
+      prisma.user.count({ where: { role: "ADMIN" } }),
+      prisma.merchantProfile.count({
+        where: { approvalStatus: "PENDING_APPROVAL" },
+      }),
+      prisma.facility.count(),
+      prisma.booking.count(),
+      prisma.booking.count({ where: { status: "CONFIRMED" } }),
+      prisma.booking.count({ where: { status: "PAYMENT_UPLOADED" } }),
+      prisma.review.count(),
+    ]);
+
+    return res.status(200).json({
+      message: "Admin dashboard fetched successfully",
+      totals: {
+        users: totalUsers,
+        customers,
+        merchants,
+        admins,
+        pendingMerchants,
+        facilities,
+        bookings,
+        confirmedBookings,
+        pendingVerification,
+        reviews,
+      },
+    });
+  } catch (error) {
+    console.error("Fetch admin dashboard failed:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
+const getAdminUsers = async (req, res) => {
+  try {
+    if (!(await verifyAdminRequest(req, res))) return;
+
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phoneNumber: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        customerProfile: {
+          select: {
+            id: true,
+          },
+        },
+        merchantProfile: {
+          select: {
+            id: true,
+            businessName: true,
+            approvalStatus: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return res.status(200).json({
+      message: "Admin users fetched successfully",
+      users: users.map(buildUserResponse),
+    });
+  } catch (error) {
+    console.error("Fetch admin users failed:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
+async function updateUserActiveStatus(req, res, isActive) {
+  if (!(await verifyAdminRequest(req, res))) return;
+
+  const userId = parsePositiveInteger(req.params.userId);
+
+  if (!userId) {
+    return res.status(400).json({
+      message: "Valid user ID is required",
+    });
+  }
+
+  const existingUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+    },
+  });
+
+  if (!existingUser) {
+    return res.status(404).json({
+      message: "User not found",
+    });
+  }
+
+  if (!isActive && existingUser.email === PROTECTED_ADMIN_EMAIL) {
+    return res.status(403).json({
+      message: "The seeded EliteSport admin account cannot be deactivated",
+    });
+  }
+
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { isActive },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      phoneNumber: true,
+      role: true,
+      isActive: true,
+      createdAt: true,
+      customerProfile: {
+        select: {
+          id: true,
+        },
+      },
+      merchantProfile: {
+        select: {
+          id: true,
+          businessName: true,
+          approvalStatus: true,
+        },
+      },
+    },
+  });
+
+  return res.status(200).json({
+    message: `User ${isActive ? "activated" : "deactivated"} successfully`,
+    user: buildUserResponse(user),
+  });
+}
+
+const activateUser = async (req, res) => {
+  try {
+    return await updateUserActiveStatus(req, res, true);
+  } catch (error) {
+    console.error("Activate user failed:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const deactivateUser = async (req, res) => {
+  try {
+    return await updateUserActiveStatus(req, res, false);
+  } catch (error) {
+    console.error("Deactivate user failed:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const getAdminFacilities = async (req, res) => {
+  try {
+    if (!(await verifyAdminRequest(req, res))) return;
+
+    const facilities = await prisma.facility.findMany({
+      include: {
+        sportType: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        merchantProfile: {
+          select: {
+            id: true,
+            businessName: true,
+            approvalStatus: true,
+            user: {
+              select: {
+                isActive: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return res.status(200).json({
+      message: "Admin facilities fetched successfully",
+      facilities: facilities.map(buildFacilityResponse),
+    });
+  } catch (error) {
+    console.error("Fetch admin facilities failed:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+async function updateFacilityActiveStatus(req, res, isActive) {
+  if (!(await verifyAdminRequest(req, res))) return;
+
+  const facilityId = parsePositiveInteger(req.params.facilityId);
+
+  if (!facilityId) {
+    return res.status(400).json({
+      message: "Valid facility ID is required",
+    });
+  }
+
+  const existingFacility = await prisma.facility.findUnique({
+    where: { id: facilityId },
+    select: { id: true },
+  });
+
+  if (!existingFacility) {
+    return res.status(404).json({
+      message: "Facility not found",
+    });
+  }
+
+  const facility = await prisma.facility.update({
+    where: { id: facilityId },
+    data: { isActive },
+    include: {
+      sportType: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      merchantProfile: {
+        select: {
+          id: true,
+          businessName: true,
+          approvalStatus: true,
+          user: {
+            select: {
+              isActive: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return res.status(200).json({
+    message: `Facility ${isActive ? "activated" : "deactivated"} successfully`,
+    facility: buildFacilityResponse(facility),
+  });
+}
+
+const activateFacility = async (req, res) => {
+  try {
+    return await updateFacilityActiveStatus(req, res, true);
+  } catch (error) {
+    console.error("Activate facility failed:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const deactivateFacility = async (req, res) => {
+  try {
+    return await updateFacilityActiveStatus(req, res, false);
+  } catch (error) {
+    console.error("Deactivate facility failed:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
 
 function buildMerchantResponse(merchant) {
   return {
@@ -203,6 +527,13 @@ const rejectMerchant = async (req, res) => {
 };
 
 module.exports = {
+  getAdminDashboard,
+  getAdminUsers,
+  activateUser,
+  deactivateUser,
+  getAdminFacilities,
+  activateFacility,
+  deactivateFacility,
   getAdminMerchants,
   approveMerchant,
   rejectMerchant,

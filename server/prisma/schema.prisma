@@ -25,6 +25,7 @@ model User {
   phoneNumber     String?
   passwordHash    String
   role            Role
+  isActive        Boolean          @default(true)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 

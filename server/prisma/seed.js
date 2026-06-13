@@ -32,12 +32,14 @@ async function main() {
       fullName: "EliteSport Admin",
       passwordHash: adminPasswordHash,
       role: "ADMIN",
+      isActive: true,
     },
     create: {
       fullName: "EliteSport Admin",
       email: "admin@elitesport.test",
       passwordHash: adminPasswordHash,
       role: "ADMIN",
+      isActive: true,
     },
   });
 

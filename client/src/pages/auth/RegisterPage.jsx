@@ -92,6 +92,7 @@ function RegisterPage({ role }) {
         email: data.user.email,
         phoneNumber: data.user.phoneNumber,
         role: data.user.role,
+        isActive: data.user.isActive,
         customerProfileId: data.customerProfile?.id,
         merchantProfileId: data.merchantProfile?.id,
         merchantApprovalStatus: data.merchantProfile?.approvalStatus,

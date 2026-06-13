@@ -32,7 +32,10 @@ const merchantApprovalNavigation = [
 ];
 
 const adminNavigation = [
-  { label: "Merchant Approvals", to: "/admin/merchants" },
+  { label: "Dashboard", to: "/admin/dashboard" },
+  { label: "Merchants", to: "/admin/merchants" },
+  { label: "Users", to: "/admin/users" },
+  { label: "Facilities", to: "/admin/facilities" },
 ];
 
 function getInitials(fullName) {

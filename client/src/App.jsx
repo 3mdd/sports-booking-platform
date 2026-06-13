@@ -20,6 +20,9 @@ import RequireAuth from "./components/auth/RequireAuth";
 import RequireApprovedMerchant from "./components/auth/RequireApprovedMerchant";
 import MerchantApprovalStatusPage from "./pages/merchant/MerchantApprovalStatusPage";
 import AdminMerchantApprovalPage from "./pages/admin/AdminMerchantApprovalPage";
+import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
+import AdminUsersPage from "./pages/admin/AdminUsersPage";
+import AdminFacilitiesPage from "./pages/admin/AdminFacilitiesPage";
 
 function App() {
   return (
@@ -140,10 +143,34 @@ function App() {
           }
         />
         <Route
+          path="/admin/dashboard"
+          element={
+            <RequireRole role="ADMIN">
+              <AdminDashboardPage />
+            </RequireRole>
+          }
+        />
+        <Route
           path="/admin/merchants"
           element={
             <RequireRole role="ADMIN">
               <AdminMerchantApprovalPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <RequireRole role="ADMIN">
+              <AdminUsersPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/admin/facilities"
+          element={
+            <RequireRole role="ADMIN">
+              <AdminFacilitiesPage />
             </RequireRole>
           }
         />

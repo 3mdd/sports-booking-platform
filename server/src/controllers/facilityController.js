@@ -132,8 +132,12 @@ const getAllFacilities = async (req, res) => {
     const facilities = await prisma.facility.findMany({
       where: approvedOnly
         ? {
+            isActive: true,
             merchantProfile: {
               approvalStatus: "APPROVED",
+              user: {
+                isActive: true,
+              },
             },
           }
         : undefined,
@@ -144,6 +148,11 @@ const getAllFacilities = async (req, res) => {
             id: true,
             businessName: true,
             approvalStatus: true,
+            user: {
+              select: {
+                isActive: true,
+              },
+            },
           },
         },
         images: {
@@ -182,6 +191,11 @@ const getFacilityById = async (req, res) => {
             id: true,
             businessName: true,
             approvalStatus: true,
+            user: {
+              select: {
+                isActive: true,
+              },
+            },
           },
         },
         images: {
@@ -201,7 +215,9 @@ const getFacilityById = async (req, res) => {
 
     if (
       req.query.approvedOnly === "true" &&
-      facility.merchantProfile.approvalStatus !== "APPROVED"
+      (!facility.isActive ||
+        facility.merchantProfile.approvalStatus !== "APPROVED" ||
+        !facility.merchantProfile.user.isActive)
     ) {
       return res.status(404).json({
         message: "Facility is not available",

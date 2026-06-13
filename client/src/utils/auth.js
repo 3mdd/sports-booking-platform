@@ -18,6 +18,7 @@ export function saveAuthUser(user) {
     email: String(user?.email || ""),
     phoneNumber: user?.phoneNumber ? String(user.phoneNumber) : null,
     role: String(user?.role || ""),
+    isActive: user?.isActive !== false,
     customerProfileId: toProfileId(user?.customerProfileId),
     merchantProfileId: toProfileId(user?.merchantProfileId),
     merchantApprovalStatus: user?.merchantApprovalStatus
