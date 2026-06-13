@@ -17,6 +17,7 @@ export function saveAuthUser(user) {
     fullName: String(user?.fullName || ""),
     email: String(user?.email || ""),
     phoneNumber: user?.phoneNumber ? String(user.phoneNumber) : null,
+    avatarUrl: user?.avatarUrl ? String(user.avatarUrl) : null,
     role: String(user?.role || ""),
     isActive: user?.isActive !== false,
     customerProfileId: toProfileId(user?.customerProfileId),
@@ -92,6 +93,20 @@ export function updateStoredUserName(fullName) {
   notifyAuthUserUpdated();
 
   return updatedUser;
+}
+
+export function updateStoredAuthUser(updates) {
+  const authUser = getAuthUser();
+
+  if (!authUser) {
+    return null;
+  }
+
+  return saveAuthUser({
+    ...authUser,
+    ...updates,
+    userId: authUser.userId,
+  });
 }
 
 export function isCustomer() {

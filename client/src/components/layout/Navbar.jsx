@@ -5,6 +5,7 @@ import {
   getAuthUser,
   logout,
 } from "../../utils/auth";
+import { getUploadFileUrl } from "../../utils/uploadUrl";
 
 const guestNavigation = [
   { label: "Home", to: "/" },
@@ -181,8 +182,18 @@ function Navbar() {
               aria-expanded={isProfileMenuOpen}
               className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-2 py-1.5 text-left transition hover:border-lime-300 hover:bg-lime-50"
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-950 text-xs font-black text-lime-300">
-                {getInitials(authUser.fullName)}
+              <span className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-emerald-950 text-xs font-black text-lime-300">
+                <span>{getInitials(authUser.fullName)}</span>
+                {authUser.avatarUrl ? (
+                  <img
+                    src={getUploadFileUrl(authUser.avatarUrl)}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none";
+                    }}
+                  />
+                ) : null}
               </span>
               <span className="hidden min-w-0 sm:block">
                 <span className="block max-w-32 truncate text-sm font-bold text-emerald-950">

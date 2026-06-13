@@ -91,6 +91,7 @@ function RegisterPage({ role }) {
         fullName: data.user.fullName,
         email: data.user.email,
         phoneNumber: data.user.phoneNumber,
+        avatarUrl: data.user.avatarUrl,
         role: data.user.role,
         isActive: data.user.isActive,
         customerProfileId: data.customerProfile?.id,

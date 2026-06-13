@@ -23,6 +23,7 @@ model User {
   fullName        String
   email           String           @unique
   phoneNumber     String?
+  avatarUrl       String?
   passwordHash    String
   role            Role
   isActive        Boolean          @default(true)

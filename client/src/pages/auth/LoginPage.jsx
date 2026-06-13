@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { saveAuthUser } from "../../utils/auth";
+import loginHeroImage from "../../assets/images/login-hero.jpeg";
 
 function LoginPage() {
   const location = useLocation();
@@ -71,6 +72,7 @@ function LoginPage() {
         fullName: user.fullName,
         email: user.email,
         phoneNumber: user.phoneNumber,
+        avatarUrl: user.avatarUrl,
         role: user.role,
         isActive: user.isActive,
         customerProfileId: user.customerProfile?.id,
@@ -98,12 +100,12 @@ function LoginPage() {
   };
 
   return (
-    <div className="grid min-h-screen bg-[#f3f4f6] lg:grid-cols-2">
-      <div className="relative hidden lg:block">
+    <div className="grid min-h-screen bg-[#f3f4f6] lg:h-screen lg:grid-cols-2 lg:overflow-hidden">
+      <div className="relative hidden h-screen overflow-hidden lg:block">
         <img
-          src="https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?auto=format&fit=crop&w=1400&q=80"
-          alt="Sports facility"
-          className="h-full w-full object-cover"
+          src={loginHeroImage}
+          alt="Football player preparing for a corner kick"
+          className="h-full w-full object-cover object-center"
         />
         <div className="absolute inset-0 bg-emerald-950/65" />
         <div className="absolute inset-0 flex flex-col justify-between p-10 text-white">
@@ -122,8 +124,8 @@ function LoginPage() {
         </div>
       </div>
 
-      <main className="flex items-center justify-center px-6 py-10">
-        <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200 sm:p-8">
+      <main className="flex items-center justify-center px-6 py-6 lg:h-screen">
+        <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
           <Link
             to="/"
             className="text-xl font-black tracking-tight text-emerald-950 lg:hidden"
@@ -131,7 +133,7 @@ function LoginPage() {
             EliteSport
           </Link>
 
-          <p className="mt-6 text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700 lg:mt-0">
+          <p className="mt-5 text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700 lg:mt-0">
             Welcome back
           </p>
           <h2 className="mt-2 text-3xl font-black text-emerald-950">
@@ -154,7 +156,7 @@ function LoginPage() {
             </div>
           ) : null}
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <form onSubmit={handleSubmit} className="mt-5 space-y-3">
             <div>
               <label
                 htmlFor="email"
@@ -206,7 +208,7 @@ function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 border-t border-gray-200 pt-5">
+          <div className="mt-5 border-t border-gray-200 pt-4">
             <p className="text-sm font-semibold text-slate-700">
               Create a new account
             </p>

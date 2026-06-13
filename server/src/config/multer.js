@@ -12,12 +12,14 @@ const merchantVerificationUploadPath = path.join(
   __dirname,
   "../../uploads/merchant-verification"
 );
+const avatarUploadPath = path.join(__dirname, "../../uploads/avatars");
 
 // Create folder if it does not exist
 fs.mkdirSync(paymentProofUploadPath, { recursive: true });
 fs.mkdirSync(facilityUploadPath, { recursive: true });
 fs.mkdirSync(paymentQrUploadPath, { recursive: true });
 fs.mkdirSync(merchantVerificationUploadPath, { recursive: true });
+fs.mkdirSync(avatarUploadPath, { recursive: true });
 
 const paymentProofStorage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -64,6 +66,17 @@ const merchantVerificationStorage = multer.diskStorage({
         ? "ownership-proof"
         : "verification-document";
     cb(null, `${prefix}-${uniqueSuffix}${ext}`);
+  },
+});
+
+const avatarStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, avatarUploadPath);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `avatar-${uniqueSuffix}${ext}`);
   },
 });
 
@@ -165,10 +178,19 @@ const merchantVerificationUpload = multer({
   },
 });
 
+const avatarUpload = multer({
+  storage: avatarStorage,
+  fileFilter: facilityPhotoFileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+});
+
 module.exports = {
   paymentProofUpload,
   facilityPhotoUpload,
   facilityGalleryUpload,
   paymentQrUpload,
   merchantVerificationUpload,
+  avatarUpload,
 };
