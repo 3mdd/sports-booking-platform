@@ -1,6 +1,15 @@
 const bcrypt = require("bcrypt");
 const prisma = require("../lib/prisma");
 
+const MAX_BUSINESS_PHONE_LENGTH = 50;
+const MAX_BUSINESS_ADDRESS_LENGTH = 500;
+const MAX_REGISTRATION_NUMBER_LENGTH = 100;
+
+function normalizeOptionalText(value) {
+  const normalizedValue = String(value || "").trim();
+  return normalizedValue || null;
+}
+
 const registerTest = async (req, res) => {
   res.json({ message: "Auth controller is working" });
 };
@@ -69,11 +78,52 @@ const registerCustomer = async (req, res) => {
 
 const registerMerchant = async (req, res) => {
   try {
-    const { fullName, email, password, businessName } = req.body;
+    const {
+      fullName,
+      email,
+      password,
+      businessName,
+      businessPhone,
+      businessAddress,
+      businessRegistrationNumber,
+    } = req.body;
 
     if (!fullName || !email || !password || !businessName) {
       return res.status(400).json({
         message: "Full name, email, password, and business name are required",
+      });
+    }
+
+    const normalizedBusinessPhone = normalizeOptionalText(businessPhone);
+    const normalizedBusinessAddress = normalizeOptionalText(businessAddress);
+    const normalizedRegistrationNumber = normalizeOptionalText(
+      businessRegistrationNumber
+    );
+
+    if (
+      normalizedBusinessPhone &&
+      normalizedBusinessPhone.length > MAX_BUSINESS_PHONE_LENGTH
+    ) {
+      return res.status(400).json({
+        message: `Business phone must be ${MAX_BUSINESS_PHONE_LENGTH} characters or fewer`,
+      });
+    }
+
+    if (
+      normalizedBusinessAddress &&
+      normalizedBusinessAddress.length > MAX_BUSINESS_ADDRESS_LENGTH
+    ) {
+      return res.status(400).json({
+        message: `Business address must be ${MAX_BUSINESS_ADDRESS_LENGTH} characters or fewer`,
+      });
+    }
+
+    if (
+      normalizedRegistrationNumber &&
+      normalizedRegistrationNumber.length > MAX_REGISTRATION_NUMBER_LENGTH
+    ) {
+      return res.status(400).json({
+        message: `Business registration number must be ${MAX_REGISTRATION_NUMBER_LENGTH} characters or fewer`,
       });
     }
 
@@ -103,6 +153,10 @@ const registerMerchant = async (req, res) => {
         data: {
           userId: newUser.id,
           businessName,
+          businessPhone: normalizedBusinessPhone,
+          businessAddress: normalizedBusinessAddress,
+          businessRegistrationNumber: normalizedRegistrationNumber,
+          approvalStatus: "PENDING_APPROVAL",
         },
       });
 
@@ -121,6 +175,12 @@ const registerMerchant = async (req, res) => {
         id: result.merchantProfile.id,
         userId: result.merchantProfile.userId,
         businessName: result.merchantProfile.businessName,
+        businessPhone: result.merchantProfile.businessPhone,
+        businessAddress: result.merchantProfile.businessAddress,
+        businessRegistrationNumber:
+          result.merchantProfile.businessRegistrationNumber,
+        approvalStatus: result.merchantProfile.approvalStatus,
+        approvalNote: result.merchantProfile.approvalNote,
       },
     });
   } catch (error) {

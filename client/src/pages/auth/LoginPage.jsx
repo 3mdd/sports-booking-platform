@@ -58,7 +58,11 @@ function LoginPage() {
         throw new Error("This account does not have a valid role profile.");
       }
 
-      if (user.role !== "CUSTOMER" && user.role !== "MERCHANT") {
+      if (
+        user.role !== "CUSTOMER" &&
+        user.role !== "MERCHANT" &&
+        user.role !== "ADMIN"
+      ) {
         throw new Error("This account role is not supported by the frontend.");
       }
 
@@ -69,12 +73,20 @@ function LoginPage() {
         role: user.role,
         customerProfileId: user.customerProfile?.id,
         merchantProfileId: user.merchantProfile?.id,
+        merchantApprovalStatus: user.merchantProfile?.approvalStatus,
+        merchantApprovalNote: user.merchantProfile?.approvalNote,
       });
 
-      navigate(
-        user.role === "MERCHANT" ? "/merchant/dashboard" : "/facilities",
-        { replace: true }
-      );
+      const destination =
+        user.role === "ADMIN"
+          ? "/admin/merchants"
+          : user.role === "MERCHANT"
+          ? user.merchantProfile.approvalStatus === "APPROVED"
+            ? "/merchant/dashboard"
+            : "/merchant/approval-status"
+          : "/facilities";
+
+      navigate(destination, { replace: true });
     } catch (error) {
       console.error("Login error:", error);
       setErrorMessage(error.message || "Unable to log in.");

@@ -27,6 +27,14 @@ const merchantNavigation = [
   { label: "Reviews", to: "/merchant/reviews" },
 ];
 
+const merchantApprovalNavigation = [
+  { label: "Approval Status", to: "/merchant/approval-status" },
+];
+
+const adminNavigation = [
+  { label: "Merchant Approvals", to: "/admin/merchants" },
+];
+
 function getInitials(fullName) {
   const nameParts = String(fullName || "")
     .trim()
@@ -53,8 +61,12 @@ function Navbar() {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const navigation =
-    authUser?.role === "MERCHANT"
-      ? merchantNavigation
+    authUser?.role === "ADMIN"
+      ? adminNavigation
+      : authUser?.role === "MERCHANT"
+      ? (authUser.merchantApprovalStatus || "APPROVED") === "APPROVED"
+        ? merchantNavigation
+        : merchantApprovalNavigation
       : authUser?.role === "CUSTOMER"
       ? customerNavigation
       : guestNavigation;

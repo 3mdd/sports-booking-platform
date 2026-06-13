@@ -19,6 +19,12 @@ export function saveAuthUser(user) {
     role: String(user?.role || ""),
     customerProfileId: toProfileId(user?.customerProfileId),
     merchantProfileId: toProfileId(user?.merchantProfileId),
+    merchantApprovalStatus: user?.merchantApprovalStatus
+      ? String(user.merchantApprovalStatus)
+      : null,
+    merchantApprovalNote: user?.merchantApprovalNote
+      ? String(user.merchantApprovalNote)
+      : null,
   };
 
   localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authUser));
@@ -53,6 +59,15 @@ export function getMerchantProfileId() {
     : null;
 }
 
+export function getMerchantApprovalStatus() {
+  const user = getAuthUser();
+
+  if (user?.role !== "MERCHANT") return null;
+
+  // Sessions saved before merchant approval existed belong to existing demo merchants.
+  return user.merchantApprovalStatus || "APPROVED";
+}
+
 export function logout() {
   localStorage.removeItem(AUTH_STORAGE_KEY);
   notifyAuthUserUpdated();
@@ -83,4 +98,8 @@ export function isCustomer() {
 
 export function isMerchant() {
   return getAuthUser()?.role === "MERCHANT";
+}
+
+export function isAdmin() {
+  return getAuthUser()?.role === "ADMIN";
 }

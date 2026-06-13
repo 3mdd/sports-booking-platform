@@ -7,6 +7,7 @@ const facilityRoutes = require("./routes/facilityRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const merchantRoutes = require("./routes/merchantRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 const path = require("path");
 
 dotenv.config();
@@ -28,6 +29,7 @@ app.use("/", facilityRoutes);
 app.use("/", bookingRoutes);
 app.use("/", reviewRoutes);
 app.use("/", merchantRoutes);
+app.use("/", adminRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

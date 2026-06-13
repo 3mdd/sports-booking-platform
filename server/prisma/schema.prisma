@@ -12,6 +12,12 @@ enum Role {
   ADMIN
 }
 
+enum MerchantApprovalStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
 model User {
   id              Int              @id @default(autoincrement())
   fullName        String
@@ -39,11 +45,19 @@ model MerchantProfile {
   id                   Int      @id @default(autoincrement())
   userId               Int      @unique
   businessName         String
+  businessPhone        String?
+  businessAddress      String?
+  businessRegistrationNumber String?
+  verificationDocumentUrl String?
+  ownershipProofUrl    String?
   paymentBankName      String?
   paymentAccountName   String?
   paymentAccountNumber String?
   paymentInstructions  String?
   paymentQrImageUrl    String?
+  approvalStatus       MerchantApprovalStatus @default(PENDING_APPROVAL)
+  approvalNote         String?
+  approvedAt           DateTime?
   user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt

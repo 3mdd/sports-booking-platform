@@ -148,7 +148,9 @@ function FacilityDetailsPage() {
         setIsLoading(true);
         setErrorMessage("");
 
-        const response = await fetch(`http://localhost:5000/facilities/${id}`);
+        const response = await fetch(
+          `http://localhost:5000/facilities/${id}?approvedOnly=true`
+        );
 
         if (!response.ok) {
           throw new Error("Failed to fetch facility details");

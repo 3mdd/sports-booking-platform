@@ -12,7 +12,12 @@ function RegisterPage({ role }) {
     email: "",
     password: "",
     businessName: "",
+    businessPhone: "",
+    businessAddress: "",
+    businessRegistrationNumber: "",
   });
+  const [verificationDocument, setVerificationDocument] = useState(null);
+  const [ownershipProof, setOwnershipProof] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -53,6 +58,10 @@ function RegisterPage({ role }) {
 
       if (isMerchantRegistration) {
         requestBody.businessName = formData.businessName.trim();
+        requestBody.businessPhone = formData.businessPhone.trim();
+        requestBody.businessAddress = formData.businessAddress.trim();
+        requestBody.businessRegistrationNumber =
+          formData.businessRegistrationNumber.trim();
       }
 
       const response = await fetch(endpoint, {
@@ -75,11 +84,66 @@ function RegisterPage({ role }) {
         role: data.user.role,
         customerProfileId: data.customerProfile?.id,
         merchantProfileId: data.merchantProfile?.id,
+        merchantApprovalStatus: data.merchantProfile?.approvalStatus,
+        merchantApprovalNote: data.merchantProfile?.approvalNote,
       });
 
+      let verificationMessage = "";
+
+      if (
+        isMerchantRegistration &&
+        (verificationDocument || ownershipProof)
+      ) {
+        try {
+          const verificationData = new FormData();
+
+          if (verificationDocument) {
+            verificationData.append(
+              "verificationDocument",
+              verificationDocument
+            );
+          }
+
+          if (ownershipProof) {
+            verificationData.append("ownershipProof", ownershipProof);
+          }
+
+          const verificationResponse = await fetch(
+            `http://localhost:5000/merchants/${data.merchantProfile.id}/verification`,
+            {
+              method: "PATCH",
+              headers: {
+                "x-user-id": String(data.user.id),
+              },
+              body: verificationData,
+            }
+          );
+          const verificationResult = await verificationResponse.json();
+
+          if (!verificationResponse.ok) {
+            throw new Error(
+              verificationResult.message ||
+                "Verification documents could not be uploaded"
+            );
+          }
+        } catch (verificationError) {
+          console.error(
+            "Merchant verification upload error:",
+            verificationError
+          );
+          verificationMessage =
+            "Your account was created, but the documents were not uploaded. Please submit them again below.";
+        }
+      }
+
       navigate(
-        isMerchantRegistration ? "/merchant/dashboard" : "/facilities",
-        { replace: true }
+        isMerchantRegistration
+          ? "/merchant/approval-status"
+          : "/facilities",
+        {
+          replace: true,
+          state: verificationMessage ? { verificationMessage } : undefined,
+        }
       );
     } catch (error) {
       console.error("Registration error:", error);
@@ -93,7 +157,7 @@ function RegisterPage({ role }) {
     <div className="min-h-screen bg-[#f3f4f6] text-slate-900">
       <Navbar />
 
-      <main className="mx-auto max-w-2xl px-6 py-8 lg:px-8">
+      <main className="mx-auto max-w-3xl px-6 py-8 lg:px-8">
         <section className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200 sm:p-8">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">
             {isMerchantRegistration
@@ -132,18 +196,64 @@ function RegisterPage({ role }) {
             </div>
 
             {isMerchantRegistration ? (
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Business Name
-                </label>
-                <input
-                  name="businessName"
-                  type="text"
-                  value={formData.businessName}
-                  onChange={handleInputChange}
-                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
-                />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Business Name
+                  </label>
+                  <input
+                    name="businessName"
+                    type="text"
+                    value={formData.businessName}
+                    onChange={handleInputChange}
+                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Business Phone
+                  </label>
+                  <input
+                    name="businessPhone"
+                    type="tel"
+                    maxLength="50"
+                    value={formData.businessPhone}
+                    onChange={handleInputChange}
+                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
+                  />
+                </div>
               </div>
+            ) : null}
+
+            {isMerchantRegistration ? (
+              <>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Business Address
+                  </label>
+                  <textarea
+                    name="businessAddress"
+                    rows="2"
+                    maxLength="500"
+                    value={formData.businessAddress}
+                    onChange={handleInputChange}
+                    className="w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Business Registration / SSM Number
+                  </label>
+                  <input
+                    name="businessRegistrationNumber"
+                    type="text"
+                    maxLength="100"
+                    value={formData.businessRegistrationNumber}
+                    onChange={handleInputChange}
+                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
+                  />
+                </div>
+              </>
             ) : null}
 
             <div>
@@ -159,6 +269,52 @@ function RegisterPage({ role }) {
                 className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
               />
             </div>
+
+            {isMerchantRegistration ? (
+              <div className="rounded-lg bg-emerald-50/60 p-4 ring-1 ring-emerald-100">
+                <p className="text-sm font-bold text-emerald-950">
+                  Business verification documents
+                </p>
+                <p className="mt-1 text-xs leading-5 text-slate-600">
+                  Upload business registration, license, or authorization
+                  document. Do not upload unnecessary sensitive personal
+                  documents.
+                </p>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">
+                      Verification Document
+                    </label>
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.webp"
+                      onChange={(event) =>
+                        setVerificationDocument(
+                          event.target.files?.[0] || null
+                        )
+                      }
+                      className="block w-full text-xs text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-emerald-950 file:px-3 file:py-2 file:font-semibold file:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">
+                      Ownership / Authorization Proof
+                    </label>
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.webp"
+                      onChange={(event) =>
+                        setOwnershipProof(event.target.files?.[0] || null)
+                      }
+                      className="block w-full text-xs text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-emerald-950 file:px-3 file:py-2 file:font-semibold file:text-white"
+                    />
+                  </div>
+                </div>
+                <p className="mt-3 text-xs text-slate-500">
+                  Optional during registration. Maximum 5 MB per file.
+                </p>
+              </div>
+            ) : null}
 
             <div>
               <label className="mb-2 block text-sm font-semibold text-slate-700">

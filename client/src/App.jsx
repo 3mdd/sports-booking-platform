@@ -17,6 +17,9 @@ import MerchantReviewInsightsPage from "./pages/merchant/MerchantReviewInsightsP
 import MerchantPaymentSettingsPage from "./pages/merchant/MerchantPaymentSettingsPage";
 import RequireRole from "./components/auth/RequireRole";
 import RequireAuth from "./components/auth/RequireAuth";
+import RequireApprovedMerchant from "./components/auth/RequireApprovedMerchant";
+import MerchantApprovalStatusPage from "./pages/merchant/MerchantApprovalStatusPage";
+import AdminMerchantApprovalPage from "./pages/admin/AdminMerchantApprovalPage";
 
 function App() {
   return (
@@ -72,7 +75,9 @@ function App() {
           path="/merchant/payments"
           element={
             <RequireRole role="MERCHANT">
-              <PaymentVerificationPage />
+              <RequireApprovedMerchant>
+                <PaymentVerificationPage />
+              </RequireApprovedMerchant>
             </RequireRole>
           }
         />
@@ -80,7 +85,9 @@ function App() {
           path="/merchant/payment-settings"
           element={
             <RequireRole role="MERCHANT">
-              <MerchantPaymentSettingsPage />
+              <RequireApprovedMerchant>
+                <MerchantPaymentSettingsPage />
+              </RequireApprovedMerchant>
             </RequireRole>
           }
         />
@@ -88,7 +95,9 @@ function App() {
           path="/merchant/dashboard"
           element={
             <RequireRole role="MERCHANT">
-              <MerchantDashboardPage />
+              <RequireApprovedMerchant>
+                <MerchantDashboardPage />
+              </RequireApprovedMerchant>
             </RequireRole>
           }
         />
@@ -96,7 +105,9 @@ function App() {
           path="/merchant/reviews"
           element={
             <RequireRole role="MERCHANT">
-              <MerchantReviewInsightsPage />
+              <RequireApprovedMerchant>
+                <MerchantReviewInsightsPage />
+              </RequireApprovedMerchant>
             </RequireRole>
           }
         />
@@ -104,7 +115,9 @@ function App() {
           path="/merchant/facilities"
           element={
             <RequireRole role="MERCHANT">
-              <MerchantFacilityManagementPage />
+              <RequireApprovedMerchant>
+                <MerchantFacilityManagementPage />
+              </RequireApprovedMerchant>
             </RequireRole>
           }
         />
@@ -112,7 +125,25 @@ function App() {
           path="/merchant/facilities/:facilityId/slots"
           element={
             <RequireRole role="MERCHANT">
-              <MerchantSlotManagementPage />
+              <RequireApprovedMerchant>
+                <MerchantSlotManagementPage />
+              </RequireApprovedMerchant>
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/merchant/approval-status"
+          element={
+            <RequireRole role="MERCHANT">
+              <MerchantApprovalStatusPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/admin/merchants"
+          element={
+            <RequireRole role="ADMIN">
+              <AdminMerchantApprovalPage />
             </RequireRole>
           }
         />

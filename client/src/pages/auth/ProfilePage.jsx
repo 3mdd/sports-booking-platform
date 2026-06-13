@@ -24,11 +24,17 @@ function ProfilePage() {
   const [isSuccess, setIsSuccess] = useState(false);
 
   const roleLabel =
-    authUser?.role === "MERCHANT" ? "Merchant" : "Customer";
+    authUser?.role === "ADMIN"
+      ? "Admin"
+      : authUser?.role === "MERCHANT"
+      ? "Merchant"
+      : "Customer";
   const profileId =
     authUser?.role === "MERCHANT"
       ? authUser.merchantProfileId
-      : authUser?.customerProfileId;
+      : authUser?.role === "CUSTOMER"
+      ? authUser.customerProfileId
+      : null;
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -102,14 +108,16 @@ function ProfilePage() {
                 <dt className="text-slate-500">Role</dt>
                 <dd className="mt-1 font-bold text-slate-900">{roleLabel}</dd>
               </div>
-              <div className="rounded-lg bg-gray-50 p-4 ring-1 ring-gray-200 sm:col-span-2">
-                <dt className="text-slate-500">
-                  {roleLabel} Profile ID
-                </dt>
-                <dd className="mt-1 font-bold text-slate-900">
-                  #{profileId}
-                </dd>
-              </div>
+              {profileId ? (
+                <div className="rounded-lg bg-gray-50 p-4 ring-1 ring-gray-200 sm:col-span-2">
+                  <dt className="text-slate-500">
+                    {roleLabel} Profile ID
+                  </dt>
+                  <dd className="mt-1 font-bold text-slate-900">
+                    #{profileId}
+                  </dd>
+                </div>
+              ) : null}
             </dl>
 
             <form

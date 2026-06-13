@@ -84,6 +84,12 @@ const createFacility = async (req, res) => {
       });
     }
 
+    if (merchantProfile.approvalStatus !== "APPROVED") {
+      return res.status(403).json({
+        message: "Merchant account must be approved before creating facilities",
+      });
+    }
+
     const sportType = await prisma.sportType.findUnique({
       where: { id: Number(sportTypeId) },
     });
@@ -121,13 +127,23 @@ const createFacility = async (req, res) => {
 
 const getAllFacilities = async (req, res) => {
   try {
+    const approvedOnly = req.query.approvedOnly === "true";
+
     const facilities = await prisma.facility.findMany({
+      where: approvedOnly
+        ? {
+            merchantProfile: {
+              approvalStatus: "APPROVED",
+            },
+          }
+        : undefined,
       include: {
         sportType: true,
         merchantProfile: {
           select: {
             id: true,
             businessName: true,
+            approvalStatus: true,
           },
         },
         images: {
@@ -165,6 +181,7 @@ const getFacilityById = async (req, res) => {
           select: {
             id: true,
             businessName: true,
+            approvalStatus: true,
           },
         },
         images: {
@@ -179,6 +196,15 @@ const getFacilityById = async (req, res) => {
     if (!facility) {
       return res.status(404).json({
         message: "Facility not found",
+      });
+    }
+
+    if (
+      req.query.approvedOnly === "true" &&
+      facility.merchantProfile.approvalStatus !== "APPROVED"
+    ) {
+      return res.status(404).json({
+        message: "Facility is not available",
       });
     }
 

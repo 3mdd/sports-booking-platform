@@ -40,7 +40,9 @@ function BrowseFacilitiesPage() {
         setIsLoading(true);
         setErrorMessage("");
 
-        const response = await fetch("http://localhost:5000/facilities");
+        const response = await fetch(
+          "http://localhost:5000/facilities?approvedOnly=true"
+        );
 
         if (!response.ok) {
           throw new Error("Failed to fetch facilities");

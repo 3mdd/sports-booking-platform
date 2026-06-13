@@ -8,11 +8,16 @@ const paymentProofUploadPath = path.join(
 );
 const facilityUploadPath = path.join(__dirname, "../../uploads/facilities");
 const paymentQrUploadPath = path.join(__dirname, "../../uploads/payment-qr");
+const merchantVerificationUploadPath = path.join(
+  __dirname,
+  "../../uploads/merchant-verification"
+);
 
 // Create folder if it does not exist
 fs.mkdirSync(paymentProofUploadPath, { recursive: true });
 fs.mkdirSync(facilityUploadPath, { recursive: true });
 fs.mkdirSync(paymentQrUploadPath, { recursive: true });
+fs.mkdirSync(merchantVerificationUploadPath, { recursive: true });
 
 const paymentProofStorage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -44,6 +49,21 @@ const paymentQrStorage = multer.diskStorage({
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     const ext = path.extname(file.originalname).toLowerCase();
     cb(null, `payment-qr-${uniqueSuffix}${ext}`);
+  },
+});
+
+const merchantVerificationStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, merchantVerificationUploadPath);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname).toLowerCase();
+    const prefix =
+      file.fieldname === "ownershipProof"
+        ? "ownership-proof"
+        : "verification-document";
+    cb(null, `${prefix}-${uniqueSuffix}${ext}`);
   },
 });
 
@@ -79,6 +99,30 @@ const facilityPhotoFileFilter = (req, file, cb) => {
   cb(new Error("Only JPG, JPEG, PNG, and WEBP image files are allowed"));
 };
 
+const merchantVerificationFileFilter = (req, file, cb) => {
+  const allowedExtensions = new Set([
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp",
+    ".pdf",
+  ]);
+  const extname = allowedExtensions.has(
+    path.extname(file.originalname).toLowerCase()
+  );
+  const mimetype =
+    file.mimetype === "image/jpeg" ||
+    file.mimetype === "image/png" ||
+    file.mimetype === "image/webp" ||
+    file.mimetype === "application/pdf";
+
+  if (extname && mimetype) {
+    return cb(null, true);
+  }
+
+  cb(new Error("Only PDF, JPG, JPEG, PNG, and WEBP files are allowed"));
+};
+
 const paymentProofUpload = multer({
   storage: paymentProofStorage,
   fileFilter: paymentProofFileFilter,
@@ -103,8 +147,18 @@ const paymentQrUpload = multer({
   },
 });
 
+const merchantVerificationUpload = multer({
+  storage: merchantVerificationStorage,
+  fileFilter: merchantVerificationFileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+    files: 2,
+  },
+});
+
 module.exports = {
   paymentProofUpload,
   facilityPhotoUpload,
   paymentQrUpload,
+  merchantVerificationUpload,
 };

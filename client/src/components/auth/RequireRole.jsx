@@ -33,9 +33,14 @@ function RequireRole({ role, children }) {
   const profileId =
     role === "CUSTOMER"
       ? Number(authUser.customerProfileId)
-      : Number(authUser.merchantProfileId);
+      : role === "MERCHANT"
+      ? Number(authUser.merchantProfileId)
+      : null;
 
-  if (!Number.isInteger(profileId) || profileId <= 0) {
+  if (
+    role !== "ADMIN" &&
+    (!Number.isInteger(profileId) || profileId <= 0)
+  ) {
     return (
       <Navigate
         to="/login"

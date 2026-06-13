@@ -65,6 +65,13 @@ const createBooking = async (req, res) => {
 
     const facility = await prisma.facility.findUnique({
       where: { id: Number(facilityId) },
+      include: {
+        merchantProfile: {
+          select: {
+            approvalStatus: true,
+          },
+        },
+      },
     });
 
     if (!facility) {
@@ -76,6 +83,13 @@ const createBooking = async (req, res) => {
     if (!facility.isActive) {
       return res.status(400).json({
         message: "This facility is currently inactive and cannot be booked.",
+      });
+    }
+
+    if (facility.merchantProfile.approvalStatus !== "APPROVED") {
+      return res.status(400).json({
+        message:
+          "This facility is currently unavailable because the merchant is not approved.",
       });
     }
 
