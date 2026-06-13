@@ -16,6 +16,7 @@ export function saveAuthUser(user) {
     userId: toProfileId(user?.userId ?? user?.id),
     fullName: String(user?.fullName || ""),
     email: String(user?.email || ""),
+    phoneNumber: user?.phoneNumber ? String(user.phoneNumber) : null,
     role: String(user?.role || ""),
     customerProfileId: toProfileId(user?.customerProfileId),
     merchantProfileId: toProfileId(user?.merchantProfileId),

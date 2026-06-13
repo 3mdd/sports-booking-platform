@@ -87,6 +87,9 @@ function ProfilePage() {
             <p className="mt-1 text-sm text-emerald-100/80">
               {authUser?.email}
             </p>
+            <p className="mt-1 text-sm text-emerald-100/80">
+              {authUser?.phoneNumber || "Phone number not provided"}
+            </p>
             <span className="mt-4 inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.15em] text-lime-300">
               {roleLabel}
             </span>
@@ -107,6 +110,12 @@ function ProfilePage() {
               <div className="rounded-lg bg-gray-50 p-4 ring-1 ring-gray-200">
                 <dt className="text-slate-500">Role</dt>
                 <dd className="mt-1 font-bold text-slate-900">{roleLabel}</dd>
+              </div>
+              <div className="rounded-lg bg-gray-50 p-4 ring-1 ring-gray-200 sm:col-span-2">
+                <dt className="text-slate-500">Phone Number</dt>
+                <dd className="mt-1 font-bold text-slate-900">
+                  {authUser?.phoneNumber || "Not provided"}
+                </dd>
               </div>
               {profileId ? (
                 <div className="rounded-lg bg-gray-50 p-4 ring-1 ring-gray-200 sm:col-span-2">

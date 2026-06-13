@@ -49,6 +49,7 @@ function buildMerchantResponse(merchant) {
     ownershipProofUrl: merchant.ownershipProofUrl,
     fullName: merchant.user.fullName,
     email: merchant.user.email,
+    phoneNumber: merchant.user.phoneNumber,
     approvalStatus: merchant.approvalStatus,
     approvalNote: merchant.approvalNote,
     approvedAt: merchant.approvedAt,
@@ -66,6 +67,7 @@ const getAdminMerchants = async (req, res) => {
           select: {
             fullName: true,
             email: true,
+            phoneNumber: true,
           },
         },
       },
@@ -121,6 +123,7 @@ const approveMerchant = async (req, res) => {
           select: {
             fullName: true,
             email: true,
+            phoneNumber: true,
           },
         },
       },
@@ -181,6 +184,7 @@ const rejectMerchant = async (req, res) => {
           select: {
             fullName: true,
             email: true,
+            phoneNumber: true,
           },
         },
       },

@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const prisma = require("../lib/prisma");
 
+const MAX_PHONE_NUMBER_LENGTH = 50;
 const MAX_BUSINESS_PHONE_LENGTH = 50;
 const MAX_BUSINESS_ADDRESS_LENGTH = 500;
 const MAX_REGISTRATION_NUMBER_LENGTH = 100;
@@ -16,11 +17,22 @@ const registerTest = async (req, res) => {
 
 const registerCustomer = async (req, res) => {
   try {
-    const { fullName, email, password } = req.body;
+    const { fullName, email, phoneNumber, password } = req.body;
 
     if (!fullName || !email || !password) {
       return res.status(400).json({
         message: "Full name, email, and password are required",
+      });
+    }
+
+    const normalizedPhoneNumber = normalizeOptionalText(phoneNumber);
+
+    if (
+      normalizedPhoneNumber &&
+      normalizedPhoneNumber.length > MAX_PHONE_NUMBER_LENGTH
+    ) {
+      return res.status(400).json({
+        message: `Phone number must be ${MAX_PHONE_NUMBER_LENGTH} characters or fewer`,
       });
     }
 
@@ -41,6 +53,7 @@ const registerCustomer = async (req, res) => {
         data: {
           fullName,
           email,
+          phoneNumber: normalizedPhoneNumber,
           passwordHash,
           role: "CUSTOMER",
         },
@@ -61,6 +74,7 @@ const registerCustomer = async (req, res) => {
         id: result.newUser.id,
         fullName: result.newUser.fullName,
         email: result.newUser.email,
+        phoneNumber: result.newUser.phoneNumber,
         role: result.newUser.role,
       },
       customerProfile: {
@@ -81,6 +95,7 @@ const registerMerchant = async (req, res) => {
     const {
       fullName,
       email,
+      phoneNumber,
       password,
       businessName,
       businessPhone,
@@ -94,11 +109,21 @@ const registerMerchant = async (req, res) => {
       });
     }
 
+    const normalizedPhoneNumber = normalizeOptionalText(phoneNumber);
     const normalizedBusinessPhone = normalizeOptionalText(businessPhone);
     const normalizedBusinessAddress = normalizeOptionalText(businessAddress);
     const normalizedRegistrationNumber = normalizeOptionalText(
       businessRegistrationNumber
     );
+
+    if (
+      normalizedPhoneNumber &&
+      normalizedPhoneNumber.length > MAX_PHONE_NUMBER_LENGTH
+    ) {
+      return res.status(400).json({
+        message: `Contact phone number must be ${MAX_PHONE_NUMBER_LENGTH} characters or fewer`,
+      });
+    }
 
     if (
       normalizedBusinessPhone &&
@@ -144,6 +169,7 @@ const registerMerchant = async (req, res) => {
         data: {
           fullName,
           email,
+          phoneNumber: normalizedPhoneNumber,
           passwordHash,
           role: "MERCHANT",
         },
@@ -169,6 +195,7 @@ const registerMerchant = async (req, res) => {
         id: result.newUser.id,
         fullName: result.newUser.fullName,
         email: result.newUser.email,
+        phoneNumber: result.newUser.phoneNumber,
         role: result.newUser.role,
       },
       merchantProfile: {
@@ -229,6 +256,7 @@ const loginUser = async (req, res) => {
         id: user.id,
         fullName: user.fullName,
         email: user.email,
+        phoneNumber: user.phoneNumber,
         role: user.role,
         customerProfile: user.customerProfile,
         merchantProfile: user.merchantProfile,

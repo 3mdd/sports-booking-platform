@@ -70,6 +70,7 @@ function LoginPage() {
         userId: user.id,
         fullName: user.fullName,
         email: user.email,
+        phoneNumber: user.phoneNumber,
         role: user.role,
         customerProfileId: user.customerProfile?.id,
         merchantProfileId: user.merchantProfile?.id,

@@ -10,7 +10,9 @@ function RegisterPage({ role }) {
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
+    phoneNumber: "",
     password: "",
+    confirmPassword: "",
     businessName: "",
     businessPhone: "",
     businessAddress: "",
@@ -37,9 +39,15 @@ function RegisterPage({ role }) {
       !formData.fullName.trim() ||
       !formData.email.trim() ||
       !formData.password ||
+      !formData.confirmPassword ||
       (isMerchantRegistration && !formData.businessName.trim())
     ) {
       setErrorMessage("Please complete all required fields.");
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setErrorMessage("Password and confirm password do not match.");
       return;
     }
 
@@ -53,6 +61,7 @@ function RegisterPage({ role }) {
       const requestBody = {
         fullName: formData.fullName.trim(),
         email: formData.email.trim(),
+        phoneNumber: formData.phoneNumber.trim(),
         password: formData.password,
       };
 
@@ -81,6 +90,7 @@ function RegisterPage({ role }) {
         userId: data.user.id,
         fullName: data.user.fullName,
         email: data.user.email,
+        phoneNumber: data.user.phoneNumber,
         role: data.user.role,
         customerProfileId: data.customerProfile?.id,
         merchantProfileId: data.merchantProfile?.id,
@@ -195,6 +205,29 @@ function RegisterPage({ role }) {
               />
             </div>
 
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
+                {isMerchantRegistration
+                  ? "Contact Phone Number"
+                  : "Phone Number"}
+              </label>
+              <input
+                name="phoneNumber"
+                type="tel"
+                autoComplete="tel"
+                maxLength="50"
+                value={formData.phoneNumber}
+                onChange={handleInputChange}
+                placeholder="e.g. 012-345 6789"
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
+              />
+              {isMerchantRegistration ? (
+                <p className="mt-2 text-xs text-slate-500">
+                  Personal contact for account and approval communication.
+                </p>
+              ) : null}
+            </div>
+
             {isMerchantRegistration ? (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
@@ -211,7 +244,7 @@ function RegisterPage({ role }) {
                 </div>
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-slate-700">
-                    Business Phone
+                    Business Phone Number
                   </label>
                   <input
                     name="businessPhone"
@@ -219,6 +252,7 @@ function RegisterPage({ role }) {
                     maxLength="50"
                     value={formData.businessPhone}
                     onChange={handleInputChange}
+                    placeholder="Public business contact"
                     className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
                   />
                 </div>
@@ -316,21 +350,37 @@ function RegisterPage({ role }) {
               </div>
             ) : null}
 
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
-                Password
-              </label>
-              <input
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                minLength="6"
-                value={formData.password}
-                onChange={handleInputChange}
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
-              />
-              <p className="mt-2 text-xs text-slate-500">
-                Use at least 6 characters for this demonstration account.
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Password
+                </label>
+                <input
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  minLength="6"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Confirm Password
+                </label>
+                <input
+                  name="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  minLength="6"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
+                />
+              </div>
+              <p className="text-xs text-slate-500 sm:col-span-2">
+                Use at least 6 characters and enter the same password twice.
               </p>
             </div>
 

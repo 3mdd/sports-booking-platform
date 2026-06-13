@@ -215,6 +215,9 @@ function AdminMerchantApprovalPage() {
                       <p className="mt-1 text-sm text-slate-500">
                         {merchant.email}
                       </p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Contact: {merchant.phoneNumber || "Not provided"}
+                      </p>
                     </div>
 
                     <span
@@ -264,7 +267,7 @@ function AdminMerchantApprovalPage() {
                     <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
                       <div>
                         <dt className="text-xs font-semibold text-slate-500">
-                          Business Phone
+                          Business Phone Number
                         </dt>
                         <dd className="mt-1 font-semibold text-slate-800">
                           {merchant.businessPhone || "Not provided"}
