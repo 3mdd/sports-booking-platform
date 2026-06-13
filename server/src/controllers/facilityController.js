@@ -1,10 +1,28 @@
 const prisma = require("../lib/prisma");
+const fs = require("fs");
+const path = require("path");
 const {
   expireOldPendingBookings,
 } = require("../services/bookingExpiryService");
 
 const isOptionalString = (value) =>
   value === undefined || value === null || typeof value === "string";
+
+const facilityImageOrderBy = [
+  { isMain: "desc" },
+  { createdAt: "asc" },
+  { id: "asc" },
+];
+const facilityUploadDirectory = path.resolve(
+  __dirname,
+  "../../uploads/facilities"
+);
+
+function parsePositiveInteger(value) {
+  const parsedValue = Number(value);
+
+  return Number.isInteger(parsedValue) && parsedValue > 0 ? parsedValue : null;
+}
 
 function parseLocalDateTime(dateValue, timeValue) {
   const dateMatch = String(dateValue).match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -156,9 +174,7 @@ const getAllFacilities = async (req, res) => {
           },
         },
         images: {
-          orderBy: {
-            createdAt: "asc",
-          },
+          orderBy: facilityImageOrderBy,
         },
       },
       orderBy: {
@@ -199,9 +215,7 @@ const getFacilityById = async (req, res) => {
           },
         },
         images: {
-          orderBy: {
-            createdAt: "asc",
-          },
+          orderBy: facilityImageOrderBy,
         },
         timeSlots: true,
       },
@@ -281,9 +295,7 @@ const uploadFacilityPhoto = async (req, res) => {
       where: { id: facilityId },
       include: {
         images: {
-          orderBy: {
-            createdAt: "asc",
-          },
+          orderBy: facilityImageOrderBy,
         },
       },
     });
@@ -295,7 +307,8 @@ const uploadFacilityPhoto = async (req, res) => {
     }
 
     const imageUrl = `uploads/facilities/${req.file.filename}`;
-    const currentMainImage = facility.images[0];
+    const currentMainImage =
+      facility.images.find((image) => image.isMain) || facility.images[0];
 
     if (currentMainImage) {
       await prisma.facilityImage.update({
@@ -304,6 +317,7 @@ const uploadFacilityPhoto = async (req, res) => {
         },
         data: {
           imageUrl,
+          isMain: true,
         },
       });
     } else {
@@ -311,6 +325,7 @@ const uploadFacilityPhoto = async (req, res) => {
         data: {
           facilityId,
           imageUrl,
+          isMain: true,
         },
       });
     }
@@ -326,9 +341,7 @@ const uploadFacilityPhoto = async (req, res) => {
           },
         },
         images: {
-          orderBy: {
-            createdAt: "asc",
-          },
+          orderBy: facilityImageOrderBy,
         },
       },
     });
@@ -339,6 +352,282 @@ const uploadFacilityPhoto = async (req, res) => {
     });
   } catch (error) {
     console.error("Upload facility photo failed:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
+const requireFacilityOwner = async (req, res, next) => {
+  try {
+    const facilityId = parsePositiveInteger(
+      req.params.facilityId || req.params.id
+    );
+    const merchantProfileId = parsePositiveInteger(
+      req.headers["x-merchant-profile-id"]
+    );
+
+    if (!facilityId) {
+      return res.status(400).json({
+        message: "Valid facility ID is required",
+      });
+    }
+
+    if (!merchantProfileId) {
+      return res.status(401).json({
+        message: "Merchant profile ID is required",
+      });
+    }
+
+    const facility = await prisma.facility.findUnique({
+      where: { id: facilityId },
+      select: {
+        id: true,
+        merchantProfileId: true,
+      },
+    });
+
+    if (!facility) {
+      return res.status(404).json({
+        message: "Facility not found",
+      });
+    }
+
+    if (facility.merchantProfileId !== merchantProfileId) {
+      return res.status(403).json({
+        message: "You can only manage images for your own facilities",
+      });
+    }
+
+    return next();
+  } catch (error) {
+    console.error("Facility image ownership check failed:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
+const getFacilityImages = async (req, res) => {
+  try {
+    const facilityId = parsePositiveInteger(req.params.facilityId);
+
+    if (!facilityId) {
+      return res.status(400).json({
+        message: "Valid facility ID is required",
+      });
+    }
+
+    const facility = await prisma.facility.findUnique({
+      where: { id: facilityId },
+      select: {
+        id: true,
+        images: {
+          orderBy: facilityImageOrderBy,
+        },
+      },
+    });
+
+    if (!facility) {
+      return res.status(404).json({
+        message: "Facility not found",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Facility images fetched successfully",
+      images: facility.images,
+    });
+  } catch (error) {
+    console.error("Fetch facility images failed:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
+const uploadFacilityImages = async (req, res) => {
+  try {
+    const facilityId = parsePositiveInteger(req.params.facilityId);
+
+    if (!Array.isArray(req.files) || req.files.length === 0) {
+      return res.status(400).json({
+        message: "At least one facility image is required",
+      });
+    }
+
+    const existingImages = await prisma.facilityImage.findMany({
+      where: { facilityId },
+      orderBy: facilityImageOrderBy,
+    });
+    const hasMainImage = existingImages.some((image) => image.isMain);
+    const shouldSetFirstNewAsMain = existingImages.length === 0;
+
+    await prisma.$transaction(async (tx) => {
+      if (!hasMainImage && existingImages.length > 0) {
+        await tx.facilityImage.update({
+          where: { id: existingImages[0].id },
+          data: { isMain: true },
+        });
+      }
+
+      for (let index = 0; index < req.files.length; index += 1) {
+        await tx.facilityImage.create({
+          data: {
+            facilityId,
+            imageUrl: `uploads/facilities/${req.files[index].filename}`,
+            isMain: shouldSetFirstNewAsMain && index === 0,
+          },
+        });
+      }
+    });
+
+    const images = await prisma.facilityImage.findMany({
+      where: { facilityId },
+      orderBy: facilityImageOrderBy,
+    });
+
+    return res.status(201).json({
+      message: `${req.files.length} facility image${
+        req.files.length === 1 ? "" : "s"
+      } uploaded successfully`,
+      images,
+    });
+  } catch (error) {
+    console.error("Upload facility images failed:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
+const setFacilityMainImage = async (req, res) => {
+  try {
+    const facilityId = parsePositiveInteger(req.params.facilityId);
+    const imageId = parsePositiveInteger(req.params.imageId);
+
+    if (!imageId) {
+      return res.status(400).json({
+        message: "Valid image ID is required",
+      });
+    }
+
+    const image = await prisma.facilityImage.findFirst({
+      where: {
+        id: imageId,
+        facilityId,
+      },
+    });
+
+    if (!image) {
+      return res.status(404).json({
+        message: "Facility image not found",
+      });
+    }
+
+    await prisma.$transaction([
+      prisma.facilityImage.updateMany({
+        where: { facilityId },
+        data: { isMain: false },
+      }),
+      prisma.facilityImage.update({
+        where: { id: imageId },
+        data: { isMain: true },
+      }),
+    ]);
+
+    const images = await prisma.facilityImage.findMany({
+      where: { facilityId },
+      orderBy: facilityImageOrderBy,
+    });
+
+    return res.status(200).json({
+      message: "Main facility image updated successfully",
+      images,
+    });
+  } catch (error) {
+    console.error("Set main facility image failed:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
+const deleteFacilityImage = async (req, res) => {
+  try {
+    const facilityId = parsePositiveInteger(req.params.facilityId);
+    const imageId = parsePositiveInteger(req.params.imageId);
+
+    if (!imageId) {
+      return res.status(400).json({
+        message: "Valid image ID is required",
+      });
+    }
+
+    const image = await prisma.facilityImage.findFirst({
+      where: {
+        id: imageId,
+        facilityId,
+      },
+    });
+
+    if (!image) {
+      return res.status(404).json({
+        message: "Facility image not found",
+      });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.facilityImage.delete({
+        where: { id: imageId },
+      });
+
+      const remainingMainImage = await tx.facilityImage.findFirst({
+        where: {
+          facilityId,
+          isMain: true,
+        },
+      });
+
+      if (!remainingMainImage) {
+        const nextImage = await tx.facilityImage.findFirst({
+          where: { facilityId },
+          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        });
+
+        if (nextImage) {
+          await tx.facilityImage.update({
+            where: { id: nextImage.id },
+            data: { isMain: true },
+          });
+        }
+      }
+    });
+
+    const imageFilePath = path.resolve(
+      facilityUploadDirectory,
+      path.basename(image.imageUrl)
+    );
+
+    if (imageFilePath.startsWith(`${facilityUploadDirectory}${path.sep}`)) {
+      fs.promises.unlink(imageFilePath).catch((fileError) => {
+        if (fileError.code !== "ENOENT") {
+          console.error("Delete facility image file failed:", fileError);
+        }
+      });
+    }
+
+    const images = await prisma.facilityImage.findMany({
+      where: { facilityId },
+      orderBy: facilityImageOrderBy,
+    });
+
+    return res.status(200).json({
+      message: "Facility image deleted successfully",
+      images,
+    });
+  } catch (error) {
+    console.error("Delete facility image failed:", error);
     return res.status(500).json({
       message: "Internal server error",
     });
@@ -486,9 +775,7 @@ const updateFacility = async (req, res) => {
           },
         },
         images: {
-          orderBy: {
-            createdAt: "asc",
-          },
+          orderBy: facilityImageOrderBy,
         },
       },
     });
@@ -913,6 +1200,11 @@ module.exports = {
   getFacilityById,
   getSportTypes,
   uploadFacilityPhoto,
+  requireFacilityOwner,
+  getFacilityImages,
+  uploadFacilityImages,
+  setFacilityMainImage,
+  deleteFacilityImage,
   updateFacility,
   createTimeSlots,
   getFacilitySlotsByDate,

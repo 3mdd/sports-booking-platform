@@ -139,6 +139,15 @@ const facilityPhotoUpload = multer({
   },
 });
 
+const facilityGalleryUpload = multer({
+  storage: facilityPhotoStorage,
+  fileFilter: facilityPhotoFileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+    files: 8,
+  },
+});
+
 const paymentQrUpload = multer({
   storage: paymentQrStorage,
   fileFilter: facilityPhotoFileFilter,
@@ -159,6 +168,7 @@ const merchantVerificationUpload = multer({
 module.exports = {
   paymentProofUpload,
   facilityPhotoUpload,
+  facilityGalleryUpload,
   paymentQrUpload,
   merchantVerificationUpload,
 };

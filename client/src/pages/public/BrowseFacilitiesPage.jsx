@@ -131,14 +131,18 @@ function BrowseFacilitiesPage() {
 
   const getFacilityImage = (facility) => {
     const sportName = facility.sportType?.name;
-    const firstImage = facility.images?.[0]?.imageUrl;
+    const mainImage =
+      facility.images?.find((image) => image.isMain) || facility.images?.[0];
 
-    if (firstImage) {
-      return getUploadFileUrl(firstImage);
+    if (mainImage?.imageUrl) {
+      return getUploadFileUrl(mainImage.imageUrl);
     }
 
     return fallbackImages[sportName] || fallbackImages.Default;
   };
+
+  const getFacilityFallbackImage = (facility) =>
+    fallbackImages[facility.sportType?.name] || fallbackImages.Default;
 
   const getFacilityPrice = (facility) => {
     const pricePerSlot = Number(facility.pricePerSlot || 0);
@@ -272,6 +276,11 @@ function BrowseFacilitiesPage() {
                 <img
                   src={getFacilityImage(facility)}
                   alt={facility.name}
+                  onError={(event) => {
+                    event.currentTarget.onerror = null;
+                    event.currentTarget.src =
+                      getFacilityFallbackImage(facility);
+                  }}
                   className="h-48 w-full object-cover"
                 />
 

@@ -101,9 +101,12 @@ model FacilityImage {
   id         Int       @id @default(autoincrement())
   facilityId Int
   imageUrl   String
+  isMain     Boolean   @default(false)
   createdAt  DateTime  @default(now())
 
   facility   Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+
+  @@index([facilityId, isMain])
 }
 
 model TimeSlot {

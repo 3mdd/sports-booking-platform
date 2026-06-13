@@ -130,6 +130,7 @@ function FacilityDetailsPage() {
   const [selectedDuration, setSelectedDuration] = useState(null);
   const [selectedSlots, setSelectedSlots] = useState([]);
   const [slotError, setSlotError] = useState("");
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const currentDate = new Date();
   const todayDate = buildDateInputValue(currentDate);
@@ -277,15 +278,52 @@ function FacilityDetailsPage() {
 
   const sportName = facility?.sportType?.name || "Sport";
 
-  const facilityImage = useMemo(() => {
-    const firstImage = facility?.images?.[0]?.imageUrl;
+  const galleryImages = useMemo(() => {
+    return [...(facility?.images || [])].sort((firstImage, secondImage) => {
+      if (firstImage.isMain !== secondImage.isMain) {
+        return firstImage.isMain ? -1 : 1;
+      }
 
-    if (firstImage) {
-      return getUploadFileUrl(firstImage);
-    }
+      return (
+        new Date(firstImage.createdAt).getTime() -
+        new Date(secondImage.createdAt).getTime()
+      );
+    });
+  }, [facility]);
+  const fallbackImage = fallbackImages[sportName] || fallbackImages.Default;
+  const selectedGalleryImage = galleryImages[currentImageIndex];
+  const facilityImage = selectedGalleryImage
+    ? getUploadFileUrl(selectedGalleryImage.imageUrl)
+    : fallbackImage;
 
-    return fallbackImages[sportName] || fallbackImages.Default;
-  }, [facility, sportName]);
+  useEffect(() => {
+    setCurrentImageIndex(0);
+  }, [facility?.id]);
+
+  useEffect(() => {
+    if (galleryImages.length <= 1) return undefined;
+
+    const intervalId = window.setInterval(() => {
+      setCurrentImageIndex(
+        (currentIndex) => (currentIndex + 1) % galleryImages.length
+      );
+    }, 5000);
+
+    return () => window.clearInterval(intervalId);
+  }, [galleryImages.length]);
+
+  const showPreviousImage = () => {
+    setCurrentImageIndex(
+      (currentIndex) =>
+        (currentIndex - 1 + galleryImages.length) % galleryImages.length
+    );
+  };
+
+  const showNextImage = () => {
+    setCurrentImageIndex(
+      (currentIndex) => (currentIndex + 1) % galleryImages.length
+    );
+  };
 
   const pricePerSlot = Number(facility?.pricePerSlot || 0);
   const pricePerHour = pricePerSlot * 2;
@@ -599,12 +637,72 @@ function FacilityDetailsPage() {
 
       <main className="mx-auto max-w-7xl px-6 py-7 lg:px-8">
         <section className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
-            <img
-              src={facilityImage}
-              alt={facility.name}
-              className="h-72 w-full object-cover lg:h-80"
-            />
+          <div className="overflow-hidden rounded-xl bg-white p-3 shadow-sm ring-1 ring-gray-200">
+            <div className="relative overflow-hidden rounded-lg bg-gray-100">
+              <img
+                src={facilityImage}
+                alt={`${facility.name} photo ${
+                  galleryImages.length > 0 ? currentImageIndex + 1 : ""
+                }`}
+                onError={(event) => {
+                  event.currentTarget.onerror = null;
+                  event.currentTarget.src = fallbackImage;
+                }}
+                className="h-72 w-full object-cover lg:h-80"
+              />
+
+              {galleryImages.length > 1 ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={showPreviousImage}
+                    aria-label="Show previous facility photo"
+                    className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-emerald-950/85 text-xl font-bold text-white shadow-lg hover:bg-emerald-950"
+                  >
+                    &#8249;
+                  </button>
+                  <button
+                    type="button"
+                    onClick={showNextImage}
+                    aria-label="Show next facility photo"
+                    className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-emerald-950/85 text-xl font-bold text-white shadow-lg hover:bg-emerald-950"
+                  >
+                    &#8250;
+                  </button>
+                  <span className="absolute bottom-3 right-3 rounded-full bg-emerald-950/85 px-3 py-1 text-xs font-bold text-white">
+                    {currentImageIndex + 1} / {galleryImages.length}
+                  </span>
+                </>
+              ) : null}
+            </div>
+
+            {galleryImages.length > 1 ? (
+              <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                {galleryImages.map((image, imageIndex) => (
+                  <button
+                    key={image.id}
+                    type="button"
+                    onClick={() => setCurrentImageIndex(imageIndex)}
+                    aria-label={`Show facility photo ${imageIndex + 1}`}
+                    className={`shrink-0 overflow-hidden rounded-lg ring-2 transition ${
+                      imageIndex === currentImageIndex
+                        ? "ring-lime-400"
+                        : "ring-transparent hover:ring-gray-300"
+                    }`}
+                  >
+                    <img
+                      src={getUploadFileUrl(image.imageUrl)}
+                      alt=""
+                      onError={(event) => {
+                        event.currentTarget.onerror = null;
+                        event.currentTarget.src = fallbackImage;
+                      }}
+                      className="h-16 w-24 object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
