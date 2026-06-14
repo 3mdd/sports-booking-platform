@@ -10,9 +10,17 @@ const {
   updateMerchantVerification,
   getMerchantPaymentDetails,
   updateMerchantPaymentDetails,
+  getMerchantAnalytics,
 } = require("../controllers/merchantController");
 
 const router = express.Router();
+
+router.get(
+  "/merchants/:merchantId/analytics",
+  requireMerchantOwner,
+  requireApprovedMerchant,
+  getMerchantAnalytics
+);
 
 const handlePaymentQrUpload = (req, res, next) => {
   paymentQrUpload.single("paymentQrImage")(req, res, (error) => {

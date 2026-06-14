@@ -1,4 +1,7 @@
 const prisma = require("../lib/prisma");
+const {
+  getMerchantAnalytics: buildMerchantAnalytics,
+} = require("../services/merchantAnalyticsService");
 
 const MAX_INSTRUCTIONS_LENGTH = 500;
 const MAX_BUSINESS_PHONE_LENGTH = 50;
@@ -75,7 +78,7 @@ const requireMerchantOwner = async (req, res, next) => {
 
     if (merchant.userId !== userId) {
       return res.status(403).json({
-        message: "You can only update your own merchant verification",
+        message: "You can only access your own merchant account",
       });
     }
 
@@ -391,6 +394,73 @@ const updateMerchantPaymentDetails = async (req, res) => {
   }
 };
 
+const getMerchantAnalytics = async (req, res) => {
+  try {
+    const merchantId = parsePositiveInteger(req.params.merchantId);
+    const currentYear = new Date().getUTCFullYear();
+    const year =
+      req.query.year === undefined || req.query.year === ""
+        ? currentYear
+        : Number(req.query.year);
+    const month =
+      req.query.month === undefined || req.query.month === ""
+        ? null
+        : Number(req.query.month);
+    const facilityId =
+      req.query.facilityId === undefined || req.query.facilityId === ""
+        ? null
+        : parsePositiveInteger(req.query.facilityId);
+
+    if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+      return res.status(400).json({
+        message: "Year must be a whole number between 2000 and 2100",
+      });
+    }
+
+    if (
+      month !== null &&
+      (!Number.isInteger(month) || month < 1 || month > 12)
+    ) {
+      return res.status(400).json({
+        message: "Month must be a whole number between 1 and 12",
+      });
+    }
+
+    if (
+      req.query.facilityId !== undefined &&
+      req.query.facilityId !== "" &&
+      !facilityId
+    ) {
+      return res.status(400).json({
+        message: "Facility ID must be a positive whole number",
+      });
+    }
+
+    const analytics = await buildMerchantAnalytics({
+      merchantId,
+      year,
+      month,
+      facilityId,
+    });
+
+    if (!analytics) {
+      return res.status(404).json({
+        message: "Merchant profile not found",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Merchant analytics fetched successfully",
+      analytics,
+    });
+  } catch (error) {
+    console.error("Fetch merchant analytics failed:", error);
+    return res.status(error.statusCode || 500).json({
+      message: error.message || "Internal server error",
+    });
+  }
+};
+
 module.exports = {
   requireMerchantOwner,
   requireApprovedMerchant,
@@ -398,4 +468,5 @@ module.exports = {
   updateMerchantVerification,
   getMerchantPaymentDetails,
   updateMerchantPaymentDetails,
+  getMerchantAnalytics,
 };

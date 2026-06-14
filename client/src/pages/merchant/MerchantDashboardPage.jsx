@@ -176,6 +176,13 @@ function MerchantDashboardPage() {
 
           <div className="flex flex-wrap gap-3">
             <Link
+              to="/merchant/analytics"
+              className="rounded-lg border border-emerald-950 px-5 py-2.5 text-sm font-bold text-emerald-950 transition hover:bg-emerald-50"
+            >
+              Advanced Analytics
+            </Link>
+
+            <Link
               to="/merchant/reviews"
               className="rounded-lg border border-emerald-950 px-5 py-2.5 text-sm font-bold text-emerald-950 transition hover:bg-emerald-50"
             >

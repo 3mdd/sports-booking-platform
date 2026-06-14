@@ -22,6 +22,7 @@ const customerNavigation = [
 
 const merchantNavigation = [
   { label: "Dashboard", to: "/merchant/dashboard" },
+  { label: "Analytics", to: "/merchant/analytics" },
   { label: "Facilities", to: "/merchant/facilities" },
   { label: "Payments", to: "/merchant/payments" },
   { label: "Payment Setup", to: "/merchant/payment-settings" },
