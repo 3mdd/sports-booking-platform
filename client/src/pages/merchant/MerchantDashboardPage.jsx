@@ -308,13 +308,24 @@ function MerchantDashboardPage() {
                           </p>
                         </div>
 
-                        <span
-                          className={`w-fit rounded-full px-3 py-1 text-xs font-bold ${getStatusClass(
-                            booking.status
-                          )}`}
-                        >
-                          {booking.status}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`w-fit rounded-full px-3 py-1 text-xs font-bold ${getStatusClass(
+                              booking.status
+                            )}`}
+                          >
+                            {booking.status}
+                          </span>
+                          {booking.verificationOverdue ? (
+                            <span className="rounded-full bg-red-600 px-3 py-1 text-xs font-bold text-white">
+                              Verification overdue
+                            </span>
+                          ) : booking.verificationDueSoon ? (
+                            <span className="rounded-full bg-amber-500 px-3 py-1 text-xs font-bold text-white">
+                              Starts soon
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
 
                       <div className="mt-4 grid gap-3 text-sm md:grid-cols-3">

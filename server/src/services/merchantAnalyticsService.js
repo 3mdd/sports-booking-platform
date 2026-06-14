@@ -366,17 +366,21 @@ async function getMerchantAnalytics({ merchantId, year, month, facilityId }) {
     const monthConfirmedBookings = monthBookings.filter(
       (booking) => booking.status === "CONFIRMED"
     );
+    const confirmedRevenue = roundNumber(
+      monthConfirmedBookings.reduce(
+        (total, booking) => total + Number(booking.totalPrice || 0),
+        0
+      )
+    );
 
     return {
       month: monthIndex + 1,
       monthName,
+      totalBookingRequests: monthBookings.length,
+      confirmedBookings: monthConfirmedBookings.length,
+      confirmedRevenue,
       bookings: monthBookings.length,
-      revenue: roundNumber(
-        monthConfirmedBookings.reduce(
-          (total, booking) => total + Number(booking.totalPrice || 0),
-          0
-        )
-      ),
+      revenue: confirmedRevenue,
     };
   });
 

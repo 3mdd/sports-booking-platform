@@ -14,6 +14,7 @@ const kpiDefinitions = [
   { key: "bookings", label: "Total Bookings" },
   { key: "confirmedBookings", label: "Confirmed Bookings" },
   { key: "pendingVerification", label: "Payment Verification" },
+  { key: "overduePaymentVerification", label: "Overdue Verification" },
   { key: "reviews", label: "Reviews" },
 ];
 

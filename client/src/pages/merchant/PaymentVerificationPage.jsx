@@ -16,6 +16,53 @@ function formatDate(dateValue) {
   });
 }
 
+function formatDateTime(dateValue) {
+  if (!dateValue) return "Not available";
+
+  return new Date(dateValue).toLocaleString("en-MY", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
+function getBookingStartDateTime(booking) {
+  const startTimes = (booking.bookingSlots || [])
+    .map((bookingSlot) => bookingSlot.timeSlot?.startTime)
+    .filter(Boolean)
+    .map((startTime) => new Date(startTime).getTime())
+    .filter((startTime) => !Number.isNaN(startTime))
+    .sort((first, second) => first - second);
+
+  return startTimes[0] || null;
+}
+
+function getVerificationState(booking, currentTime) {
+  if (booking.status !== "PAYMENT_UPLOADED") {
+    return { dueSoon: false, overdue: false };
+  }
+
+  const bookingStartTime = getBookingStartDateTime(booking);
+  const responseDeadline = booking.verificationDeadlineAt
+    ? new Date(booking.verificationDeadlineAt).getTime()
+    : null;
+  const deadlineTime =
+    responseDeadline ||
+    (bookingStartTime ? bookingStartTime - 30 * 60 * 1000 : null);
+  const overdue = deadlineTime ? currentTime >= deadlineTime : false;
+  const dueSoon =
+    !overdue &&
+    (booking.verificationDueSoon ||
+      (bookingStartTime
+        ? bookingStartTime - currentTime <= 2 * 60 * 60 * 1000
+        : false));
+
+  return { dueSoon, overdue };
+}
+
 function getBookingTime(booking) {
   const slots = booking.bookingSlots || [];
 
@@ -42,6 +89,7 @@ function PaymentVerificationPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [actionMessage, setActionMessage] = useState("");
   const [processingBookingId, setProcessingBookingId] = useState(null);
+  const [currentTime, setCurrentTime] = useState(Date.now());
 
   useEffect(() => {
     const fetchMerchantBookings = async () => {
@@ -74,9 +122,44 @@ function PaymentVerificationPage() {
     fetchMerchantBookings();
   }, [merchantProfileId]);
 
-  const paymentProofBookings = useMemo(() => {
-    return bookings.filter((booking) => booking.paymentProof);
+  useEffect(() => {
+    const hasPendingVerification = bookings.some(
+      (booking) => booking.status === "PAYMENT_UPLOADED"
+    );
+
+    if (!hasPendingVerification) return undefined;
+
+    const timerId = window.setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 30000);
+
+    return () => window.clearInterval(timerId);
   }, [bookings]);
+
+  const paymentProofBookings = useMemo(() => {
+    return bookings
+      .filter((booking) => booking.paymentProof)
+      .sort((first, second) => {
+        const firstState = getVerificationState(first, currentTime);
+        const secondState = getVerificationState(second, currentTime);
+        const getPriority = (booking, state) => {
+          if (state.overdue) return 0;
+          if (state.dueSoon) return 1;
+          if (booking.status === "PAYMENT_UPLOADED") return 2;
+          return 3;
+        };
+
+        const priorityDifference =
+          getPriority(first, firstState) - getPriority(second, secondState);
+
+        if (priorityDifference !== 0) return priorityDifference;
+
+        return (
+          new Date(second.paymentProof?.uploadedAt || 0).getTime() -
+          new Date(first.paymentProof?.uploadedAt || 0).getTime()
+        );
+      });
+  }, [bookings, currentTime]);
 
   const pendingCount = paymentProofBookings.filter(
     (booking) => booking.status === "PAYMENT_UPLOADED"
@@ -88,6 +171,9 @@ function PaymentVerificationPage() {
 
   const rejectedCount = paymentProofBookings.filter(
     (booking) => booking.status === "REJECTED"
+  ).length;
+  const overdueCount = paymentProofBookings.filter(
+    (booking) => getVerificationState(booking, currentTime).overdue
   ).length;
 
 const handlePaymentAction = async (bookingId, actionType) => {
@@ -145,7 +231,7 @@ const handlePaymentAction = async (bookingId, actionType) => {
           </p>
         </section>
 
-        <section className="mb-6 grid gap-4 md:grid-cols-3">
+        <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
             <p className="text-sm font-semibold text-slate-500">
               Pending Review
@@ -170,6 +256,15 @@ const handlePaymentAction = async (bookingId, actionType) => {
             </p>
             <p className="mt-2 text-3xl font-black text-emerald-950">
               {rejectedCount}
+            </p>
+          </div>
+
+          <div className="rounded-xl bg-red-50 p-4 shadow-sm ring-1 ring-red-200">
+            <p className="text-sm font-semibold text-red-700">
+              Verification Overdue
+            </p>
+            <p className="mt-2 text-3xl font-black text-red-800">
+              {overdueCount}
             </p>
           </div>
         </section>
@@ -233,12 +328,22 @@ const fileUrl = publicFilePath
   ? `http://localhost:5000/${publicFilePath}`
   : "";
 
-const isImageFile = /\.(jpg|jpeg|png)$/i.test(fileName);
+                const isImageFile = /\.(jpg|jpeg|png)$/i.test(fileName);
+                const verificationState = getVerificationState(
+                  booking,
+                  currentTime
+                );
 
                 return (
                   <article
                     key={booking.id}
-                    className="grid gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 lg:grid-cols-[1fr_190px]"
+                    className={`grid gap-4 rounded-xl border p-4 lg:grid-cols-[1fr_190px] ${
+                      verificationState.overdue
+                        ? "border-red-300 bg-red-50"
+                        : verificationState.dueSoon
+                        ? "border-amber-300 bg-amber-50"
+                        : "border-gray-200 bg-gray-50"
+                    }`}
                   >
                     <div>
                       <div className="flex flex-wrap items-center gap-3">
@@ -257,7 +362,33 @@ const isImageFile = /\.(jpg|jpeg|png)$/i.test(fileName);
                         >
                           {booking.status}
                         </span>
+
+                        {verificationState.overdue ? (
+                          <span className="rounded-full bg-red-600 px-3 py-1 text-xs font-bold text-white">
+                            Verification overdue
+                          </span>
+                        ) : verificationState.dueSoon ? (
+                          <span className="rounded-full bg-amber-500 px-3 py-1 text-xs font-bold text-white">
+                            Starts soon
+                          </span>
+                        ) : null}
                       </div>
+
+                      {booking.status === "PAYMENT_UPLOADED" &&
+                      booking.verificationDeadlineAt ? (
+                        <p
+                          className={`mt-3 text-sm font-semibold ${
+                            verificationState.overdue
+                              ? "text-red-700"
+                              : verificationState.dueSoon
+                              ? "text-amber-700"
+                              : "text-slate-600"
+                          }`}
+                        >
+                          Verification deadline:{" "}
+                          {formatDateTime(booking.verificationDeadlineAt)}
+                        </p>
+                      ) : null}
 
                       <div className="mt-4 grid gap-3 text-sm md:grid-cols-2">
                         <div>

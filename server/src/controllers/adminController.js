@@ -1,4 +1,7 @@
 const prisma = require("../lib/prisma");
+const {
+  getVerificationDeadlineInfo,
+} = require("../services/bookingVerificationService");
 
 const MAX_APPROVAL_NOTE_LENGTH = 500;
 const PROTECTED_ADMIN_EMAIL = "admin@elitesport.test";
@@ -87,7 +90,7 @@ const getAdminDashboard = async (req, res) => {
       facilities,
       bookings,
       confirmedBookings,
-      pendingVerification,
+      pendingVerificationBookings,
       reviews,
     ] = await prisma.$transaction([
       prisma.user.count(),
@@ -100,9 +103,28 @@ const getAdminDashboard = async (req, res) => {
       prisma.facility.count(),
       prisma.booking.count(),
       prisma.booking.count({ where: { status: "CONFIRMED" } }),
-      prisma.booking.count({ where: { status: "PAYMENT_UPLOADED" } }),
+      prisma.booking.findMany({
+        where: { status: "PAYMENT_UPLOADED" },
+        select: {
+          status: true,
+          bookingSlots: {
+            select: {
+              timeSlot: {
+                select: {
+                  startTime: true,
+                },
+              },
+            },
+          },
+        },
+      }),
       prisma.review.count(),
     ]);
+    const currentTime = new Date();
+    const overduePaymentVerification = pendingVerificationBookings.filter(
+      (booking) =>
+        getVerificationDeadlineInfo(booking, currentTime).verificationOverdue
+    ).length;
 
     return res.status(200).json({
       message: "Admin dashboard fetched successfully",
@@ -115,7 +137,8 @@ const getAdminDashboard = async (req, res) => {
         facilities,
         bookings,
         confirmedBookings,
-        pendingVerification,
+        pendingVerification: pendingVerificationBookings.length,
+        overduePaymentVerification,
         reviews,
       },
     });

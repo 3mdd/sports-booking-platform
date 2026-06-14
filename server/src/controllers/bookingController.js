@@ -2,6 +2,9 @@ const prisma = require("../lib/prisma");
 const {
   expireOldPendingBookings,
 } = require("../services/bookingExpiryService");
+const {
+  addVerificationDeadlineInfo,
+} = require("../services/bookingVerificationService");
 
 const BOOKING_ADVANCE_DAYS = 14;
 
@@ -290,9 +293,14 @@ const getBookingsByCustomer = async (req, res) => {
       },
     });
 
+    const currentTime = new Date();
+    const enrichedBookings = bookings.map((booking) =>
+      addVerificationDeadlineInfo(booking, currentTime)
+    );
+
     return res.status(200).json({
       message: "Customer bookings fetched successfully",
-      bookings,
+      bookings: enrichedBookings,
     });
   } catch (error) {
     console.error("Fetch customer bookings failed:", error);
@@ -356,9 +364,14 @@ const getBookingsByMerchant = async (req, res) => {
       },
     });
 
+    const currentTime = new Date();
+    const enrichedBookings = bookings.map((booking) =>
+      addVerificationDeadlineInfo(booking, currentTime)
+    );
+
     res.status(200).json({
       message: "Merchant bookings fetched successfully",
-      bookings,
+      bookings: enrichedBookings,
     });
   } catch (error) {
     console.error("Error fetching merchant bookings:", error);

@@ -74,6 +74,86 @@ function TrendChart({ title, description, data, valueKey, formatValue }) {
   );
 }
 
+function BookingTrendChart({ data, year }) {
+  const maximumValue = Math.max(
+    1,
+    ...data.flatMap((item) => [
+      Number(item.totalBookingRequests || 0),
+      Number(item.confirmedBookings || 0),
+    ])
+  );
+
+  return (
+    <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+        <div>
+          <h2 className="text-lg font-black text-emerald-950">
+            Monthly Booking Trend
+          </h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Total booking requests compared with confirmed bookings across{" "}
+            {year}.
+          </p>
+        </div>
+        <div className="flex gap-3 text-[11px] font-bold text-slate-600">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-sm bg-emerald-800" />
+            Total Booking Requests
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-sm bg-lime-400" />
+            Confirmed Bookings
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-5 grid h-44 grid-cols-12 items-end gap-1.5">
+        {data.map((item) => {
+          const totalRequests = Number(item.totalBookingRequests || 0);
+          const confirmedBookings = Number(item.confirmedBookings || 0);
+
+          return (
+            <div
+              key={item.month}
+              className="flex h-full min-w-0 flex-col justify-end"
+              title={`${item.monthName}: ${totalRequests} requests, ${confirmedBookings} confirmed`}
+            >
+              <div className="flex h-full items-end justify-center gap-px">
+                <div
+                  className="w-1/2 rounded-t bg-emerald-800"
+                  style={{
+                    height: `${
+                      totalRequests > 0
+                        ? Math.max(8, (totalRequests / maximumValue) * 100)
+                        : 2
+                    }%`,
+                  }}
+                />
+                <div
+                  className="w-1/2 rounded-t bg-lime-400"
+                  style={{
+                    height: `${
+                      confirmedBookings > 0
+                        ? Math.max(
+                            8,
+                            (confirmedBookings / maximumValue) * 100
+                          )
+                        : 2
+                    }%`,
+                  }}
+                />
+              </div>
+              <span className="mt-2 text-center text-[10px] font-semibold text-slate-500">
+                {item.monthName.slice(0, 3)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function SentimentBar({ label, count, total, className }) {
   const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
 
@@ -168,17 +248,17 @@ function MerchantAnalyticsPage() {
 
   const kpis = [
     {
-      label: "Total Bookings",
+      label: "Total Booking Requests",
       value: summary?.totalBookings ?? 0,
       note: "Selected period",
     },
     {
-      label: "Confirmed",
+      label: "Confirmed Bookings",
       value: summary?.confirmedBookings ?? 0,
       note: "Revenue eligible",
     },
     {
-      label: "Estimated Revenue",
+      label: "Confirmed Revenue",
       value: formatCurrency(summary?.estimatedRevenue),
       note: "Confirmed bookings only",
     },
@@ -313,18 +393,15 @@ function MerchantAnalyticsPage() {
             </section>
 
             <section className="mt-5 grid gap-5 lg:grid-cols-2">
-              <TrendChart
-                title="Monthly Booking Trend"
-                description={`Bookings across ${filters.year}. Month filtering affects KPIs, not this yearly trend.`}
+              <BookingTrendChart
                 data={analytics.monthlyAnalytics || []}
-                valueKey="bookings"
-                formatValue={(value) => String(value)}
+                year={filters.year}
               />
               <TrendChart
-                title="Monthly Revenue Trend"
-                description="Estimated revenue from confirmed bookings only."
+                title="Confirmed Revenue"
+                description="Monthly revenue from confirmed bookings only."
                 data={analytics.monthlyAnalytics || []}
-                valueKey="revenue"
+                valueKey="confirmedRevenue"
                 formatValue={(value) =>
                   value >= 1000
                     ? `RM ${(value / 1000).toFixed(1)}k`
@@ -354,9 +431,9 @@ function MerchantAnalyticsPage() {
                   <thead className="bg-gray-50 text-xs uppercase tracking-wide text-slate-500">
                     <tr>
                       <th className="px-5 py-3">Facility</th>
-                      <th className="px-4 py-3">Bookings</th>
-                      <th className="px-4 py-3">Confirmed</th>
-                      <th className="px-4 py-3">Revenue</th>
+                      <th className="px-4 py-3">Total Requests</th>
+                      <th className="px-4 py-3">Confirmed Bookings</th>
+                      <th className="px-4 py-3">Confirmed Revenue</th>
                       <th className="px-4 py-3">Rating</th>
                       <th className="px-4 py-3">Reviews</th>
                       <th className="px-4 py-3">Sentiment</th>

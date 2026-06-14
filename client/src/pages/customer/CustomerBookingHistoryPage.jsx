@@ -43,6 +43,17 @@ function getBookingTime(booking) {
   return formatDisplayTimeRange(firstSlot.startTime, lastSlot.endTime);
 }
 
+function getBookingStartTimestamp(booking) {
+  const startTimes = (booking.bookingSlots || [])
+    .map((bookingSlot) => bookingSlot.timeSlot?.startTime)
+    .filter(Boolean)
+    .map((startTime) => new Date(startTime).getTime())
+    .filter((startTime) => !Number.isNaN(startTime))
+    .sort((first, second) => first - second);
+
+  return startTimes[0] || null;
+}
+
 function getStatusClass(status) {
   if (status === "CONFIRMED") {
     return "bg-lime-100 text-emerald-950";
@@ -133,11 +144,14 @@ function CustomerBookingHistoryPage() {
   });
 
   useEffect(() => {
-    const hasPendingBooking = bookings.some(
-      (booking) => booking.status === "PENDING_PAYMENT" && booking.createdAt
+    const hasTimeSensitiveBooking = bookings.some(
+      (booking) =>
+        (booking.status === "PENDING_PAYMENT" && booking.createdAt) ||
+        (booking.status === "PAYMENT_UPLOADED" &&
+          booking.verificationDeadlineAt)
     );
 
-    if (!hasPendingBooking) {
+    if (!hasTimeSensitiveBooking) {
       return undefined;
     }
 
@@ -424,6 +438,23 @@ function CustomerBookingHistoryPage() {
                 const isPendingPaymentExpired =
                   bookingStatus === "PENDING_PAYMENT" &&
                   remainingPaymentTime === 0;
+                const verificationDeadlineTime = booking.verificationDeadlineAt
+                  ? new Date(booking.verificationDeadlineAt).getTime()
+                  : null;
+                const verificationOverdue =
+                  bookingStatus === "PAYMENT_UPLOADED" &&
+                  ((verificationDeadlineTime &&
+                    currentTime >= verificationDeadlineTime) ||
+                    booking.verificationOverdue);
+                const bookingStartTimestamp =
+                  getBookingStartTimestamp(booking);
+                const verificationDueSoon =
+                  bookingStatus === "PAYMENT_UPLOADED" &&
+                  !verificationOverdue &&
+                  (booking.verificationDueSoon ||
+                    (bookingStartTimestamp &&
+                      bookingStartTimestamp - currentTime <=
+                        2 * 60 * 60 * 1000));
                 const hasReview = Boolean(booking.review);
                 const isReviewFormOpen = reviewFormBookingId === booking.id;
                 const isReviewMessageVisible =
@@ -529,8 +560,20 @@ function CustomerBookingHistoryPage() {
                       ) : null}
 
                       {bookingStatus === "PAYMENT_UPLOADED" ? (
-                        <p className="text-sm font-semibold text-amber-700">
-                          Waiting for merchant verification.
+                        <p
+                          className={`text-sm font-semibold ${
+                            verificationOverdue
+                              ? "text-red-700"
+                              : verificationDueSoon
+                              ? "text-amber-700"
+                              : "text-slate-700"
+                          }`}
+                        >
+                          {verificationOverdue
+                            ? "Payment verification deadline has passed. Your slot is still reserved, but the merchant has not confirmed yet. Please contact the merchant or admin support."
+                            : verificationDueSoon
+                            ? "Booking starts soon. Merchant verification is still pending."
+                            : "Payment proof uploaded. Waiting for merchant verification."}
                         </p>
                       ) : null}
 
