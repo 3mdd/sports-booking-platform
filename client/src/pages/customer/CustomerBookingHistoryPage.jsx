@@ -4,6 +4,7 @@ import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import { formatDisplayTimeRange } from "../../utils/timeFormat";
 import { getCustomerProfileId } from "../../utils/auth";
+import { getMerchantContact } from "../../utils/merchantContact";
 const PAYMENT_WINDOW_MS = 30 * 60 * 1000;
 
 function formatDate(dateValue) {
@@ -221,6 +222,7 @@ function CustomerBookingHistoryPage() {
         totalPrice: Number(booking.totalPrice || 0),
         bookingStatus: booking.status,
         createdAt: booking.createdAt,
+        merchantContact: getMerchantContact(booking.facility),
       },
     });
   };
@@ -423,6 +425,7 @@ function CustomerBookingHistoryPage() {
               {bookings.map((booking) => {
                 const facilityName = booking.facility?.name || "Facility";
                 const sportName = booking.facility?.sportType?.name || "Sport";
+                const merchantContact = getMerchantContact(booking.facility);
                 const bookingDate = formatDate(booking.bookingDate);
                 const bookingTime = getBookingTime(booking);
                 const amount = `RM ${Number(booking.totalPrice || 0).toFixed(
@@ -528,6 +531,30 @@ function CustomerBookingHistoryPage() {
                         <p className="mt-1 font-semibold text-slate-900">
                           {booking.facility?.location || "Not available"}
                         </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 rounded-lg bg-white p-4 text-sm ring-1 ring-gray-200">
+                      <p className="font-bold text-emerald-950">
+                        Merchant Contact
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-slate-600">
+                        <span className="font-semibold text-slate-900">
+                          {merchantContact.businessName}
+                        </span>
+                        {merchantContact.phoneNumber ? (
+                          <a
+                            href={`tel:${merchantContact.phoneNumber}`}
+                            className="font-semibold text-emerald-800 hover:text-lime-600"
+                          >
+                            {merchantContact.phoneNumber}
+                          </a>
+                        ) : (
+                          <span>Contact number not available</span>
+                        )}
+                        {merchantContact.businessAddress ? (
+                          <span>{merchantContact.businessAddress}</span>
+                        ) : null}
                       </div>
                     </div>
 

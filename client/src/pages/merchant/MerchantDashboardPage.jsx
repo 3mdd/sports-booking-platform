@@ -176,6 +176,13 @@ function MerchantDashboardPage() {
 
           <div className="flex flex-wrap gap-3">
             <Link
+              to="/merchant/bookings"
+              className="rounded-lg border border-emerald-950 px-5 py-2.5 text-sm font-bold text-emerald-950 transition hover:bg-emerald-50"
+            >
+              All Bookings
+            </Link>
+
+            <Link
               to="/merchant/analytics"
               className="rounded-lg border border-emerald-950 px-5 py-2.5 text-sm font-bold text-emerald-950 transition hover:bg-emerald-50"
             >
@@ -273,10 +280,10 @@ function MerchantDashboardPage() {
               </div>
 
               <Link
-                to="/merchant/payments"
+                to="/merchant/bookings"
                 className="text-sm font-semibold text-emerald-900 hover:text-lime-600"
               >
-                View payments
+                View all bookings
               </Link>
             </div>
 
@@ -291,6 +298,11 @@ function MerchantDashboardPage() {
                 {recentBookings.map((booking) => {
                   const customerName =
                     booking.customer?.user?.fullName || "Customer";
+                  const customerUsername =
+                    booking.customer?.user?.username || "";
+                  const customerPhone =
+                    booking.customer?.user?.phoneNumber || "";
+                  const customerEmail = booking.customer?.user?.email || "";
                   const facilityName = booking.facility?.name || "Facility";
 
                   return (
@@ -305,6 +317,12 @@ function MerchantDashboardPage() {
                           </h3>
                           <p className="mt-1 text-sm text-slate-500">
                             Customer: {customerName}
+                            {customerUsername ? ` (@${customerUsername})` : ""}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {[customerPhone, customerEmail]
+                              .filter(Boolean)
+                              .join(" | ") || "Contact details unavailable"}
                           </p>
                         </div>
 

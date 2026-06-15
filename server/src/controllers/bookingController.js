@@ -278,6 +278,21 @@ const getBookingsByCustomer = async (req, res) => {
           include: {
             sportType: true,
             images: true,
+            merchantProfile: {
+              select: {
+                id: true,
+                businessName: true,
+                businessPhone: true,
+                businessAddress: true,
+                user: {
+                  select: {
+                    fullName: true,
+                    username: true,
+                    phoneNumber: true,
+                  },
+                },
+              },
+            },
           },
         },
         bookingSlots: {
@@ -332,23 +347,37 @@ const getBookingsByMerchant = async (req, res) => {
       },
       include: {
         customer: {
-  include: {
-    user: {
-      select: {
-        id: true,
-        fullName: true,
-        email: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    },
-  },
-},
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                username: true,
+                email: true,
+                phoneNumber: true,
+              },
+            },
+          },
+        },
         facility: {
           include: {
             sportType: true,
             images: true,
+            merchantProfile: {
+              select: {
+                id: true,
+                businessName: true,
+                businessPhone: true,
+                businessAddress: true,
+                user: {
+                  select: {
+                    fullName: true,
+                    username: true,
+                    phoneNumber: true,
+                  },
+                },
+              },
+            },
           },
         },
         bookingSlots: {

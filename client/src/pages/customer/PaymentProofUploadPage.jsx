@@ -4,6 +4,7 @@ import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import { formatDisplaySlotLabel } from "../../utils/timeFormat";
 import { getUploadFileUrl } from "../../utils/uploadUrl";
+import { getMerchantContact } from "../../utils/merchantContact";
 
 const PAYMENT_WINDOW_MS = 30 * 60 * 1000;
 
@@ -44,6 +45,9 @@ function PaymentProofUploadPage() {
   const [paymentDetails, setPaymentDetails] = useState(null);
   const [isPaymentDetailsLoading, setIsPaymentDetailsLoading] = useState(true);
   const [paymentDetailsError, setPaymentDetailsError] = useState("");
+  const [merchantContact, setMerchantContact] = useState(
+    booking?.merchantContact || null
+  );
 
   const bookingStatus = isSuccess
     ? "PAYMENT_UPLOADED"
@@ -89,6 +93,7 @@ function PaymentProofUploadPage() {
           );
         }
 
+        setMerchantContact(getMerchantContact(facilityData.facility));
         const merchantId = facilityData.facility?.merchantProfile?.id;
 
         if (!merchantId) {
@@ -255,6 +260,36 @@ function PaymentProofUploadPage() {
               <p className="mt-5 text-sm font-semibold text-emerald-950">
                 Merchant: {paymentDetails.businessName}
               </p>
+            ) : null}
+
+            {merchantContact ? (
+              <div className="mt-5 rounded-lg bg-gray-50 p-4 text-sm ring-1 ring-gray-200">
+                <p className="font-bold text-emerald-950">Merchant Contact</p>
+                <p className="mt-2 font-semibold text-slate-900">
+                  {merchantContact.businessName}
+                </p>
+                {merchantContact.contactName ? (
+                  <p className="mt-1 text-slate-600">
+                    {merchantContact.contactName}
+                    {merchantContact.username
+                      ? ` (@${merchantContact.username})`
+                      : ""}
+                  </p>
+                ) : null}
+                {merchantContact.phoneNumber ? (
+                  <a
+                    href={`tel:${merchantContact.phoneNumber}`}
+                    className="mt-1 block font-semibold text-emerald-800 hover:text-lime-600"
+                  >
+                    {merchantContact.phoneNumber}
+                  </a>
+                ) : null}
+                {merchantContact.businessAddress ? (
+                  <p className="mt-1 text-slate-600">
+                    {merchantContact.businessAddress}
+                  </p>
+                ) : null}
+              </div>
             ) : null}
 
             {!isPaymentDetailsLoading && !hasPaymentDetails ? (

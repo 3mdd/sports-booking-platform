@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import { saveAuthUser } from "../../utils/auth";
+import { getPhoneValidationError } from "../../utils/phoneValidation";
 
 function RegisterPage({ role }) {
   const navigate = useNavigate();
@@ -55,6 +56,18 @@ function RegisterPage({ role }) {
       setErrorMessage(
         "Username must be 3 to 20 characters using only letters, numbers, or underscores."
       );
+      return;
+    }
+
+    const phoneNumberError = getPhoneValidationError(formData.phoneNumber, {
+      required: true,
+      label: isMerchantRegistration
+        ? "Contact phone number"
+        : "Phone number",
+    });
+
+    if (phoneNumberError) {
+      setErrorMessage(phoneNumberError);
       return;
     }
 
@@ -260,6 +273,10 @@ function RegisterPage({ role }) {
                 required
                 className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
               />
+              <p className="mt-2 text-xs text-slate-500">
+                Use at least 8 digits. Spaces, +, hyphens, and brackets are
+                allowed.
+              </p>
               {isMerchantRegistration ? (
                 <p className="mt-2 text-xs text-slate-500">
                   Personal contact for account and approval communication.

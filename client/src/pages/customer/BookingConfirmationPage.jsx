@@ -11,6 +11,7 @@ function BookingConfirmationPage() {
 
   const booking = location.state;
   const customerProfileId = getCustomerProfileId();
+  const merchantContact = booking?.merchantContact;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
@@ -142,6 +143,38 @@ function BookingConfirmationPage() {
                   {booking.location}
                 </span>
               </div>
+
+              {merchantContact ? (
+                <div className="rounded-lg bg-gray-50 p-4 ring-1 ring-gray-200">
+                  <p className="font-bold text-emerald-950">
+                    Merchant Contact
+                  </p>
+                  <p className="mt-2 font-semibold text-slate-900">
+                    {merchantContact.businessName}
+                  </p>
+                  {merchantContact.contactName ? (
+                    <p className="mt-1 text-slate-600">
+                      {merchantContact.contactName}
+                      {merchantContact.username
+                        ? ` (@${merchantContact.username})`
+                        : ""}
+                    </p>
+                  ) : null}
+                  {merchantContact.phoneNumber ? (
+                    <a
+                      href={`tel:${merchantContact.phoneNumber}`}
+                      className="mt-1 block font-semibold text-emerald-800 hover:text-lime-600"
+                    >
+                      {merchantContact.phoneNumber}
+                    </a>
+                  ) : null}
+                  {merchantContact.businessAddress ? (
+                    <p className="mt-1 text-slate-600">
+                      {merchantContact.businessAddress}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
 
               <div className="flex items-center justify-between border-b border-gray-100 pb-4">
                 <span className="text-slate-500">Booking Date</span>

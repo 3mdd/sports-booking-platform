@@ -22,6 +22,7 @@ const customerNavigation = [
 
 const merchantNavigation = [
   { label: "Dashboard", to: "/merchant/dashboard" },
+  { label: "Bookings", to: "/merchant/bookings" },
   { label: "Analytics", to: "/merchant/analytics" },
   { label: "Facilities", to: "/merchant/facilities" },
   { label: "Payments", to: "/merchant/payments" },
@@ -162,7 +163,7 @@ function Navbar() {
             Elite<span className="text-lime-500">Sport</span>
           </Link>
 
-          <nav className="hidden items-center gap-1 md:flex">
+          <nav className="hidden items-center gap-1 xl:flex">
             {navigation.map((item) => (
               <Link
                 key={item.label}
@@ -258,7 +259,7 @@ function Navbar() {
         ) : null}
       </div>
 
-      <nav className="border-t border-gray-100 px-4 py-2 md:hidden">
+      <nav className="border-t border-gray-100 px-4 py-2 xl:hidden">
         <div className="mx-auto flex max-w-7xl gap-1 overflow-x-auto">
           {navigation.map((item) => (
             <Link

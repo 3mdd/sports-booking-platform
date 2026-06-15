@@ -1,7 +1,7 @@
 const bcrypt = require("bcrypt");
 const prisma = require("../lib/prisma");
+const { validatePhoneNumber } = require("../utils/phoneValidation");
 
-const MAX_PHONE_NUMBER_LENGTH = 50;
 const MIN_USERNAME_LENGTH = 3;
 const MAX_USERNAME_LENGTH = 20;
 const MAX_BUSINESS_PHONE_LENGTH = 50;
@@ -95,10 +95,12 @@ const registerCustomer = async (req, res) => {
       return res.status(400).json({ message: usernameError });
     }
 
-    if (normalizedPhoneNumber.length > MAX_PHONE_NUMBER_LENGTH) {
-      return res.status(400).json({
-        message: `Phone number must be ${MAX_PHONE_NUMBER_LENGTH} characters or fewer`,
-      });
+    const phoneNumberError = validatePhoneNumber(normalizedPhoneNumber, {
+      required: true,
+    });
+
+    if (phoneNumberError) {
+      return res.status(400).json({ message: phoneNumberError });
     }
 
     const existingUser = await findExistingRegistrationUser(
@@ -214,11 +216,13 @@ const registerMerchant = async (req, res) => {
       businessRegistrationNumber
     );
 
-    if (
-      normalizedPhoneNumber.length > MAX_PHONE_NUMBER_LENGTH
-    ) {
+    const phoneNumberError = validatePhoneNumber(normalizedPhoneNumber, {
+      required: true,
+    });
+
+    if (phoneNumberError) {
       return res.status(400).json({
-        message: `Contact phone number must be ${MAX_PHONE_NUMBER_LENGTH} characters or fewer`,
+        message: phoneNumberError.replace("Phone number", "Contact phone number"),
       });
     }
 

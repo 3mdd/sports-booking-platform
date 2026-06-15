@@ -1,9 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 const prisma = require("../lib/prisma");
+const { validatePhoneNumber } = require("../utils/phoneValidation");
 
 const MAX_FULL_NAME_LENGTH = 100;
-const MAX_PHONE_NUMBER_LENGTH = 50;
 
 function parsePositiveInteger(value) {
   const parsedValue = Number(value);
@@ -95,14 +95,15 @@ async function updateProfile(req, res) {
 
     if (Object.prototype.hasOwnProperty.call(req.body, "phoneNumber")) {
       const phoneNumber = String(req.body.phoneNumber || "").trim();
+      const phoneNumberError = validatePhoneNumber(phoneNumber, {
+        required: true,
+      });
 
-      if (phoneNumber.length > MAX_PHONE_NUMBER_LENGTH) {
-        return res.status(400).json({
-          message: `Phone number must be ${MAX_PHONE_NUMBER_LENGTH} characters or fewer`,
-        });
+      if (phoneNumberError) {
+        return res.status(400).json({ message: phoneNumberError });
       }
 
-      updateData.phoneNumber = phoneNumber || null;
+      updateData.phoneNumber = phoneNumber;
     }
 
     if (Object.keys(updateData).length === 0) {

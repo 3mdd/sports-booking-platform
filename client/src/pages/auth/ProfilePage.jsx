@@ -7,6 +7,7 @@ import {
   updateStoredAuthUser,
 } from "../../utils/auth";
 import { getUploadFileUrl } from "../../utils/uploadUrl";
+import { getPhoneValidationError } from "../../utils/phoneValidation";
 
 const API_BASE_URL = "http://localhost:5000";
 
@@ -179,9 +180,27 @@ function ProfilePage() {
       return;
     }
 
+    const normalizedPhoneNumber = formData.phoneNumber.trim();
+    const phoneNumberError = getPhoneValidationError(normalizedPhoneNumber, {
+      required: Boolean(authUser?.phoneNumber),
+    });
+
+    if (phoneNumberError) {
+      setNotice({ type: "error", message: phoneNumberError });
+      return;
+    }
+
     setIsSaving(true);
 
     try {
+      const updatePayload = {
+        fullName: formData.fullName.trim(),
+      };
+
+      if (normalizedPhoneNumber) {
+        updatePayload.phoneNumber = normalizedPhoneNumber;
+      }
+
       const response = await fetch(
         `${API_BASE_URL}/users/${authUser.userId}/profile`,
         {
@@ -190,10 +209,7 @@ function ProfilePage() {
             "Content-Type": "application/json",
             "x-user-id": String(authUser.userId),
           },
-          body: JSON.stringify({
-            fullName: formData.fullName.trim(),
-            phoneNumber: formData.phoneNumber.trim(),
-          }),
+          body: JSON.stringify(updatePayload),
         }
       );
       const data = await response.json();
@@ -396,6 +412,10 @@ function ProfilePage() {
                   placeholder="e.g. 012-345 6789"
                   className="mt-2 w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
                 />
+                <span className="mt-2 block text-xs font-normal text-slate-500">
+                  Use at least 8 digits. Spaces, +, hyphens, and brackets are
+                  allowed.
+                </span>
               </label>
 
               <label className="text-sm font-semibold text-slate-700">

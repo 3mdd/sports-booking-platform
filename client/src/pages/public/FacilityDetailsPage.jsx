@@ -6,6 +6,7 @@ import padelImage from "../../assets/images/padel.jpg";
 import badmintonImage from "../../assets/images/badminton.jpg";
 import { formatDisplayTime, formatDisplayTimeRange } from "../../utils/timeFormat";
 import { getUploadFileUrl } from "../../utils/uploadUrl";
+import { getMerchantContact } from "../../utils/merchantContact";
 
 const fallbackImages = {
   Football:
@@ -328,6 +329,7 @@ function FacilityDetailsPage() {
   const pricePerSlot = Number(facility?.pricePerSlot || 0);
   const pricePerHour = pricePerSlot * 2;
   const isFacilityInactive = facility ? !facility.isActive : false;
+  const merchantContact = getMerchantContact(facility);
   const averageRating =
     reviews.length > 0
       ? reviews.reduce((total, review) => total + Number(review.rating || 0), 0) /
@@ -584,6 +586,7 @@ function FacilityDetailsPage() {
         facilityName: facility.name,
         sport: sportName,
         location: facility.location,
+        merchantContact,
         selectedDate,
         formattedDate: formattedSelectedDate,
         durationLabel: selectedDuration.label,
@@ -725,6 +728,38 @@ function FacilityDetailsPage() {
             <p className="mt-3 text-base text-slate-500">
               {facility.location}
             </p>
+
+            <div className="mt-4 rounded-lg bg-gray-50 p-4 text-sm ring-1 ring-gray-200">
+              <p className="font-bold text-emerald-950">Merchant Contact</p>
+              <p className="mt-2 font-semibold text-slate-800">
+                {merchantContact.businessName}
+              </p>
+              {merchantContact.contactName ? (
+                <p className="mt-1 text-slate-600">
+                  {merchantContact.contactName}
+                  {merchantContact.username
+                    ? ` (@${merchantContact.username})`
+                    : ""}
+                </p>
+              ) : null}
+              {merchantContact.phoneNumber ? (
+                <a
+                  href={`tel:${merchantContact.phoneNumber}`}
+                  className="mt-1 block font-semibold text-emerald-800 hover:text-lime-600"
+                >
+                  {merchantContact.phoneNumber}
+                </a>
+              ) : (
+                <p className="mt-1 text-slate-500">
+                  Contact number not available
+                </p>
+              )}
+              {merchantContact.businessAddress ? (
+                <p className="mt-1 text-slate-600">
+                  {merchantContact.businessAddress}
+                </p>
+              ) : null}
+            </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
               <div className="flex items-center gap-2 rounded-full bg-lime-100 px-4 py-2 text-sm font-semibold text-emerald-950">

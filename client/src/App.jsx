@@ -11,6 +11,7 @@ import ScrollToTop from "./components/layout/ScrollToTop";
 import PaymentProofUploadPage from "./pages/customer/PaymentProofUploadPage";
 import PaymentVerificationPage from "./pages/merchant/PaymentVerificationPage";
 import MerchantDashboardPage from "./pages/merchant/MerchantDashboardPage";
+import MerchantBookingsPage from "./pages/merchant/MerchantBookingsPage";
 import MerchantAnalyticsPage from "./pages/merchant/MerchantAnalyticsPage";
 import MerchantFacilityManagementPage from "./pages/merchant/MerchantFacilityManagementPage";
 import MerchantSlotManagementPage from "./pages/merchant/MerchantSlotManagementPage";
@@ -101,6 +102,16 @@ function App() {
             <RequireRole role="MERCHANT">
               <RequireApprovedMerchant>
                 <MerchantDashboardPage />
+              </RequireApprovedMerchant>
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/merchant/bookings"
+          element={
+            <RequireRole role="MERCHANT">
+              <RequireApprovedMerchant>
+                <MerchantBookingsPage />
               </RequireApprovedMerchant>
             </RequireRole>
           }

@@ -24,6 +24,79 @@ function parsePositiveInteger(value) {
   return Number.isInteger(parsedValue) && parsedValue > 0 ? parsedValue : null;
 }
 
+function normalizeComparisonText(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function isSameFacilityArea(firstFacility, secondFacility) {
+  const firstState = normalizeComparisonText(firstFacility.stateName);
+  const secondState = normalizeComparisonText(secondFacility.stateName);
+  const firstArea = normalizeComparisonText(firstFacility.areaName);
+  const secondArea = normalizeComparisonText(secondFacility.areaName);
+
+  if (firstState || secondState || firstArea || secondArea) {
+    return firstState === secondState && firstArea === secondArea;
+  }
+
+  return (
+    normalizeComparisonText(firstFacility.location) ===
+    normalizeComparisonText(secondFacility.location)
+  );
+}
+
+async function findDuplicateFacility({
+  merchantProfileId,
+  name,
+  stateName,
+  areaName,
+  location,
+  excludeFacilityId,
+}) {
+  const merchantFacilities = await prisma.facility.findMany({
+    where: {
+      merchantProfileId,
+      ...(excludeFacilityId
+        ? {
+            id: {
+              not: excludeFacilityId,
+            },
+          }
+        : {}),
+    },
+    select: {
+      id: true,
+      name: true,
+      stateName: true,
+      areaName: true,
+      location: true,
+    },
+  });
+
+  const normalizedName = normalizeComparisonText(name);
+
+  return merchantFacilities.find(
+    (facility) =>
+      normalizeComparisonText(facility.name) === normalizedName &&
+      isSameFacilityArea(facility, { stateName, areaName, location })
+  );
+}
+
+const safeMerchantContactSelect = {
+  id: true,
+  businessName: true,
+  businessPhone: true,
+  businessAddress: true,
+  approvalStatus: true,
+  user: {
+    select: {
+      fullName: true,
+      username: true,
+      phoneNumber: true,
+      isActive: true,
+    },
+  },
+};
+
 function parseLocalDateTime(dateValue, timeValue) {
   const dateMatch = String(dateValue).match(/^(\d{4})-(\d{2})-(\d{2})$/);
   const timeMatch = String(timeValue).match(/^(\d{2}):(\d{2})$/);
@@ -118,15 +191,33 @@ const createFacility = async (req, res) => {
       });
     }
 
+    const normalizedName = String(name).trim();
+    const normalizedLocation = String(location).trim();
+    const normalizedStateName = String(stateName || "").trim() || null;
+    const normalizedAreaName = String(areaName || "").trim() || null;
+    const duplicateFacility = await findDuplicateFacility({
+      merchantProfileId: Number(merchantProfileId),
+      name: normalizedName,
+      stateName: normalizedStateName,
+      areaName: normalizedAreaName,
+      location: normalizedLocation,
+    });
+
+    if (duplicateFacility) {
+      return res.status(409).json({
+        message: "You already have a facility with this name in this area.",
+      });
+    }
+
     const facility = await prisma.facility.create({
       data: {
         merchantProfileId: Number(merchantProfileId),
         sportTypeId: Number(sportTypeId),
-        name,
+        name: normalizedName,
         description,
-        location,
-        stateName: String(stateName || "").trim() || null,
-        areaName: String(areaName || "").trim() || null,
+        location: normalizedLocation,
+        stateName: normalizedStateName,
+        areaName: normalizedAreaName,
         pricePerSlot,
       },
     });
@@ -162,16 +253,7 @@ const getAllFacilities = async (req, res) => {
       include: {
         sportType: true,
         merchantProfile: {
-          select: {
-            id: true,
-            businessName: true,
-            approvalStatus: true,
-            user: {
-              select: {
-                isActive: true,
-              },
-            },
-          },
+          select: safeMerchantContactSelect,
         },
         images: {
           orderBy: facilityImageOrderBy,
@@ -203,16 +285,7 @@ const getFacilityById = async (req, res) => {
       include: {
         sportType: true,
         merchantProfile: {
-          select: {
-            id: true,
-            businessName: true,
-            approvalStatus: true,
-            user: {
-              select: {
-                isActive: true,
-              },
-            },
-          },
+          select: safeMerchantContactSelect,
         },
         images: {
           orderBy: facilityImageOrderBy,
@@ -763,16 +836,33 @@ const updateFacility = async (req, res) => {
       });
     }
 
+    const finalFacilityDetails = {
+      name: updateData.name ?? existingFacility.name,
+      stateName:
+        stateName !== undefined ? updateData.stateName : existingFacility.stateName,
+      areaName:
+        areaName !== undefined ? updateData.areaName : existingFacility.areaName,
+      location: updateData.location ?? existingFacility.location,
+    };
+    const duplicateFacility = await findDuplicateFacility({
+      merchantProfileId: existingFacility.merchantProfileId,
+      ...finalFacilityDetails,
+      excludeFacilityId: facilityId,
+    });
+
+    if (duplicateFacility) {
+      return res.status(409).json({
+        message: "You already have a facility with this name in this area.",
+      });
+    }
+
     const updatedFacility = await prisma.facility.update({
       where: { id: facilityId },
       data: updateData,
       include: {
         sportType: true,
         merchantProfile: {
-          select: {
-            id: true,
-            businessName: true,
-          },
+          select: safeMerchantContactSelect,
         },
         images: {
           orderBy: facilityImageOrderBy,

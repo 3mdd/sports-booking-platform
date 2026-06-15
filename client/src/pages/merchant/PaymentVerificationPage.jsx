@@ -310,6 +310,11 @@ const handlePaymentAction = async (bookingId, actionType) => {
               {paymentProofBookings.map((booking) => {
                 const customerName =
                   booking.customer?.user?.fullName || "Customer";
+                const customerUsername =
+                  booking.customer?.user?.username || "";
+                const customerPhone =
+                  booking.customer?.user?.phoneNumber || "";
+                const customerEmail = booking.customer?.user?.email || "";
                 const facilityName = booking.facility?.name || "Facility";
                 const bookingDate = formatDate(booking.bookingDate);
                 const bookingTime = getBookingTime(booking);
@@ -395,6 +400,12 @@ const fileUrl = publicFilePath
                           <p className="text-slate-500">Customer</p>
                           <p className="mt-1 font-semibold text-slate-900">
                             {customerName}
+                            {customerUsername ? ` (@${customerUsername})` : ""}
+                          </p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {[customerPhone, customerEmail]
+                              .filter(Boolean)
+                              .join(" | ") || "Contact details unavailable"}
                           </p>
                         </div>
 
