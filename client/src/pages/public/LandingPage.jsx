@@ -1,294 +1,259 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import padelImage from "../../assets/images/padel.jpg";
-import badmintonImage from "../../assets/images/badminton.jpg";
-const sports = [
+import {
+  AUTH_USER_UPDATED_EVENT,
+  getAuthUser,
+} from "../../utils/auth";
+
+const platformFeatures = [
   {
-    title: "Football",
-    subtitle: "Team Booking",
+    label: "Customers",
+    title: "Book with clear availability",
     description:
-      "Book football fields for matches, training sessions, and weekend games with clear slot-based scheduling.",
-    image:
-      "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=900&q=80",
+      "Browse approved facilities, filter by sport and location, choose connected time slots, and track payment verification.",
   },
   {
-    title: "Padel",
-    subtitle: "Popular Court",
+    label: "Merchants",
+    title: "Manage daily operations",
     description:
-      "Reserve premium padel courts with easy time-slot selection and a simple digital booking process.",
-    image: padelImage,
+      "Maintain facilities and galleries, generate or block slots, verify payments, review bookings, and monitor performance.",
   },
   {
-    title: "Badminton",
-    subtitle: "Indoor Court",
+    label: "Administration",
+    title: "Build platform trust",
     description:
-      "Browse indoor badminton courts and choose connected 30-minute slots based on live availability.",
-    image: badmintonImage,
+      "Review merchant verification documents, approve business accounts, and manage users and facilities from one admin area.",
+  },
+  {
+    label: "Review Insights",
+    title: "Understand customer feedback",
+    description:
+      "Facility reviews include ratings and sentiment analysis, with practical summaries that help merchants identify improvements.",
   },
 ];
 
-const featuredVenues = [
+const customerSteps = [
   {
-    name: "Grand Sports Arena",
-    location: "Downtown Sports Complex",
-    price: "$45/hr",
-    image:
-      "https://images.unsplash.com/photo-1547347298-4074fc3086f0?auto=format&fit=crop&w=1200&q=80",
+    number: "01",
+    title: "Find a facility",
+    description:
+      "Search active facilities and narrow the list by sport, state, area, or name.",
   },
   {
-    name: "Skyline Padel Club",
-    location: "Westside Heights",
-    price: "$35/hr",
-    image: padelImage,
+    number: "02",
+    title: "Choose date and duration",
+    description:
+      "Select a start time and an available duration built from connected 30-minute slots.",
   },
   {
-    name: "CourtLine Indoor Hall",
-    location: "City District",
-    price: "$28/hr",
-    image: badmintonImage,
+    number: "03",
+    title: "Complete the booking",
+    description:
+      "Confirm the reservation, follow the merchant payment details, and upload proof for verification.",
   },
 ];
+
+function getSignedInAction(user) {
+  if (user?.role === "ADMIN") {
+    return { label: "Open Admin Dashboard", to: "/admin/dashboard" };
+  }
+
+  if (user?.role === "MERCHANT") {
+    const isApproved =
+      (user.merchantApprovalStatus || "APPROVED") === "APPROVED";
+
+    return isApproved
+      ? { label: "Open Merchant Dashboard", to: "/merchant/dashboard" }
+      : { label: "View Approval Status", to: "/merchant/approval-status" };
+  }
+
+  if (user?.role === "CUSTOMER") {
+    return { label: "Browse Facilities", to: "/facilities" };
+  }
+
+  return null;
+}
 
 function LandingPage() {
+  const [authUser, setAuthUser] = useState(() => getAuthUser());
+  const signedInAction = getSignedInAction(authUser);
+
+  useEffect(() => {
+    const refreshAuthUser = () => setAuthUser(getAuthUser());
+
+    window.addEventListener("storage", refreshAuthUser);
+    window.addEventListener(AUTH_USER_UPDATED_EVENT, refreshAuthUser);
+
+    return () => {
+      window.removeEventListener("storage", refreshAuthUser);
+      window.removeEventListener(AUTH_USER_UPDATED_EVENT, refreshAuthUser);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#f3f4f6] text-slate-900">
       <Navbar />
 
       <main>
-        <section className="mx-auto grid max-w-7xl gap-12 px-6 pb-16 pt-12 lg:grid-cols-2 lg:items-center lg:px-8 lg:pt-16">
-          <div>
-            <span className="inline-flex rounded-full bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-900 shadow-sm ring-1 ring-gray-200">
-              Multi-Vendor Sports Booking Platform
-            </span>
+        <section className="relative isolate min-h-[520px] overflow-hidden">
+          <img
+            src={padelImage}
+            alt="Sports court prepared for facility booking"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-emerald-950/80" />
 
-            <h1 className="mt-6 max-w-xl text-5xl font-black leading-tight tracking-tight text-emerald-950 md:text-6xl">
-              Elevate Your
-              <span className="block text-lime-500">Athletic Ritual.</span>
-            </h1>
+          <div className="relative mx-auto flex min-h-[520px] max-w-7xl items-center px-6 py-16 lg:px-8">
+            <div className="max-w-3xl text-white">
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-lime-300">
+                Multi-Vendor Sports Facility Booking
+              </p>
+              <h1 className="mt-4 text-4xl font-black leading-tight tracking-tight sm:text-5xl lg:text-6xl">
+                Book, manage, and monitor sports facilities in one platform.
+              </h1>
+              <p className="mt-5 max-w-2xl text-base leading-7 text-emerald-50/90 sm:text-lg">
+                EliteSport connects customers with approved facility
+                merchants through live slot availability, payment proof
+                verification, reviews, and operational tools.
+              </p>
 
-            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-600">
-              Discover sports facilities, compare available courts, choose
-              connected time slots, and complete bookings through one organized
-              platform for customers and merchants.
-            </p>
-
-            <div className="mt-8 flex flex-wrap gap-4">
-              <Link
-               to="/facilities"
-               className="rounded-full bg-emerald-950 px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-emerald-900"
->
-               Browse Facilities
-             </Link>
-              <button className="rounded-full border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-slate-800 transition hover:bg-gray-50">
-                Become a Merchant
-              </button>
-            </div>
-
-            <div className="mt-10 flex gap-10">
-              <div>
-                <p className="text-3xl font-black text-emerald-950">500+</p>
-                <p className="text-sm text-slate-500">Venues</p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                {signedInAction ? (
+                  <>
+                    <Link
+                      to={signedInAction.to}
+                      className="rounded-lg bg-lime-400 px-6 py-3 text-sm font-bold text-emerald-950 transition hover:bg-lime-300"
+                    >
+                      {signedInAction.label}
+                    </Link>
+                    <Link
+                      to="/profile"
+                      className="rounded-lg border border-white/40 bg-white/10 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/20"
+                    >
+                      View Profile
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      to="/facilities"
+                      className="rounded-lg bg-lime-400 px-6 py-3 text-sm font-bold text-emerald-950 transition hover:bg-lime-300"
+                    >
+                      Browse Facilities
+                    </Link>
+                    <Link
+                      to="/login"
+                      className="rounded-lg border border-white/40 bg-white/10 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/20"
+                    >
+                      Login
+                    </Link>
+                  </>
+                )}
               </div>
-              <div>
-                <p className="text-3xl font-black text-emerald-950">12k+</p>
-                <p className="text-sm text-slate-500">Bookings</p>
-              </div>
-              <div>
-                <p className="text-3xl font-black text-emerald-950">30 Min</p>
-                <p className="text-sm text-slate-500">Slot System</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="relative">
-            <div className="absolute -left-6 bottom-8 hidden h-40 w-40 rotate-[-12deg] rounded-[2rem] bg-lime-400 p-4 shadow-2xl md:block">
-              <div className="flex h-full items-center justify-center rounded-[1.5rem] border border-emerald-900/10 bg-emerald-800 text-center text-sm font-bold text-white">
-                Fast
-                <br />
-                Slot Booking
-              </div>
-            </div>
-
-            <div className="overflow-hidden rounded-[2rem] bg-white p-3 shadow-2xl">
-              <img
-                src={padelImage}
-                alt="Padel court"
-                className="h-[520px] w-full rounded-[1.5rem] object-cover"
-              />
             </div>
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
-          <div className="mb-10">
-            <h2 className="text-3xl font-black tracking-tight text-emerald-950">
-              Browse by Sport
+        {!authUser ? (
+          <section className="border-b border-gray-200 bg-white">
+            <div className="mx-auto flex max-w-7xl flex-col gap-4 px-6 py-6 sm:flex-row sm:items-center sm:justify-between lg:px-8">
+              <div>
+                <h2 className="text-xl font-black text-emerald-950">
+                  Create the account that fits your role
+                </h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  Customers can book immediately. New merchants enter the
+                  admin approval process before using merchant tools.
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-wrap gap-3">
+                <Link
+                  to="/register/customer"
+                  className="rounded-lg border border-emerald-950 px-5 py-2.5 text-sm font-bold text-emerald-950 transition hover:bg-emerald-50"
+                >
+                  Register Customer
+                </Link>
+                <Link
+                  to="/register/merchant"
+                  className="rounded-lg bg-emerald-950 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-900"
+                >
+                  Register Merchant
+                </Link>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        <section className="mx-auto max-w-7xl px-6 py-14 lg:px-8">
+          <div className="max-w-3xl">
+            <p className="text-sm font-bold uppercase tracking-[0.2em] text-emerald-700">
+              Platform Workflows
+            </p>
+            <h2 className="mt-2 text-3xl font-black text-emerald-950">
+              Useful tools for every side of a booking
             </h2>
-            <p className="mt-2 text-slate-600">
-              Find the right venue based on the game you want to play.
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              Each area below represents a working part of the current
+              platform and supports a complete role-specific workflow.
             </p>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {sports.map((sport) => (
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
+            {platformFeatures.map((feature) => (
               <article
-                key={sport.title}
-                className="overflow-hidden rounded-[1.75rem] bg-white shadow-sm ring-1 ring-gray-200"
+                key={feature.label}
+                className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm"
               >
-                <img
-                  src={sport.image}
-                  alt={sport.title}
-                  className="h-72 w-full object-cover"
-                />
-                <div className="p-6">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-                    {sport.subtitle}
-                  </p>
-                  <h3 className="mt-2 text-2xl font-black text-emerald-950">
-                    {sport.title}
-                  </h3>
-                  <p className="mt-3 text-sm leading-6 text-slate-600">
-                    {sport.description}
-                  </p>
-                </div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">
+                  {feature.label}
+                </p>
+                <h3 className="mt-2 text-xl font-black text-emerald-950">
+                  {feature.title}
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  {feature.description}
+                </p>
               </article>
             ))}
           </div>
         </section>
 
-        <section className="bg-white py-16">
+        <section className="bg-white py-14">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <div className="text-center">
-              <h2 className="text-3xl font-black tracking-tight text-emerald-950">
-                How Booking Works
-              </h2>
-              <p className="mt-3 text-slate-600">
-                A simple flow from facility discovery to confirmed reservation.
-              </p>
-            </div>
-
-            <div className="mt-14 grid gap-8 md:grid-cols-3">
-              {[
-                {
-                  step: "1. Search",
-                  title: "Browse facilities",
-                  desc: "View available sports facilities, compare locations, and choose the best option.",
-                },
-                {
-                  step: "2. Choose Slots",
-                  title: "Select connected times",
-                  desc: "Pick exact connected 30-minute time slots based on live availability.",
-                },
-                {
-                  step: "3. Confirm Booking",
-                  title: "Upload payment proof",
-                  desc: "Complete the reservation and submit payment proof for merchant verification.",
-                },
-              ].map((item) => (
-                <div
-                  key={item.step}
-                  className="rounded-[1.75rem] bg-[#f7f8fa] p-8 text-center ring-1 ring-gray-200"
-                >
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-lime-100 text-xl font-black text-emerald-950">
-                    {item.step.split(".")[0]}
-                  </div>
-                  <p className="mt-6 text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">
-                    {item.step}
-                  </p>
-                  <h3 className="mt-3 text-xl font-bold text-emerald-950">
-                    {item.title}
-                  </h3>
-                  <p className="mt-3 text-sm leading-6 text-slate-600">
-                    {item.desc}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
-          <div className="mb-10 flex items-end justify-between gap-6">
-            <div>
-              <h2 className="text-3xl font-black tracking-tight text-emerald-950">
-                Featured Facilities
-              </h2>
-              <p className="mt-2 text-slate-600">
-                Sample facilities that show how the platform can organize venue discovery.
-              </p>
-            </div>
-
-            <button className="text-sm font-semibold text-emerald-900 hover:text-lime-600">
-              View All →
-            </button>
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-3">
-            {featuredVenues.map((venue) => (
-              <div
-                key={venue.name}
-                className="overflow-hidden rounded-[1.75rem] bg-white shadow-sm ring-1 ring-gray-200"
+            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-[0.2em] text-emerald-700">
+                  Customer Booking Flow
+                </p>
+                <h2 className="mt-2 text-3xl font-black text-emerald-950">
+                  From search to merchant verification
+                </h2>
+              </div>
+              <Link
+                to="/facilities"
+                className="w-fit rounded-lg bg-emerald-950 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-900"
               >
-                <img
-                  src={venue.image}
-                  alt={venue.name}
-                  className="h-72 w-full object-cover"
-                />
-                <div className="p-6">
-                  <h3 className="text-2xl font-black text-emerald-950">
-                    {venue.name}
-                  </h3>
-                  <p className="mt-2 text-sm text-slate-500">{venue.location}</p>
-
-                  <div className="mt-6 flex items-center justify-between">
-                    <span className="text-lg font-bold text-emerald-950">
-                      {venue.price}
-                    </span>
-                    <button className="rounded-full bg-lime-100 px-5 py-2 text-sm font-semibold text-emerald-950 transition hover:bg-lime-200">
-                      Book Now
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="mx-auto grid max-w-7xl gap-8 px-6 py-10 lg:grid-cols-[1.2fr_1fr] lg:px-8">
-          <div className="rounded-[2rem] bg-white p-8 shadow-sm ring-1 ring-gray-200">
-            <p className="text-5xl font-black leading-none text-lime-400">“</p>
-            <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-700">
-              The booking flow is simple and clear. It helps users find a venue,
-              choose connected slots, and complete reservations with less confusion.
-            </p>
-
-            <div className="mt-8">
-              <p className="font-bold text-emerald-950">Sample User Feedback</p>
-              <p className="text-sm text-slate-500">Customer Experience Preview</p>
+                Browse Facilities
+              </Link>
             </div>
-          </div>
 
-          <div className="rounded-[2rem] bg-transparent p-2">
-            <div className="grid grid-cols-2 gap-5 text-center text-sm font-semibold uppercase tracking-[0.15em] text-slate-500 md:grid-cols-3">
-              <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-                Football
-              </div>
-              <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-                Padel
-              </div>
-              <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-                Badminton
-              </div>
-              <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-                Customers
-              </div>
-              <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-                Merchants
-              </div>
-              <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-                Booking Flow
-              </div>
+            <div className="mt-8 grid gap-6 md:grid-cols-3">
+              {customerSteps.map((step) => (
+                <article key={step.number} className="border-t-2 border-lime-400 pt-4">
+                  <p className="text-sm font-black text-emerald-700">
+                    {step.number}
+                  </p>
+                  <h3 className="mt-2 text-lg font-black text-emerald-950">
+                    {step.title}
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    {step.description}
+                  </p>
+                </article>
+              ))}
             </div>
           </div>
         </section>

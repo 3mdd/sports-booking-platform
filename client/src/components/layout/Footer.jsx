@@ -14,17 +14,17 @@ function Footer() {
 
         <div>
           <h4 className="text-sm font-semibold uppercase tracking-[0.2em] text-lime-300">
-            Customer
+            Platform
           </h4>
           <ul className="mt-3 space-y-2 text-sm text-emerald-100/80">
             <li>
-              <Link to="/facilities" className="hover:text-white">
-                Browse Facilities
+              <Link to="/" className="hover:text-white">
+                Home
               </Link>
             </li>
             <li>
-              <Link to="/customer/bookings" className="hover:text-white">
-                My Bookings
+              <Link to="/facilities" className="hover:text-white">
+                Browse Facilities
               </Link>
             </li>
           </ul>
@@ -32,22 +32,22 @@ function Footer() {
 
         <div>
           <h4 className="text-sm font-semibold uppercase tracking-[0.2em] text-lime-300">
-            Merchant
+            Accounts
           </h4>
           <ul className="mt-3 space-y-2 text-sm text-emerald-100/80">
             <li>
-              <Link to="/merchant/dashboard" className="hover:text-white">
-                Dashboard
+              <Link to="/login" className="hover:text-white">
+                Login
               </Link>
             </li>
             <li>
-              <Link to="/merchant/facilities" className="hover:text-white">
-                Facility Management
+              <Link to="/register/customer" className="hover:text-white">
+                Register Customer
               </Link>
             </li>
             <li>
-              <Link to="/merchant/payments" className="hover:text-white">
-                Payment Verification
+              <Link to="/register/merchant" className="hover:text-white">
+                Register Merchant
               </Link>
             </li>
           </ul>
@@ -57,7 +57,7 @@ function Footer() {
       <div className="border-t border-emerald-900">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-4 text-xs text-emerald-100/60 sm:flex-row sm:items-center sm:justify-between lg:px-8">
           <p>&copy; 2026 EliteSport Technologies. All rights reserved.</p>
-          <p>Sports Booking Platform - Customer and Merchant Flow</p>
+          <p>Sports booking for customers, merchants, and administrators.</p>
         </div>
       </div>
     </footer>

@@ -822,16 +822,9 @@ function FacilityDetailsPage() {
               </p>
             ) : null}
 
-            <div className="mt-4 flex flex-wrap gap-3 text-xs font-semibold">
-              <span className="rounded-full bg-emerald-950 px-3 py-1 text-white">
-                Selected
-              </span>
-              <span className="rounded-full bg-gray-100 px-3 py-1 text-slate-500">
-                Unavailable
-              </span>
-              <span className="rounded-full bg-lime-100 px-3 py-1 text-emerald-950">
-                Available
-              </span>
+            <div className="mt-4 rounded-lg bg-gray-50 px-4 py-3 text-sm text-slate-600 ring-1 ring-gray-200">
+              Only available start times are selectable. Booked, blocked, or
+              same-day times that are too soon are disabled and labelled.
             </div>
 
             <div className="mt-5">
