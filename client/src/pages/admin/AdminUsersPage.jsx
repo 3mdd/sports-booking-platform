@@ -183,6 +183,11 @@ function AdminUsersPage() {
                           <p className="font-bold text-emerald-950">
                             {user.fullName}
                           </p>
+                          <p className="mt-1 text-xs font-semibold text-emerald-700">
+                            {user.username
+                              ? `@${user.username}`
+                              : "Username not set"}
+                          </p>
                           <p className="mt-1 text-xs text-slate-500">
                             {user.email}
                           </p>

@@ -47,6 +47,7 @@ function buildUserResponse(user) {
   return {
     userId: user.id,
     fullName: user.fullName,
+    username: user.username,
     email: user.email,
     phoneNumber: user.phoneNumber,
     role: user.role,
@@ -158,6 +159,7 @@ const getAdminUsers = async (req, res) => {
       select: {
         id: true,
         fullName: true,
+        username: true,
         email: true,
         phoneNumber: true,
         role: true,
@@ -230,6 +232,7 @@ async function updateUserActiveStatus(req, res, isActive) {
     select: {
       id: true,
       fullName: true,
+      username: true,
       email: true,
       phoneNumber: true,
       role: true,
@@ -395,6 +398,7 @@ function buildMerchantResponse(merchant) {
     verificationDocumentUrl: merchant.verificationDocumentUrl,
     ownershipProofUrl: merchant.ownershipProofUrl,
     fullName: merchant.user.fullName,
+    username: merchant.user.username,
     email: merchant.user.email,
     phoneNumber: merchant.user.phoneNumber,
     approvalStatus: merchant.approvalStatus,
@@ -413,6 +417,7 @@ const getAdminMerchants = async (req, res) => {
         user: {
           select: {
             fullName: true,
+            username: true,
             email: true,
             phoneNumber: true,
           },
@@ -469,6 +474,7 @@ const approveMerchant = async (req, res) => {
         user: {
           select: {
             fullName: true,
+            username: true,
             email: true,
             phoneNumber: true,
           },
@@ -530,6 +536,7 @@ const rejectMerchant = async (req, res) => {
         user: {
           select: {
             fullName: true,
+            username: true,
             email: true,
             phoneNumber: true,
           },

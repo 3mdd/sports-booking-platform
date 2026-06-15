@@ -7,7 +7,7 @@ function LoginPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    email: "",
+    loginIdentifier: "",
     password: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,8 +25,8 @@ function LoginPage() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!formData.email.trim() || !formData.password) {
-      setErrorMessage("Email and password are required.");
+    if (!formData.loginIdentifier.trim() || !formData.password) {
+      setErrorMessage("Email or username and password are required.");
       return;
     }
 
@@ -40,7 +40,7 @@ function LoginPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: formData.email.trim(),
+          loginIdentifier: formData.loginIdentifier.trim(),
           password: formData.password,
         }),
       });
@@ -70,6 +70,7 @@ function LoginPage() {
       saveAuthUser({
         userId: user.id,
         fullName: user.fullName,
+        username: user.username,
         email: user.email,
         phoneNumber: user.phoneNumber,
         avatarUrl: user.avatarUrl,
@@ -159,19 +160,19 @@ function LoginPage() {
           <form onSubmit={handleSubmit} className="mt-5 space-y-3">
             <div>
               <label
-                htmlFor="email"
+                htmlFor="loginIdentifier"
                 className="mb-2 block text-sm font-semibold text-slate-700"
               >
-                Email Address
+                Email or Username
               </label>
               <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                value={formData.email}
+                id="loginIdentifier"
+                name="loginIdentifier"
+                type="text"
+                autoComplete="username"
+                value={formData.loginIdentifier}
                 onChange={handleInputChange}
-                placeholder="name@example.com"
+                placeholder="name@example.com or username"
                 className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
               />
             </div>

@@ -212,6 +212,11 @@ function AdminMerchantApprovalPage() {
                       <p className="mt-2 text-sm font-semibold text-slate-700">
                         {merchant.fullName}
                       </p>
+                      <p className="mt-1 text-sm font-semibold text-emerald-700">
+                        {merchant.username
+                          ? `@${merchant.username}`
+                          : "Username not set"}
+                      </p>
                       <p className="mt-1 text-sm text-slate-500">
                         {merchant.email}
                       </p>

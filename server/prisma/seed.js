@@ -30,12 +30,14 @@ async function main() {
     },
     update: {
       fullName: "EliteSport Admin",
+      username: "elitesport_admin",
       passwordHash: adminPasswordHash,
       role: "ADMIN",
       isActive: true,
     },
     create: {
       fullName: "EliteSport Admin",
+      username: "elitesport_admin",
       email: "admin@elitesport.test",
       passwordHash: adminPasswordHash,
       role: "ADMIN",

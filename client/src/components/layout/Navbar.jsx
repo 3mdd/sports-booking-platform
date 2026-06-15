@@ -58,6 +58,10 @@ function getFirstName(fullName) {
   return String(fullName || "").trim().split(/\s+/)[0] || "User";
 }
 
+function getDisplayName(user) {
+  return user?.username || getFirstName(user?.fullName);
+}
+
 function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -198,7 +202,7 @@ function Navbar() {
               </span>
               <span className="hidden min-w-0 sm:block">
                 <span className="block max-w-32 truncate text-sm font-bold text-emerald-950">
-                  {getFirstName(authUser.fullName)}
+                  {getDisplayName(authUser)}
                 </span>
                 <span className="block text-xs font-medium capitalize text-slate-500">
                   {authUser.role.toLowerCase()}
@@ -223,7 +227,9 @@ function Navbar() {
                     {authUser.fullName}
                   </p>
                   <p className="truncate text-xs text-slate-500">
-                    {authUser.email}
+                    {authUser.username
+                      ? `@${authUser.username}`
+                      : authUser.email}
                   </p>
                 </div>
                 <Link

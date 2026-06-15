@@ -92,6 +92,7 @@ function ProfilePage() {
     const currentUser = getAuthUser();
     const updatedUser = updateStoredAuthUser({
       fullName: profile.fullName,
+      username: profile.username,
       email: profile.email,
       phoneNumber: profile.phoneNumber,
       avatarUrl: profile.avatarUrl,
@@ -293,7 +294,9 @@ function ProfilePage() {
                 {authUser?.fullName || "Your Profile"}
               </h1>
               <p className="mt-1 truncate text-sm text-emerald-100/75">
-                {authUser?.email}
+                {authUser?.username
+                  ? `@${authUser.username}`
+                  : authUser?.email}
               </p>
             </div>
             <div className="sm:text-right">
@@ -392,6 +395,16 @@ function ProfilePage() {
                   maxLength="50"
                   placeholder="e.g. 012-345 6789"
                   className="mt-2 w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
+                />
+              </label>
+
+              <label className="text-sm font-semibold text-slate-700">
+                Username
+                <input
+                  type="text"
+                  value={authUser?.username || "Not set"}
+                  readOnly
+                  className="mt-2 w-full cursor-not-allowed rounded-lg border border-gray-200 bg-gray-100 px-4 py-3 text-sm text-slate-500"
                 />
               </label>
 

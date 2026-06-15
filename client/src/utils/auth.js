@@ -15,6 +15,7 @@ export function saveAuthUser(user) {
   const authUser = {
     userId: toProfileId(user?.userId ?? user?.id),
     fullName: String(user?.fullName || ""),
+    username: user?.username ? String(user.username) : null,
     email: String(user?.email || ""),
     phoneNumber: user?.phoneNumber ? String(user.phoneNumber) : null,
     avatarUrl: user?.avatarUrl ? String(user.avatarUrl) : null,

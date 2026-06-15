@@ -21,6 +21,7 @@ enum MerchantApprovalStatus {
 model User {
   id              Int              @id @default(autoincrement())
   fullName        String
+  username        String?          @unique
   email           String           @unique
   phoneNumber     String?
   avatarUrl       String?

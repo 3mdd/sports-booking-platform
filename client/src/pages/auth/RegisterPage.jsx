@@ -9,6 +9,7 @@ function RegisterPage({ role }) {
   const isMerchantRegistration = role === "MERCHANT";
   const [formData, setFormData] = useState({
     fullName: "",
+    username: "",
     email: "",
     phoneNumber: "",
     password: "",
@@ -37,12 +38,23 @@ function RegisterPage({ role }) {
 
     if (
       !formData.fullName.trim() ||
+      !formData.username.trim() ||
       !formData.email.trim() ||
+      !formData.phoneNumber.trim() ||
       !formData.password ||
       !formData.confirmPassword ||
       (isMerchantRegistration && !formData.businessName.trim())
     ) {
       setErrorMessage("Please complete all required fields.");
+      return;
+    }
+
+    const normalizedUsername = formData.username.trim().toLowerCase();
+
+    if (!/^[a-z0-9_]{3,20}$/.test(normalizedUsername)) {
+      setErrorMessage(
+        "Username must be 3 to 20 characters using only letters, numbers, or underscores."
+      );
       return;
     }
 
@@ -60,6 +72,7 @@ function RegisterPage({ role }) {
         : "http://localhost:5000/auth/register/customer";
       const requestBody = {
         fullName: formData.fullName.trim(),
+        username: normalizedUsername,
         email: formData.email.trim(),
         phoneNumber: formData.phoneNumber.trim(),
         password: formData.password,
@@ -89,6 +102,7 @@ function RegisterPage({ role }) {
       saveAuthUser({
         userId: data.user.id,
         fullName: data.user.fullName,
+        username: data.user.username,
         email: data.user.email,
         phoneNumber: data.user.phoneNumber,
         avatarUrl: data.user.avatarUrl,
@@ -203,8 +217,30 @@ function RegisterPage({ role }) {
                 autoComplete="name"
                 value={formData.fullName}
                 onChange={handleInputChange}
+                required
                 className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
               />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-700">
+                Username
+              </label>
+              <input
+                name="username"
+                type="text"
+                autoComplete="username"
+                minLength="3"
+                maxLength="20"
+                value={formData.username}
+                onChange={handleInputChange}
+                placeholder="e.g. elitesport_user"
+                required
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm lowercase outline-none focus:border-lime-400 focus:bg-white"
+              />
+              <p className="mt-2 text-xs text-slate-500">
+                3-20 characters. Use letters, numbers, or underscores only.
+              </p>
             </div>
 
             <div>
@@ -221,6 +257,7 @@ function RegisterPage({ role }) {
                 value={formData.phoneNumber}
                 onChange={handleInputChange}
                 placeholder="e.g. 012-345 6789"
+                required
                 className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
               />
               {isMerchantRegistration ? (
@@ -302,6 +339,7 @@ function RegisterPage({ role }) {
                 autoComplete="email"
                 value={formData.email}
                 onChange={handleInputChange}
+                required
                 className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
               />
             </div>
@@ -364,6 +402,7 @@ function RegisterPage({ role }) {
                   minLength="6"
                   value={formData.password}
                   onChange={handleInputChange}
+                  required
                   className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
                 />
               </div>
@@ -378,6 +417,7 @@ function RegisterPage({ role }) {
                   minLength="6"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
+                  required
                   className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-lime-400 focus:bg-white"
                 />
               </div>

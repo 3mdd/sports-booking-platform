@@ -13,6 +13,7 @@ function parsePositiveInteger(value) {
 const userProfileSelect = {
   id: true,
   fullName: true,
+  username: true,
   email: true,
   phoneNumber: true,
   avatarUrl: true,
