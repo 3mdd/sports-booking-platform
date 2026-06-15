@@ -4,6 +4,7 @@ import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import { saveAuthUser } from "../../utils/auth";
 import { getPhoneValidationError } from "../../utils/phoneValidation";
+import { authFetch } from "../../utils/api";
 
 function RegisterPage({ role }) {
   const navigate = useNavigate();
@@ -113,6 +114,7 @@ function RegisterPage({ role }) {
       }
 
       saveAuthUser({
+        token: data.token,
         userId: data.user.id,
         fullName: data.user.fullName,
         username: data.user.username,
@@ -147,13 +149,10 @@ function RegisterPage({ role }) {
             verificationData.append("ownershipProof", ownershipProof);
           }
 
-          const verificationResponse = await fetch(
+          const verificationResponse = await authFetch(
             `http://localhost:5000/merchants/${data.merchantProfile.id}/verification`,
             {
               method: "PATCH",
-              headers: {
-                "x-user-id": String(data.user.id),
-              },
               body: verificationData,
             }
           );

@@ -1,5 +1,6 @@
 const express = require("express");
 const { avatarUpload } = require("../config/multer");
+const { authenticateToken } = require("../middleware/authMiddleware");
 const {
   requireProfileOwner,
   getProfile,
@@ -8,6 +9,8 @@ const {
 } = require("../controllers/userController");
 
 const router = express.Router();
+
+router.use(authenticateToken);
 
 const handleAvatarUpload = (req, res, next) => {
   avatarUpload.single("avatar")(req, res, (error) => {

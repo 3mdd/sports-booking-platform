@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
-import { getAuthUser } from "../../utils/auth";
+import { authFetch } from "../../utils/api";
 
 function AdminFacilitiesPage() {
-  const authUser = getAuthUser();
   const [facilities, setFacilities] = useState([]);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [isLoading, setIsLoading] = useState(true);
@@ -15,13 +14,8 @@ function AdminFacilitiesPage() {
   const fetchFacilities = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(
-        "http://localhost:5000/admin/facilities",
-        {
-          headers: {
-            "x-user-id": String(authUser?.userId || ""),
-          },
-        }
+      const response = await authFetch(
+        "http://localhost:5000/admin/facilities"
       );
       const data = await response.json();
 
@@ -37,7 +31,7 @@ function AdminFacilitiesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [authUser?.userId]);
+  }, []);
 
   useEffect(() => {
     fetchFacilities();
@@ -61,13 +55,10 @@ function AdminFacilitiesPage() {
     try {
       setProcessingFacilityId(facility.facilityId);
       setMessage("");
-      const response = await fetch(
+      const response = await authFetch(
         `http://localhost:5000/admin/facilities/${facility.facilityId}/${action}`,
         {
           method: "PATCH",
-          headers: {
-            "x-user-id": String(authUser?.userId || ""),
-          },
         }
       );
       const data = await response.json();

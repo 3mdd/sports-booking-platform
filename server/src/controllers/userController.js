@@ -35,14 +35,10 @@ const userProfileSelect = {
 
 async function requireProfileOwner(req, res, next) {
   const requestedUserId = parsePositiveInteger(req.params.userId);
-  const sessionUserId = parsePositiveInteger(req.headers["x-user-id"]);
+  const sessionUserId = req.auth?.userId;
 
   if (!requestedUserId) {
     return res.status(400).json({ message: "Valid user ID is required" });
-  }
-
-  if (!sessionUserId) {
-    return res.status(401).json({ message: "Logged-in user ID is required" });
   }
 
   if (requestedUserId !== sessionUserId) {

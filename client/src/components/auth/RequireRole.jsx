@@ -1,11 +1,11 @@
 import { Navigate, useLocation } from "react-router-dom";
-import { getAuthUser } from "../../utils/auth";
+import { getAuthToken, getAuthUser } from "../../utils/auth";
 
 function RequireRole({ role, children }) {
   const location = useLocation();
   const authUser = getAuthUser();
 
-  if (!authUser) {
+  if (!authUser || !getAuthToken()) {
     return (
       <Navigate
         to="/login"

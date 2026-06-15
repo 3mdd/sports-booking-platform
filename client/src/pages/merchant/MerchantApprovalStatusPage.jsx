@@ -8,6 +8,7 @@ import {
   getMerchantProfileId,
 } from "../../utils/auth";
 import { getUploadFileUrl } from "../../utils/uploadUrl";
+import { authFetch } from "../../utils/api";
 
 const emptyVerification = {
   businessPhone: "",
@@ -36,13 +37,8 @@ function MerchantApprovalStatusPage() {
   useEffect(() => {
     const fetchVerification = async () => {
       try {
-        const response = await fetch(
-          `http://localhost:5000/merchants/${merchantId}/verification`,
-          {
-            headers: {
-              "x-user-id": String(authUser?.userId || ""),
-            },
-          }
+        const response = await authFetch(
+          `http://localhost:5000/merchants/${merchantId}/verification`
         );
         const data = await response.json();
 
@@ -69,7 +65,7 @@ function MerchantApprovalStatusPage() {
     };
 
     fetchVerification();
-  }, [authUser?.userId, merchantId]);
+  }, [merchantId]);
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -104,13 +100,10 @@ function MerchantApprovalStatusPage() {
         formData.append("ownershipProof", ownershipProof);
       }
 
-      const response = await fetch(
+      const response = await authFetch(
         `http://localhost:5000/merchants/${merchantId}/verification`,
         {
           method: "PATCH",
-          headers: {
-            "x-user-id": String(authUser?.userId || ""),
-          },
           body: formData,
         }
       );

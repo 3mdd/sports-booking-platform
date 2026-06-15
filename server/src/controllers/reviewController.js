@@ -18,9 +18,15 @@ function parsePositiveInteger(value) {
 
 const createReview = async (req, res) => {
   try {
-    const { customerId, facilityId, bookingId, rating, comment } = req.body;
+    const {
+      customerId: requestedCustomerId,
+      facilityId,
+      bookingId,
+      rating,
+      comment,
+    } = req.body;
 
-    const parsedCustomerId = parsePositiveInteger(customerId);
+    const parsedCustomerId = req.auth?.customerProfileId;
     const parsedFacilityId = parsePositiveInteger(facilityId);
     const parsedBookingId = parsePositiveInteger(bookingId);
     const parsedRating = Number(rating);
@@ -28,6 +34,15 @@ const createReview = async (req, res) => {
     if (!parsedCustomerId || !parsedFacilityId || !parsedBookingId) {
       return res.status(400).json({
         message: "customerId, facilityId, and bookingId are required",
+      });
+    }
+
+    if (
+      requestedCustomerId &&
+      parsePositiveInteger(requestedCustomerId) !== parsedCustomerId
+    ) {
+      return res.status(403).json({
+        message: "You can only submit reviews for your own customer account",
       });
     }
 
@@ -174,11 +189,11 @@ const getReviewsByFacility = async (req, res) => {
 
 const getReviewsByCustomer = async (req, res) => {
   try {
-    const customerId = parsePositiveInteger(req.params.customerId);
+    const customerId = req.auth?.customerProfileId;
 
-    if (!customerId) {
-      return res.status(400).json({
-        message: "Valid customer ID is required",
+    if (parsePositiveInteger(req.params.customerId) !== customerId) {
+      return res.status(403).json({
+        message: "You can only view your own reviews",
       });
     }
 
@@ -223,11 +238,11 @@ const getReviewsByCustomer = async (req, res) => {
 
 const getReviewsByMerchant = async (req, res) => {
   try {
-    const merchantId = parsePositiveInteger(req.params.merchantId);
+    const merchantId = req.auth?.merchantProfileId;
 
-    if (!merchantId) {
-      return res.status(400).json({
-        message: "Valid merchant ID is required",
+    if (parsePositiveInteger(req.params.merchantId) !== merchantId) {
+      return res.status(403).json({
+        message: "You can only view reviews for your own merchant account",
       });
     }
 

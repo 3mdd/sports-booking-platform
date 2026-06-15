@@ -4,6 +4,7 @@ import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import { formatDisplaySlotLabel } from "../../utils/timeFormat";
 import { getCustomerProfileId } from "../../utils/auth";
+import { authFetch } from "../../utils/api";
 
 function BookingConfirmationPage() {
   const location = useLocation();
@@ -33,7 +34,7 @@ function BookingConfirmationPage() {
       setIsSubmitting(true);
       setSubmitMessage("");
 
-      const response = await fetch("http://localhost:5000/bookings", {
+      const response = await authFetch("http://localhost:5000/bookings", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -3,6 +3,7 @@ import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import { formatDisplayTimeRange } from "../../utils/timeFormat";
 import { getMerchantProfileId } from "../../utils/auth";
+import { authFetch } from "../../utils/api";
 
 function formatDate(dateValue) {
   if (!dateValue) return "Not available";
@@ -97,7 +98,7 @@ function PaymentVerificationPage() {
         setIsLoading(true);
         setErrorMessage("");
 
-        const response = await fetch(
+        const response = await authFetch(
           `http://localhost:5000/bookings/merchant/${merchantProfileId}`
         );
 
@@ -186,7 +187,7 @@ const handlePaymentAction = async (bookingId, actionType) => {
         ? `http://localhost:5000/bookings/${bookingId}/approve-payment`
         : `http://localhost:5000/bookings/${bookingId}/reject-payment`;
 
-    const response = await fetch(endpoint, {
+    const response = await authFetch(endpoint, {
       method: "PATCH",
     });
 

@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const prisma = require("../lib/prisma");
 const { validatePhoneNumber } = require("../utils/phoneValidation");
+const { signAuthToken } = require("../utils/jwt");
 
 const MIN_USERNAME_LENGTH = 3;
 const MAX_USERNAME_LENGTH = 20;
@@ -142,6 +143,11 @@ const registerCustomer = async (req, res) => {
 
     return res.status(201).json({
       message: "Customer registered successfully",
+      token: signAuthToken({
+        userId: result.newUser.id,
+        role: result.newUser.role,
+        customerProfileId: result.customerProfile.id,
+      }),
       user: {
         id: result.newUser.id,
         fullName: result.newUser.fullName,
@@ -297,6 +303,11 @@ const registerMerchant = async (req, res) => {
 
     return res.status(201).json({
       message: "Merchant registered successfully",
+      token: signAuthToken({
+        userId: result.newUser.id,
+        role: result.newUser.role,
+        merchantProfileId: result.merchantProfile.id,
+      }),
       user: {
         id: result.newUser.id,
         fullName: result.newUser.fullName,
@@ -386,6 +397,12 @@ const loginUser = async (req, res) => {
 
     return res.status(200).json({
       message: "Login successful",
+      token: signAuthToken({
+        userId: user.id,
+        role: user.role,
+        customerProfileId: user.customerProfile?.id || null,
+        merchantProfileId: user.merchantProfile?.id || null,
+      }),
       user: {
         id: user.id,
         fullName: user.fullName,

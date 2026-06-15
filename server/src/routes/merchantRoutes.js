@@ -1,5 +1,9 @@
 const express = require("express");
 const {
+  authenticateToken,
+  requireRole,
+} = require("../middleware/authMiddleware");
+const {
   paymentQrUpload,
   merchantVerificationUpload,
 } = require("../config/multer");
@@ -17,6 +21,8 @@ const router = express.Router();
 
 router.get(
   "/merchants/:merchantId/analytics",
+  authenticateToken,
+  requireRole("MERCHANT"),
   requireMerchantOwner,
   requireApprovedMerchant,
   getMerchantAnalytics
@@ -51,11 +57,15 @@ const handleMerchantVerificationUpload = (req, res, next) => {
 
 router.get(
   "/merchants/:merchantId/verification",
+  authenticateToken,
+  requireRole("MERCHANT"),
   requireMerchantOwner,
   getMerchantVerification
 );
 router.patch(
   "/merchants/:merchantId/verification",
+  authenticateToken,
+  requireRole("MERCHANT"),
   requireMerchantOwner,
   handleMerchantVerificationUpload,
   updateMerchantVerification
@@ -63,10 +73,15 @@ router.patch(
 
 router.get(
   "/merchants/:merchantId/payment-details",
+  authenticateToken,
+  requireRole("CUSTOMER", "MERCHANT", "ADMIN"),
   getMerchantPaymentDetails
 );
 router.patch(
   "/merchants/:merchantId/payment-details",
+  authenticateToken,
+  requireRole("MERCHANT"),
+  requireMerchantOwner,
   requireApprovedMerchant,
   handlePaymentQrUpload,
   updateMerchantPaymentDetails

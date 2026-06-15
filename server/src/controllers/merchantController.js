@@ -48,7 +48,7 @@ function buildVerificationDetails(merchant) {
 const requireMerchantOwner = async (req, res, next) => {
   try {
     const merchantId = parsePositiveInteger(req.params.merchantId);
-    const userId = parsePositiveInteger(req.headers["x-user-id"]);
+    const tokenMerchantId = req.auth?.merchantProfileId;
 
     if (!merchantId) {
       return res.status(400).json({
@@ -56,27 +56,7 @@ const requireMerchantOwner = async (req, res, next) => {
       });
     }
 
-    if (!userId) {
-      return res.status(401).json({
-        message: "Merchant user ID is required",
-      });
-    }
-
-    const merchant = await prisma.merchantProfile.findUnique({
-      where: { id: merchantId },
-      select: {
-        id: true,
-        userId: true,
-      },
-    });
-
-    if (!merchant) {
-      return res.status(404).json({
-        message: "Merchant profile not found",
-      });
-    }
-
-    if (merchant.userId !== userId) {
+    if (merchantId !== tokenMerchantId) {
       return res.status(403).json({
         message: "You can only access your own merchant account",
       });

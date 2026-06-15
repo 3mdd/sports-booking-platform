@@ -137,7 +137,6 @@ function getStartOfLocalDay(dateValue) {
 const createFacility = async (req, res) => {
   try {
     const {
-      merchantProfileId,
       sportTypeId,
       name,
       description,
@@ -146,6 +145,7 @@ const createFacility = async (req, res) => {
       areaName,
       pricePerSlot,
     } = req.body;
+    const merchantProfileId = req.auth?.merchantProfileId;
 
     if (
       !merchantProfileId ||
@@ -155,7 +155,7 @@ const createFacility = async (req, res) => {
       pricePerSlot === undefined
     ) {
       return res.status(400).json({
-        message: "merchantProfileId, sportTypeId, name, location, and pricePerSlot are required",
+        message: "Merchant profile, sportTypeId, name, location, and pricePerSlot are required",
       });
     }
 
@@ -436,19 +436,11 @@ const requireFacilityOwner = async (req, res, next) => {
     const facilityId = parsePositiveInteger(
       req.params.facilityId || req.params.id
     );
-    const merchantProfileId = parsePositiveInteger(
-      req.headers["x-merchant-profile-id"]
-    );
+    const merchantProfileId = req.auth?.merchantProfileId;
 
     if (!facilityId) {
       return res.status(400).json({
         message: "Valid facility ID is required",
-      });
-    }
-
-    if (!merchantProfileId) {
-      return res.status(401).json({
-        message: "Merchant profile ID is required",
       });
     }
 
@@ -475,6 +467,59 @@ const requireFacilityOwner = async (req, res, next) => {
     return next();
   } catch (error) {
     console.error("Facility image ownership check failed:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
+const requireFacilityBodyOwner = async (req, res, next) => {
+  const originalFacilityId = req.params.facilityId;
+  req.params.facilityId = req.body.facilityId;
+  const restoreAndNext = (error) => {
+    req.params.facilityId = originalFacilityId;
+    return next(error);
+  };
+
+  return requireFacilityOwner(req, res, restoreAndNext);
+};
+
+const requireTimeSlotOwner = async (req, res, next) => {
+  try {
+    const slotId = parsePositiveInteger(req.params.slotId);
+
+    if (!slotId) {
+      return res.status(400).json({
+        message: "Valid time slot ID is required",
+      });
+    }
+
+    const slot = await prisma.timeSlot.findUnique({
+      where: { id: slotId },
+      select: {
+        facility: {
+          select: {
+            merchantProfileId: true,
+          },
+        },
+      },
+    });
+
+    if (!slot) {
+      return res.status(404).json({
+        message: "Time slot not found",
+      });
+    }
+
+    if (slot.facility.merchantProfileId !== req.auth?.merchantProfileId) {
+      return res.status(403).json({
+        message: "You can only manage slots for your own facilities",
+      });
+    }
+
+    return next();
+  } catch (error) {
+    console.error("Time slot ownership check failed:", error);
     return res.status(500).json({
       message: "Internal server error",
     });
@@ -1291,6 +1336,8 @@ module.exports = {
   getSportTypes,
   uploadFacilityPhoto,
   requireFacilityOwner,
+  requireFacilityBodyOwner,
+  requireTimeSlotOwner,
   getFacilityImages,
   uploadFacilityImages,
   setFacilityMainImage,

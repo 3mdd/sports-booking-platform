@@ -43,7 +43,9 @@ function isSameLocalDate(firstDateValue, secondDateValue) {
 
 const createBooking = async (req, res) => {
   try {
-    const { customerId, facilityId, timeSlotIds, notes } = req.body;
+    const { customerId: requestedCustomerId, facilityId, timeSlotIds, notes } =
+      req.body;
+    const customerId = req.auth?.customerProfileId;
 
     if (
       !customerId ||
@@ -52,7 +54,16 @@ const createBooking = async (req, res) => {
       timeSlotIds.length === 0
     ) {
       return res.status(400).json({
-        message: "customerId, facilityId, and timeSlotIds are required",
+        message: "Customer profile, facilityId, and timeSlotIds are required",
+      });
+    }
+
+    if (
+      requestedCustomerId &&
+      Number(requestedCustomerId) !== customerId
+    ) {
+      return res.status(403).json({
+        message: "You can only create bookings for your own customer account",
       });
     }
 
@@ -255,7 +266,13 @@ const createBooking = async (req, res) => {
 
 const getBookingsByCustomer = async (req, res) => {
   try {
-    const { customerId } = req.params;
+    const customerId = req.auth?.customerProfileId;
+
+    if (Number(req.params.customerId) !== customerId) {
+      return res.status(403).json({
+        message: "You can only view your own bookings",
+      });
+    }
 
     const customer = await prisma.customerProfile.findUnique({
       where: { id: Number(customerId) },
@@ -327,7 +344,13 @@ const getBookingsByCustomer = async (req, res) => {
 
 const getBookingsByMerchant = async (req, res) => {
   try {
-    const { merchantId } = req.params;
+    const merchantId = req.auth?.merchantProfileId;
+
+    if (Number(req.params.merchantId) !== merchantId) {
+      return res.status(403).json({
+        message: "You can only view bookings for your own merchant account",
+      });
+    }
 
     const merchant = await prisma.merchantProfile.findUnique({
       where: { id: Number(merchantId) },
@@ -434,6 +457,12 @@ const uploadPaymentProof = async (req, res) => {
       return res.status(404).json({ message: "Booking not found" });
     }
 
+    if (booking.customerId !== req.auth?.customerProfileId) {
+      return res.status(403).json({
+        message: "You can only upload payment proof for your own booking",
+      });
+    }
+
     if (booking.status !== "PENDING_PAYMENT") {
       return res.status(400).json({
         message: "Payment proof can only be uploaded for bookings pending payment",
@@ -482,12 +511,25 @@ const approvePayment = async (req, res) => {
       where: { id: Number(bookingId) },
       include: {
         paymentProof: true,
+        facility: {
+          select: {
+            merchantProfileId: true,
+          },
+        },
       },
     });
 
     if (!booking) {
       return res.status(404).json({
         message: "Booking not found",
+      });
+    }
+
+    if (
+      booking.facility.merchantProfileId !== req.auth?.merchantProfileId
+    ) {
+      return res.status(403).json({
+        message: "You can only verify payments for your own facilities",
       });
     }
 
@@ -542,12 +584,25 @@ const rejectPayment = async (req, res) => {
       include: {
         paymentProof: true,
         bookingSlots: true,
+        facility: {
+          select: {
+            merchantProfileId: true,
+          },
+        },
       },
     });
 
     if (!booking) {
       return res.status(404).json({
         message: "Booking not found",
+      });
+    }
+
+    if (
+      booking.facility.merchantProfileId !== req.auth?.merchantProfileId
+    ) {
+      return res.status(403).json({
+        message: "You can only verify payments for your own facilities",
       });
     }
 

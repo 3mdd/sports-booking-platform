@@ -5,6 +5,7 @@ import Footer from "../../components/layout/Footer";
 import { formatDisplayTimeRange } from "../../utils/timeFormat";
 import { getCustomerProfileId } from "../../utils/auth";
 import { getMerchantContact } from "../../utils/merchantContact";
+import { authFetch } from "../../utils/api";
 const PAYMENT_WINDOW_MS = 30 * 60 * 1000;
 
 function formatDate(dateValue) {
@@ -169,7 +170,7 @@ function CustomerBookingHistoryPage() {
         setIsLoading(true);
         setErrorMessage("");
 
-        const response = await fetch(
+        const response = await authFetch(
           `http://localhost:5000/bookings/customer/${customerProfileId}`
         );
 
@@ -291,7 +292,7 @@ function CustomerBookingHistoryPage() {
         isSuccess: false,
       });
 
-      const response = await fetch("http://localhost:5000/reviews", {
+      const response = await authFetch("http://localhost:5000/reviews", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

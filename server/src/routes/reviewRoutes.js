@@ -1,5 +1,9 @@
 const express = require("express");
 const {
+  authenticateToken,
+  requireRole,
+} = require("../middleware/authMiddleware");
+const {
   createReview,
   getReviewsByFacility,
   getReviewsByCustomer,
@@ -8,9 +12,24 @@ const {
 
 const router = express.Router();
 
-router.post("/reviews", createReview);
+router.post(
+  "/reviews",
+  authenticateToken,
+  requireRole("CUSTOMER"),
+  createReview
+);
 router.get("/reviews/facility/:facilityId", getReviewsByFacility);
-router.get("/reviews/customer/:customerId", getReviewsByCustomer);
-router.get("/reviews/merchant/:merchantId", getReviewsByMerchant);
+router.get(
+  "/reviews/customer/:customerId",
+  authenticateToken,
+  requireRole("CUSTOMER"),
+  getReviewsByCustomer
+);
+router.get(
+  "/reviews/merchant/:merchantId",
+  authenticateToken,
+  requireRole("MERCHANT"),
+  getReviewsByMerchant
+);
 
 module.exports = router;

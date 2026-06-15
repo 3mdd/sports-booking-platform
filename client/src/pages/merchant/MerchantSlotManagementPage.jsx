@@ -6,6 +6,7 @@ import {
   formatDisplayTime,
   formatDisplayTimeRange,
 } from "../../utils/timeFormat";
+import { authFetch } from "../../utils/api";
 
 const initialSlotForm = {
   startDate: getTodayDate(),
@@ -96,7 +97,7 @@ function MerchantSlotManagementPage() {
         setIsFacilityLoading(true);
         setErrorMessage("");
 
-        const response = await fetch(
+        const response = await authFetch(
           `http://localhost:5000/facilities/${facilityId}`
         );
         const data = await response.json();
@@ -130,7 +131,7 @@ function MerchantSlotManagementPage() {
       setIsSlotsLoading(true);
       setErrorMessage("");
 
-      const response = await fetch(
+      const response = await authFetch(
         `http://localhost:5000/facilities/slots/by-date?facilityId=${facilityId}&date=${selectedDate}`
       );
       const data = await response.json();
@@ -188,7 +189,7 @@ function MerchantSlotManagementPage() {
       setSlotActionMessage("");
       setIsSlotActionSuccess(false);
 
-      const response = await fetch(
+      const response = await authFetch(
         `http://localhost:5000/facilities/slots/${slotId}/block`,
         {
           method: "PATCH",
@@ -229,7 +230,7 @@ function MerchantSlotManagementPage() {
       setSlotActionMessage("");
       setIsSlotActionSuccess(false);
 
-      const response = await fetch(
+      const response = await authFetch(
         `http://localhost:5000/facilities/slots/${slotId}/unblock`,
         {
           method: "PATCH",
@@ -266,7 +267,7 @@ function MerchantSlotManagementPage() {
       setSlotActionMessage("");
       setIsSlotActionSuccess(false);
 
-      const response = await fetch(
+      const response = await authFetch(
         `http://localhost:5000/facilities/${facilityId}/slots/block-day`,
         {
           method: "PATCH",
@@ -314,7 +315,7 @@ function MerchantSlotManagementPage() {
       setSlotActionMessage("");
       setIsSlotActionSuccess(false);
 
-      const response = await fetch(
+      const response = await authFetch(
         `http://localhost:5000/facilities/${facilityId}/slots/unblock-day`,
         {
           method: "PATCH",
@@ -419,7 +420,7 @@ function MerchantSlotManagementPage() {
 
       for (const generatedDate of generatedDates) {
         try {
-          const response = await fetch(
+          const response = await authFetch(
             "http://localhost:5000/facilities/slots",
             {
               method: "POST",

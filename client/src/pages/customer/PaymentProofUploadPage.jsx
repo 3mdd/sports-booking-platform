@@ -5,6 +5,7 @@ import Footer from "../../components/layout/Footer";
 import { formatDisplaySlotLabel } from "../../utils/timeFormat";
 import { getUploadFileUrl } from "../../utils/uploadUrl";
 import { getMerchantContact } from "../../utils/merchantContact";
+import { authFetch } from "../../utils/api";
 
 const PAYMENT_WINDOW_MS = 30 * 60 * 1000;
 
@@ -100,7 +101,7 @@ function PaymentProofUploadPage() {
           throw new Error("Merchant profile is unavailable");
         }
 
-        const paymentResponse = await fetch(
+        const paymentResponse = await authFetch(
           `http://localhost:5000/merchants/${merchantId}/payment-details`
         );
         const paymentData = await paymentResponse.json();
@@ -171,7 +172,7 @@ function PaymentProofUploadPage() {
       formData.append("bookingId", booking.bookingId);
       formData.append("paymentProof", selectedFile);
 
-      const response = await fetch(
+      const response = await authFetch(
         "http://localhost:5000/bookings/payment-proof",
         {
           method: "POST",

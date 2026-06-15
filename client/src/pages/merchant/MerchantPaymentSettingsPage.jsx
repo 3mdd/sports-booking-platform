@@ -4,6 +4,7 @@ import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import { getMerchantProfileId } from "../../utils/auth";
 import { getUploadFileUrl } from "../../utils/uploadUrl";
+import { authFetch } from "../../utils/api";
 
 const initialFormData = {
   paymentBankName: "",
@@ -31,7 +32,7 @@ function MerchantPaymentSettingsPage() {
         setIsLoading(true);
         setMessage("");
 
-        const response = await fetch(
+        const response = await authFetch(
           `http://localhost:5000/merchants/${merchantProfileId}/payment-details`
         );
         const data = await response.json();
@@ -123,7 +124,7 @@ function MerchantPaymentSettingsPage() {
         requestData.append("paymentQrImage", selectedQrFile);
       }
 
-      const response = await fetch(
+      const response = await authFetch(
         `http://localhost:5000/merchants/${merchantProfileId}/payment-details`,
         {
           method: "PATCH",

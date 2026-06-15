@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
-import { getAuthUser } from "../../utils/auth";
 import { getUploadFileUrl } from "../../utils/uploadUrl";
+import { authFetch } from "../../utils/api";
 
 const approvalTabs = [
   { label: "Pending", value: "PENDING_APPROVAL" },
@@ -33,7 +33,6 @@ function getStatusClass(status) {
 }
 
 function AdminMerchantApprovalPage() {
-  const authUser = getAuthUser();
   const [merchants, setMerchants] = useState([]);
   const [selectedTab, setSelectedTab] = useState("PENDING_APPROVAL");
   const [approvalNotes, setApprovalNotes] = useState({});
@@ -46,11 +45,9 @@ function AdminMerchantApprovalPage() {
     try {
       setIsLoading(true);
 
-      const response = await fetch("http://localhost:5000/admin/merchants", {
-        headers: {
-          "x-user-id": String(authUser?.userId || ""),
-        },
-      });
+      const response = await authFetch(
+        "http://localhost:5000/admin/merchants"
+      );
       const data = await response.json();
 
       if (!response.ok) {
@@ -65,7 +62,7 @@ function AdminMerchantApprovalPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [authUser?.userId]);
+  }, []);
 
   useEffect(() => {
     fetchMerchants();
@@ -96,13 +93,12 @@ function AdminMerchantApprovalPage() {
       setMessage("");
       setIsSuccess(false);
 
-      const response = await fetch(
+      const response = await authFetch(
         `http://localhost:5000/admin/merchants/${merchantId}/${action}`,
         {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            "x-user-id": String(authUser?.userId || ""),
           },
           body: JSON.stringify({
             approvalNote:

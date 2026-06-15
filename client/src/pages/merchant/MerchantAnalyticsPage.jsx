@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import { getAuthUser, getMerchantProfileId } from "../../utils/auth";
+import { authFetch } from "../../utils/api";
 
 const API_BASE_URL = "http://localhost:5000";
 const MONTHS = [
@@ -207,13 +208,9 @@ function MerchantAnalyticsPage() {
           query.set("facilityId", filters.facilityId);
         }
 
-        const response = await fetch(
+        const response = await authFetch(
           `${API_BASE_URL}/merchants/${merchantId}/analytics?${query}`,
-          {
-            headers: {
-              "x-user-id": String(authUser.userId),
-            },
-          }
+          {}
         );
         const data = await response.json();
 

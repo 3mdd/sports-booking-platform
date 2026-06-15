@@ -1,5 +1,9 @@
 const express = require("express");
 const {
+  authenticateToken,
+  requireRole,
+} = require("../middleware/authMiddleware");
+const {
   getAdminDashboard,
   getAdminUsers,
   activateUser,
@@ -13,6 +17,8 @@ const {
 } = require("../controllers/adminController");
 
 const router = express.Router();
+
+router.use("/admin", authenticateToken, requireRole("ADMIN"));
 
 router.get("/admin/dashboard", getAdminDashboard);
 router.get("/admin/users", getAdminUsers);

@@ -13,27 +13,7 @@ function parsePositiveInteger(value) {
 }
 
 async function verifyAdminRequest(req, res) {
-  const userId = parsePositiveInteger(req.headers["x-user-id"]);
-
-  if (!userId) {
-    res.status(401).json({
-      message: "Admin user ID is required",
-    });
-    return false;
-  }
-
-  const adminUser = await prisma.user.findFirst({
-    where: {
-      id: userId,
-      role: "ADMIN",
-      isActive: true,
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  if (!adminUser) {
+  if (req.auth?.role !== "ADMIN") {
     res.status(403).json({
       message: "Admin access is required",
     });

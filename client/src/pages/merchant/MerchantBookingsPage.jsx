@@ -3,6 +3,7 @@ import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import { getMerchantProfileId } from "../../utils/auth";
 import { formatDisplayTimeRange } from "../../utils/timeFormat";
+import { authFetch } from "../../utils/api";
 
 const bookingStatuses = [
   "PENDING_PAYMENT",
@@ -76,7 +77,7 @@ function MerchantBookingsPage() {
         setIsLoading(true);
         setErrorMessage("");
 
-        const response = await fetch(
+        const response = await authFetch(
           `http://localhost:5000/bookings/merchant/${merchantProfileId}`
         );
         const data = await response.json();

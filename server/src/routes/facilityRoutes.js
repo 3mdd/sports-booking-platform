@@ -1,5 +1,9 @@
 const express = require("express");
 const {
+  authenticateToken,
+  requireRole,
+} = require("../middleware/authMiddleware");
+const {
   facilityPhotoUpload,
   facilityGalleryUpload,
 } = require("../config/multer");
@@ -10,6 +14,8 @@ const {
   getSportTypes,
   uploadFacilityPhoto,
   requireFacilityOwner,
+  requireFacilityBodyOwner,
+  requireTimeSlotOwner,
   getFacilityImages,
   uploadFacilityImages,
   setFacilityMainImage,
@@ -49,40 +55,87 @@ const handleFacilityGalleryUpload = (req, res, next) => {
   });
 };
 
-router.post("/facilities", createFacility);
+router.post(
+  "/facilities",
+  authenticateToken,
+  requireRole("MERCHANT"),
+  createFacility
+);
 router.get("/facilities", getAllFacilities);
 router.get("/facilities/sport-types", getSportTypes);
 router.get("/facilities/:facilityId/images", getFacilityImages);
 router.post(
   "/facilities/:facilityId/images",
+  authenticateToken,
+  requireRole("MERCHANT"),
   requireFacilityOwner,
   handleFacilityGalleryUpload,
   uploadFacilityImages
 );
 router.patch(
   "/facilities/:facilityId/images/:imageId/main",
+  authenticateToken,
+  requireRole("MERCHANT"),
   requireFacilityOwner,
   setFacilityMainImage
 );
 router.delete(
   "/facilities/:facilityId/images/:imageId",
+  authenticateToken,
+  requireRole("MERCHANT"),
   requireFacilityOwner,
   deleteFacilityImage
 );
 router.get("/facilities/:id", getFacilityById);
 router.patch(
   "/facilities/:id/photo",
+  authenticateToken,
+  requireRole("MERCHANT"),
+  requireFacilityOwner,
   handleFacilityPhotoUpload,
   uploadFacilityPhoto
 );
-router.patch("/facilities/:id", updateFacility);
-router.post("/facilities/slots", createTimeSlots);
+router.patch(
+  "/facilities/:id",
+  authenticateToken,
+  requireRole("MERCHANT"),
+  requireFacilityOwner,
+  updateFacility
+);
+router.post(
+  "/facilities/slots",
+  authenticateToken,
+  requireRole("MERCHANT"),
+  requireFacilityBodyOwner,
+  createTimeSlots
+);
 router.get("/facilities/slots/by-date", getFacilitySlotsByDate);
-router.patch("/facilities/slots/:slotId/block", blockTimeSlot);
-router.patch("/facilities/slots/:slotId/unblock", unblockTimeSlot);
-router.patch("/facilities/:facilityId/slots/block-day", blockFacilityDaySlots);
+router.patch(
+  "/facilities/slots/:slotId/block",
+  authenticateToken,
+  requireRole("MERCHANT"),
+  requireTimeSlotOwner,
+  blockTimeSlot
+);
+router.patch(
+  "/facilities/slots/:slotId/unblock",
+  authenticateToken,
+  requireRole("MERCHANT"),
+  requireTimeSlotOwner,
+  unblockTimeSlot
+);
+router.patch(
+  "/facilities/:facilityId/slots/block-day",
+  authenticateToken,
+  requireRole("MERCHANT"),
+  requireFacilityOwner,
+  blockFacilityDaySlots
+);
 router.patch(
   "/facilities/:facilityId/slots/unblock-day",
+  authenticateToken,
+  requireRole("MERCHANT"),
+  requireFacilityOwner,
   unblockFacilityDaySlots
 );
 

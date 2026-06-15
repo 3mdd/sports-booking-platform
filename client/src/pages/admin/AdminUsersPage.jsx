@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
-import { getAuthUser } from "../../utils/auth";
+import { authFetch } from "../../utils/api";
 
 const PROTECTED_ADMIN_EMAIL = "admin@elitesport.test";
 
@@ -14,7 +14,6 @@ function formatDate(value) {
 }
 
 function AdminUsersPage() {
-  const authUser = getAuthUser();
   const [users, setUsers] = useState([]);
   const [roleFilter, setRoleFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -26,11 +25,7 @@ function AdminUsersPage() {
   const fetchUsers = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("http://localhost:5000/admin/users", {
-        headers: {
-          "x-user-id": String(authUser?.userId || ""),
-        },
-      });
+      const response = await authFetch("http://localhost:5000/admin/users");
       const data = await response.json();
 
       if (!response.ok) {
@@ -45,7 +40,7 @@ function AdminUsersPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [authUser?.userId]);
+  }, []);
 
   useEffect(() => {
     fetchUsers();
@@ -69,13 +64,10 @@ function AdminUsersPage() {
     try {
       setProcessingUserId(user.userId);
       setMessage("");
-      const response = await fetch(
+      const response = await authFetch(
         `http://localhost:5000/admin/users/${user.userId}/${action}`,
         {
           method: "PATCH",
-          headers: {
-            "x-user-id": String(authUser?.userId || ""),
-          },
         }
       );
       const data = await response.json();

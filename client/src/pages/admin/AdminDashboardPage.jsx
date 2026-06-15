@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
-import { getAuthUser } from "../../utils/auth";
+import { authFetch } from "../../utils/api";
 
 const kpiDefinitions = [
   { key: "users", label: "Total Users" },
@@ -19,7 +19,6 @@ const kpiDefinitions = [
 ];
 
 function AdminDashboardPage() {
-  const authUser = getAuthUser();
   const [totals, setTotals] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -27,13 +26,8 @@ function AdminDashboardPage() {
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const response = await fetch(
-          "http://localhost:5000/admin/dashboard",
-          {
-            headers: {
-              "x-user-id": String(authUser?.userId || ""),
-            },
-          }
+        const response = await authFetch(
+          "http://localhost:5000/admin/dashboard"
         );
         const data = await response.json();
 
@@ -51,7 +45,7 @@ function AdminDashboardPage() {
     };
 
     fetchDashboard();
-  }, [authUser?.userId]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#f3f4f6] text-slate-900">

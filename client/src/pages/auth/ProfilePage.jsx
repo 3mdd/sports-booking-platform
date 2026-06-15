@@ -8,6 +8,7 @@ import {
 } from "../../utils/auth";
 import { getUploadFileUrl } from "../../utils/uploadUrl";
 import { getPhoneValidationError } from "../../utils/phoneValidation";
+import { authFetch } from "../../utils/api";
 
 const API_BASE_URL = "http://localhost:5000";
 
@@ -128,13 +129,8 @@ function ProfilePage() {
 
     const loadProfile = async () => {
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/users/${userId}/profile`,
-          {
-            headers: {
-              "x-user-id": String(userId),
-            },
-          }
+        const response = await authFetch(
+          `${API_BASE_URL}/users/${userId}/profile`
         );
         const data = await response.json();
 
@@ -201,13 +197,12 @@ function ProfilePage() {
         updatePayload.phoneNumber = normalizedPhoneNumber;
       }
 
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/users/${authUser.userId}/profile`,
         {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            "x-user-id": String(authUser.userId),
           },
           body: JSON.stringify(updatePayload),
         }
@@ -263,13 +258,10 @@ function ProfilePage() {
       const uploadData = new FormData();
       uploadData.append("avatar", avatarFile);
 
-      const response = await fetch(
+      const response = await authFetch(
         `${API_BASE_URL}/users/${authUser.userId}/avatar`,
         {
           method: "PATCH",
-          headers: {
-            "x-user-id": String(authUser.userId),
-          },
           body: uploadData,
         }
       );

@@ -8,6 +8,7 @@ import {
 } from "../../data/malaysiaLocations";
 import { getUploadFileUrl } from "../../utils/uploadUrl";
 import { getMerchantProfileId } from "../../utils/auth";
+import { authFetch } from "../../utils/api";
 
 const malaysiaStates = getStates();
 
@@ -73,7 +74,7 @@ function MerchantFacilityManagementPage() {
       setIsLoading(true);
       setErrorMessage("");
 
-      const response = await fetch("http://localhost:5000/facilities");
+      const response = await authFetch("http://localhost:5000/facilities");
       const data = await response.json();
 
       if (!response.ok) {
@@ -97,7 +98,9 @@ function MerchantFacilityManagementPage() {
       setIsSportTypesLoading(true);
       setSportTypesError("");
 
-      const response = await fetch("http://localhost:5000/facilities/sport-types");
+      const response = await authFetch(
+        "http://localhost:5000/facilities/sport-types"
+      );
       const data = await response.json();
 
       if (!response.ok) {
@@ -254,7 +257,7 @@ function MerchantFacilityManagementPage() {
       setIsSubmitSuccess(false);
       setSubmitMessage("");
 
-      const response = await fetch("http://localhost:5000/facilities", {
+      const response = await authFetch("http://localhost:5000/facilities", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -325,7 +328,7 @@ function MerchantFacilityManagementPage() {
       setIsEditSuccess(false);
       setEditMessage("");
 
-      const response = await fetch(
+      const response = await authFetch(
         `http://localhost:5000/facilities/${editingFacilityId}`,
         {
           method: "PATCH",
@@ -393,13 +396,10 @@ function MerchantFacilityManagementPage() {
         uploadFormData.append("facilityImages", file);
       });
 
-      const response = await fetch(
+      const response = await authFetch(
         `http://localhost:5000/facilities/${facilityId}/images`,
         {
           method: "POST",
-          headers: {
-            "x-merchant-profile-id": String(merchantProfileId),
-          },
           body: uploadFormData,
         }
       );
@@ -438,13 +438,10 @@ function MerchantFacilityManagementPage() {
         isSuccess: false,
       });
 
-      const response = await fetch(
+      const response = await authFetch(
         `http://localhost:5000/facilities/${facilityId}/images/${imageId}/main`,
         {
           method: "PATCH",
-          headers: {
-            "x-merchant-profile-id": String(merchantProfileId),
-          },
         }
       );
       const data = await response.json();
@@ -480,13 +477,10 @@ function MerchantFacilityManagementPage() {
         isSuccess: false,
       });
 
-      const response = await fetch(
+      const response = await authFetch(
         `http://localhost:5000/facilities/${facilityId}/images/${imageId}`,
         {
           method: "DELETE",
-          headers: {
-            "x-merchant-profile-id": String(merchantProfileId),
-          },
         }
       );
       const data = await response.json();

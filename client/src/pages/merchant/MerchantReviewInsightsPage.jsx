@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import { getMerchantProfileId } from "../../utils/auth";
+import { authFetch } from "../../utils/api";
 const ratingOptions = [5, 4, 3, 2, 1];
 const sentimentOptions = ["POSITIVE", "NEUTRAL", "NEGATIVE"];
 const sentimentLabels = {
@@ -115,7 +116,7 @@ function MerchantReviewInsightsPage() {
         setIsLoading(true);
         setErrorMessage("");
 
-        const response = await fetch(
+        const response = await authFetch(
           `http://localhost:5000/reviews/merchant/${merchantProfileId}`
         );
         const data = await response.json();

@@ -6,6 +6,8 @@ import loginHeroImage from "../../assets/images/login-hero.jpeg";
 function LoginPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const sessionExpired =
+    new URLSearchParams(location.search).get("session") === "expired";
   const [formData, setFormData] = useState({
     loginIdentifier: "",
     password: "",
@@ -68,6 +70,7 @@ function LoginPage() {
       }
 
       saveAuthUser({
+        token: data.token,
         userId: user.id,
         fullName: user.fullName,
         username: user.username,
@@ -145,9 +148,10 @@ function LoginPage() {
             opens after login.
           </p>
 
-          {location.state?.message ? (
+          {location.state?.message || sessionExpired ? (
             <div className="mt-5 rounded-lg bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700 ring-1 ring-amber-100">
-              {location.state.message}
+              {location.state?.message ||
+                "Your session has expired. Please log in again."}
             </div>
           ) : null}
 

@@ -13,6 +13,7 @@ function toProfileId(value) {
 
 export function saveAuthUser(user) {
   const authUser = {
+    token: user?.token ? String(user.token) : null,
     userId: toProfileId(user?.userId ?? user?.id),
     fullName: String(user?.fullName || ""),
     username: user?.username ? String(user.username) : null,
@@ -53,6 +54,10 @@ export function getCustomerProfileId() {
   return user?.role === "CUSTOMER"
     ? toProfileId(user.customerProfileId)
     : null;
+}
+
+export function getAuthToken() {
+  return getAuthUser()?.token || null;
 }
 
 export function getMerchantProfileId() {
