@@ -39,6 +39,7 @@ const adminNavigation = [
   { label: "Merchants", to: "/admin/merchants" },
   { label: "Users", to: "/admin/users" },
   { label: "Facilities", to: "/admin/facilities" },
+  { label: "Reports", to: "/admin/reports" },
 ];
 
 function getInitials(fullName) {

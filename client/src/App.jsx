@@ -25,6 +25,7 @@ import AdminMerchantApprovalPage from "./pages/admin/AdminMerchantApprovalPage";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminFacilitiesPage from "./pages/admin/AdminFacilitiesPage";
+import AdminReportsPage from "./pages/admin/AdminReportsPage";
 
 function App() {
   return (
@@ -193,6 +194,14 @@ function App() {
           element={
             <RequireRole role="ADMIN">
               <AdminFacilitiesPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/admin/reports"
+          element={
+            <RequireRole role="ADMIN">
+              <AdminReportsPage />
             </RequireRole>
           }
         />

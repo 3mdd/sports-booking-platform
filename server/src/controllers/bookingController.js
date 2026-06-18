@@ -319,6 +319,16 @@ const getBookingsByCustomer = async (req, res) => {
         },
         paymentProof: true,
         review: true,
+        report: {
+          select: {
+            id: true,
+            reason: true,
+            status: true,
+            adminNote: true,
+            reviewedAt: true,
+            createdAt: true,
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",

@@ -100,6 +100,43 @@ const initialReviewFormData = {
   comment: "",
 };
 
+const initialReportFormData = {
+  reason: "PAYMENT_NO_RESPONSE",
+  description: "",
+};
+
+const reportReasons = [
+  {
+    value: "PAYMENT_NO_RESPONSE",
+    label: "Payment uploaded but no merchant response",
+  },
+  {
+    value: "VALID_PAYMENT_REJECTED",
+    label: "Valid payment was rejected",
+  },
+  {
+    value: "FACILITY_UNAVAILABLE_AFTER_PAYMENT",
+    label: "Facility unavailable after payment",
+  },
+  {
+    value: "MISLEADING_INFORMATION",
+    label: "Misleading facility information",
+  },
+  {
+    value: "UNEXPECTED_EXTRA_PAYMENT",
+    label: "Unexpected extra payment requested",
+  },
+  {
+    value: "FACILITY_NOT_FOUND",
+    label: "Facility could not be found",
+  },
+  {
+    value: "SAFETY_OR_SERIOUS_SERVICE_ISSUE",
+    label: "Safety or serious service issue",
+  },
+  { value: "OTHER", label: "Other" },
+];
+
 const ratingLabels = {
   1: "Poor",
   2: "Fair",
@@ -140,6 +177,14 @@ function CustomerBookingHistoryPage() {
   const [hoveredReviewRating, setHoveredReviewRating] = useState(null);
   const [isReviewSubmitting, setIsReviewSubmitting] = useState(false);
   const [reviewMessage, setReviewMessage] = useState({
+    bookingId: null,
+    message: "",
+    isSuccess: false,
+  });
+  const [reportFormBookingId, setReportFormBookingId] = useState(null);
+  const [reportFormData, setReportFormData] = useState(initialReportFormData);
+  const [isReportSubmitting, setIsReportSubmitting] = useState(false);
+  const [reportMessage, setReportMessage] = useState({
     bookingId: null,
     message: "",
     isSuccess: false,
@@ -338,6 +383,112 @@ function CustomerBookingHistoryPage() {
     }
   };
 
+  const handleStartReport = (booking) => {
+    setReportFormBookingId(booking.id);
+    setReportFormData(initialReportFormData);
+    setReportMessage({
+      bookingId: null,
+      message: "",
+      isSuccess: false,
+    });
+  };
+
+  const handleCancelReport = () => {
+    setReportFormBookingId(null);
+    setReportFormData(initialReportFormData);
+  };
+
+  const handleReportInputChange = (event) => {
+    const { name, value } = event.target;
+
+    setReportFormData((currentFormData) => ({
+      ...currentFormData,
+      [name]: value,
+    }));
+  };
+
+  const isBookingEligibleForReport = (booking) => {
+    if (booking.status === "PAYMENT_UPLOADED" || booking.status === "CONFIRMED") {
+      return true;
+    }
+
+    return booking.status === "REJECTED" && Boolean(booking.paymentProof);
+  };
+
+  const handleSubmitReport = async (event, booking) => {
+    event.preventDefault();
+
+    const trimmedDescription = reportFormData.description.trim();
+
+    if (!trimmedDescription) {
+      setReportMessage({
+        bookingId: booking.id,
+        message: "Please describe the issue before submitting.",
+        isSuccess: false,
+      });
+      return;
+    }
+
+    if (trimmedDescription.length > 1500) {
+      setReportMessage({
+        bookingId: booking.id,
+        message: "Report description must be 1500 characters or fewer.",
+        isSuccess: false,
+      });
+      return;
+    }
+
+    try {
+      setIsReportSubmitting(true);
+      setReportMessage({
+        bookingId: booking.id,
+        message: "",
+        isSuccess: false,
+      });
+
+      const response = await authFetch("http://localhost:5000/reports", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bookingId: booking.id,
+          reason: reportFormData.reason,
+          description: trimmedDescription,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to submit report");
+      }
+
+      setBookings((currentBookings) =>
+        currentBookings.map((currentBooking) =>
+          currentBooking.id === booking.id
+            ? { ...currentBooking, report: data.report }
+            : currentBooking
+        )
+      );
+      setReportFormBookingId(null);
+      setReportFormData(initialReportFormData);
+      setReportMessage({
+        bookingId: booking.id,
+        message: "Report submitted. Admin will review it.",
+        isSuccess: true,
+      });
+    } catch (error) {
+      console.error("Submit booking report error:", error);
+      setReportMessage({
+        bookingId: booking.id,
+        message: error.message || "Unable to submit report.",
+        isSuccess: false,
+      });
+    } finally {
+      setIsReportSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#f3f4f6] text-slate-900">
       <Navbar />
@@ -467,6 +618,13 @@ function CustomerBookingHistoryPage() {
                 const selectedReviewRating = Number(reviewFormData.rating);
                 const activeReviewRating =
                   hoveredReviewRating || selectedReviewRating;
+                const hasReport = Boolean(booking.report);
+                const isReportEligible =
+                  !hasReport && isBookingEligibleForReport(booking);
+                const isReportFormOpen = reportFormBookingId === booking.id;
+                const isReportMessageVisible =
+                  reportMessage.bookingId === booking.id &&
+                  reportMessage.message;
 
                 return (
                   <article
@@ -610,6 +768,135 @@ function CustomerBookingHistoryPage() {
                           Expired. The payment window has ended and the slots
                           have been released.
                         </p>
+                      ) : null}
+                    </div>
+
+                    <div className="mt-4 rounded-lg bg-white p-4 text-sm ring-1 ring-gray-200">
+                      <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
+                        <div>
+                          <p className="font-bold text-emerald-950">
+                            Booking Issue Report
+                          </p>
+                          <p className="mt-1 text-slate-500">
+                            Use this only for payment, facility, or serious
+                            service issues that admin should review.
+                          </p>
+                        </div>
+
+                        {hasReport ? (
+                          <span className="w-fit rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
+                            Report {booking.report.status.replaceAll("_", " ")}
+                          </span>
+                        ) : null}
+
+                        {isReportEligible && !isReportFormOpen ? (
+                          <button
+                            type="button"
+                            onClick={() => handleStartReport(booking)}
+                            className="w-fit rounded-lg border border-red-200 px-4 py-2 text-xs font-bold text-red-700 transition hover:bg-red-50"
+                          >
+                            Report Issue
+                          </button>
+                        ) : null}
+                      </div>
+
+                      {hasReport ? (
+                        <p className="mt-3 text-sm text-slate-600">
+                          Submitted on {formatDate(booking.report.createdAt)}.
+                          {booking.report.adminNote
+                            ? ` Admin note: ${booking.report.adminNote}`
+                            : " Admin has not added a note yet."}
+                        </p>
+                      ) : null}
+
+                      {isReportFormOpen ? (
+                        <form
+                          onSubmit={(event) =>
+                            handleSubmitReport(event, booking)
+                          }
+                          className="mt-4 rounded-xl bg-gray-50 p-4 ring-1 ring-gray-200"
+                        >
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <div>
+                              <label className="text-sm font-semibold text-slate-700">
+                                Reason
+                              </label>
+                              <select
+                                name="reason"
+                                value={reportFormData.reason}
+                                onChange={handleReportInputChange}
+                                className="mt-2 w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-lime-400"
+                              >
+                                {reportReasons.map((reason) => (
+                                  <option
+                                    key={reason.value}
+                                    value={reason.value}
+                                  >
+                                    {reason.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-slate-700">
+                                Eligible Booking
+                              </p>
+                              <p className="mt-2 rounded-lg bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-gray-200">
+                                {bookingStatus}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-3">
+                            <label className="text-sm font-semibold text-slate-700">
+                              Description
+                            </label>
+                            <textarea
+                              name="description"
+                              rows="4"
+                              maxLength="1500"
+                              value={reportFormData.description}
+                              onChange={handleReportInputChange}
+                              className="mt-2 w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm leading-6 outline-none focus:border-lime-400"
+                              placeholder="Explain what happened and include useful payment or facility details."
+                            />
+                            <p className="mt-1 text-xs font-semibold text-slate-500">
+                              {reportFormData.description.length}/1500
+                              characters
+                            </p>
+                          </div>
+
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <button
+                              type="submit"
+                              disabled={isReportSubmitting}
+                              className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+                            >
+                              {isReportSubmitting
+                                ? "Submitting..."
+                                : "Submit Report"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleCancelReport}
+                              className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-gray-50"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      ) : null}
+
+                      {isReportMessageVisible ? (
+                        <div
+                          className={`mt-3 rounded-lg px-4 py-3 text-sm font-medium ${
+                            reportMessage.isSuccess
+                              ? "bg-lime-50 text-emerald-800 ring-1 ring-lime-100"
+                              : "bg-red-50 text-red-700 ring-1 ring-red-100"
+                          }`}
+                        >
+                          {reportMessage.message}
+                        </div>
                       ) : null}
                     </div>
 

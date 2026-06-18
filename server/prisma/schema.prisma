@@ -19,66 +19,69 @@ enum MerchantApprovalStatus {
 }
 
 model User {
-  id              Int              @id @default(autoincrement())
-  fullName        String
-  username        String?          @unique
-  email           String           @unique
-  phoneNumber     String?
-  avatarUrl       String?
-  passwordHash    String
-  role            Role
-  isActive        Boolean          @default(true)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id           Int      @id @default(autoincrement())
+  fullName     String
+  username     String?  @unique
+  email        String   @unique
+  phoneNumber  String?
+  avatarUrl    String?
+  passwordHash String
+  role         Role
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  customerProfile CustomerProfile?
-  merchantProfile MerchantProfile?
+  customerProfile        CustomerProfile?
+  merchantProfile        MerchantProfile?
+  reviewedBookingReports BookingReport[]  @relation("BookingReportReviewer")
 }
 
 model CustomerProfile {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  bookings Booking[]
-  reviews Review[]
+  id             Int             @id @default(autoincrement())
+  userId         Int             @unique
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  bookings       Booking[]
+  reviews        Review[]
+  bookingReports BookingReport[]
 }
 
 model MerchantProfile {
-  id                   Int      @id @default(autoincrement())
-  userId               Int      @unique
-  businessName         String
-  businessPhone        String?
-  businessAddress      String?
+  id                         Int                    @id @default(autoincrement())
+  userId                     Int                    @unique
+  businessName               String
+  businessPhone              String?
+  businessAddress            String?
   businessRegistrationNumber String?
-  verificationDocumentUrl String?
-  ownershipProofUrl    String?
-  paymentBankName      String?
-  paymentAccountName   String?
-  paymentAccountNumber String?
-  paymentInstructions  String?
-  paymentQrImageUrl    String?
-  approvalStatus       MerchantApprovalStatus @default(PENDING_APPROVAL)
-  approvalNote         String?
-  approvedAt           DateTime?
-  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-  facilities Facility[]
+  verificationDocumentUrl    String?
+  ownershipProofUrl          String?
+  paymentBankName            String?
+  paymentAccountName         String?
+  paymentAccountNumber       String?
+  paymentInstructions        String?
+  paymentQrImageUrl          String?
+  approvalStatus             MerchantApprovalStatus @default(PENDING_APPROVAL)
+  approvalNote               String?
+  approvedAt                 DateTime?
+  user                       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt                  DateTime               @default(now())
+  updatedAt                  DateTime               @updatedAt
+  facilities                 Facility[]
+  bookingReports             BookingReport[]
 }
 
 model SportType {
-  id         Int        @id @default(autoincrement())
-  name       String     @unique
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   facilities Facility[]
 }
 
 model Facility {
-  id                Int              @id @default(autoincrement())
+  id                Int      @id @default(autoincrement())
   merchantProfileId Int
   sportTypeId       Int
   name              String
@@ -86,47 +89,48 @@ model Facility {
   location          String
   stateName         String?
   areaName          String?
-  pricePerSlot      Decimal          @db.Decimal(10, 2)
-  isActive          Boolean          @default(true)
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
+  pricePerSlot      Decimal  @db.Decimal(10, 2)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  merchantProfile   MerchantProfile  @relation(fields: [merchantProfileId], references: [id], onDelete: Cascade)
-  sportType         SportType        @relation(fields: [sportTypeId], references: [id])
-  images            FacilityImage[]
-  timeSlots TimeSlot[]
-  bookings Booking[]
-  reviews Review[]
+  merchantProfile MerchantProfile @relation(fields: [merchantProfileId], references: [id], onDelete: Cascade)
+  sportType       SportType       @relation(fields: [sportTypeId], references: [id])
+  images          FacilityImage[]
+  timeSlots       TimeSlot[]
+  bookings        Booking[]
+  reviews         Review[]
+  bookingReports  BookingReport[]
 }
 
 model FacilityImage {
-  id         Int       @id @default(autoincrement())
+  id         Int      @id @default(autoincrement())
   facilityId Int
   imageUrl   String
-  isMain     Boolean   @default(false)
-  createdAt  DateTime  @default(now())
+  isMain     Boolean  @default(false)
+  createdAt  DateTime @default(now())
 
-  facility   Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  facility Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
 
   @@index([facilityId, isMain])
 }
 
 model TimeSlot {
-  id         Int       @id @default(autoincrement())
-  facilityId Int
-  slotDate   DateTime
-  startTime  DateTime
-  endTime    DateTime
-  isBooked   Boolean   @default(false)
-  isBlocked  Boolean   @default(false)
+  id          Int      @id @default(autoincrement())
+  facilityId  Int
+  slotDate    DateTime
+  startTime   DateTime
+  endTime     DateTime
+  isBooked    Boolean  @default(false)
+  isBlocked   Boolean  @default(false)
   blockReason String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  facility   Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  facility     Facility      @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  bookingSlots BookingSlot[]
 
   @@index([facilityId, slotDate])
-  bookingSlots BookingSlot[]
 }
 
 enum BookingStatus {
@@ -139,34 +143,34 @@ enum BookingStatus {
 }
 
 model Booking {
-  id             Int            @id @default(autoincrement())
-  customerId     Int
-  facilityId     Int
-  bookingDate    DateTime
-  totalPrice     Decimal        @db.Decimal(10, 2)
-  status         BookingStatus  @default(PENDING_PAYMENT)
-  notes          String?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id          Int           @id @default(autoincrement())
+  customerId  Int
+  facilityId  Int
+  bookingDate DateTime
+  totalPrice  Decimal       @db.Decimal(10, 2)
+  status      BookingStatus @default(PENDING_PAYMENT)
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
-  customer       CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  facility       Facility        @relation(fields: [facilityId], references: [id], onDelete: Cascade)
-  bookingSlots   BookingSlot[]
+  customer     CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  facility     Facility        @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  bookingSlots BookingSlot[]
   paymentProof PaymentProof?
-  review Review?
+  review       Review?
+  report       BookingReport?
 }
 
 model BookingSlot {
-  id         Int       @id @default(autoincrement())
+  id         Int      @id @default(autoincrement())
   bookingId  Int
   timeSlotId Int
-  createdAt  DateTime  @default(now())
+  createdAt  DateTime @default(now())
 
-  booking    Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  timeSlot   TimeSlot  @relation(fields: [timeSlotId], references: [id], onDelete: Cascade)
+  booking  Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  timeSlot TimeSlot @relation(fields: [timeSlotId], references: [id], onDelete: Cascade)
 
   @@unique([bookingId, timeSlotId])
-  
 }
 
 enum PaymentProofStatus {
@@ -176,17 +180,17 @@ enum PaymentProofStatus {
 }
 
 model PaymentProof {
-  id              Int                @id @default(autoincrement())
-  bookingId       Int                @unique
-  filePath        String
+  id               Int                @id @default(autoincrement())
+  bookingId        Int                @unique
+  filePath         String
   originalFileName String?
-  uploadedAt      DateTime           @default(now())
-  status          PaymentProofStatus @default(PENDING)
-  merchantNotes   String?
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  uploadedAt       DateTime           @default(now())
+  status           PaymentProofStatus @default(PENDING)
+  merchantNotes    String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
 
-  booking         Booking            @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
 
 enum SentimentLabel {
@@ -196,20 +200,65 @@ enum SentimentLabel {
 }
 
 model Review {
-  id             Int             @id @default(autoincrement())
-  bookingId      Int             @unique
-  customerId     Int
-  facilityId     Int
-  rating         Int
-  comment        String?
-  sentimentLabel SentimentLabel?
-  sentimentScore Float?
-  sentimentProvider String?
+  id                  Int             @id @default(autoincrement())
+  bookingId           Int             @unique
+  customerId          Int
+  facilityId          Int
+  rating              Int
+  comment             String?
+  sentimentLabel      SentimentLabel?
+  sentimentScore      Float?
+  sentimentProvider   String?
   sentimentAnalyzedAt DateTime?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
 
-  booking        Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  customer       CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  facility       Facility        @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  booking  Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  customer CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  facility Facility        @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+}
+
+enum BookingReportStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+enum BookingReportReason {
+  PAYMENT_NO_RESPONSE
+  VALID_PAYMENT_REJECTED
+  FACILITY_UNAVAILABLE_AFTER_PAYMENT
+  MISLEADING_INFORMATION
+  UNEXPECTED_EXTRA_PAYMENT
+  FACILITY_NOT_FOUND
+  SAFETY_OR_SERIOUS_SERVICE_ISSUE
+  OTHER
+}
+
+model BookingReport {
+  id                Int                 @id @default(autoincrement())
+  bookingId         Int                 @unique
+  customerProfileId Int
+  facilityId        Int
+  merchantProfileId Int
+  reason            BookingReportReason
+  description       String
+  status            BookingReportStatus @default(OPEN)
+  adminNote         String?
+  reviewedAt        DateTime?
+  reviewedByUserId  Int?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  booking         Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  customerProfile CustomerProfile @relation(fields: [customerProfileId], references: [id], onDelete: Cascade)
+  facility        Facility        @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  merchantProfile MerchantProfile @relation(fields: [merchantProfileId], references: [id], onDelete: Cascade)
+  reviewedBy      User?           @relation("BookingReportReviewer", fields: [reviewedByUserId], references: [id])
+
+  @@index([customerProfileId])
+  @@index([facilityId])
+  @@index([merchantProfileId])
+  @@index([status])
 }
