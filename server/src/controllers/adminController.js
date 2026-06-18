@@ -42,6 +42,8 @@ function buildUserResponse(user) {
 }
 
 function buildFacilityResponse(facility) {
+  const merchantUser = facility.merchantProfile.user;
+
   return {
     facilityId: facility.id,
     name: facility.name,
@@ -52,8 +54,13 @@ function buildFacilityResponse(facility) {
     sportType: facility.sportType,
     merchantProfileId: facility.merchantProfile.id,
     businessName: facility.merchantProfile.businessName,
+    merchantFullName: merchantUser.fullName,
+    merchantUsername: merchantUser.username,
+    merchantEmail: merchantUser.email,
+    merchantPhone:
+      facility.merchantProfile.businessPhone || merchantUser.phoneNumber,
     merchantApprovalStatus: facility.merchantProfile.approvalStatus,
-    merchantUserActive: facility.merchantProfile.user.isActive,
+    merchantUserActive: merchantUser.isActive,
     createdAt: facility.createdAt,
   };
 }
@@ -273,9 +280,14 @@ const getAdminFacilities = async (req, res) => {
           select: {
             id: true,
             businessName: true,
+            businessPhone: true,
             approvalStatus: true,
             user: {
               select: {
+                fullName: true,
+                username: true,
+                email: true,
+                phoneNumber: true,
                 isActive: true,
               },
             },
@@ -333,9 +345,14 @@ async function updateFacilityActiveStatus(req, res, isActive) {
         select: {
           id: true,
           businessName: true,
+          businessPhone: true,
           approvalStatus: true,
           user: {
             select: {
+              fullName: true,
+              username: true,
+              email: true,
+              phoneNumber: true,
               isActive: true,
             },
           },

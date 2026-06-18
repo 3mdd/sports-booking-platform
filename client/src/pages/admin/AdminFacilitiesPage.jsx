@@ -3,6 +3,16 @@ import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import { authFetch } from "../../utils/api";
 
+const notProvided = "Not provided";
+
+function displayValue(value) {
+  return value || notProvided;
+}
+
+function formatStatus(status) {
+  return status ? status.replaceAll("_", " ") : notProvided;
+}
+
 function AdminFacilitiesPage() {
   const [facilities, setFacilities] = useState([]);
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -150,7 +160,7 @@ function AdminFacilitiesPage() {
                         {facility.name}
                       </h2>
                       <p className="mt-1 text-sm font-semibold text-slate-700">
-                        {facility.businessName}
+                        {displayValue(facility.businessName)}
                       </p>
                     </div>
                     <span
@@ -183,12 +193,66 @@ function AdminFacilitiesPage() {
                         Merchant Status
                       </p>
                       <p className="mt-1 font-semibold text-slate-800">
-                        {facility.merchantApprovalStatus.replaceAll("_", " ")}
+                        {formatStatus(facility.merchantApprovalStatus)}
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
                         Account{" "}
                         {facility.merchantUserActive ? "active" : "inactive"}
                       </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 rounded-lg border border-emerald-100 bg-emerald-50/60 p-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-[0.12em] text-emerald-700">
+                          Owner / Merchant
+                        </p>
+                        <p className="mt-1 text-sm font-black text-emerald-950">
+                          {displayValue(facility.businessName)}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-emerald-800 ring-1 ring-emerald-100">
+                        {formatStatus(facility.merchantApprovalStatus)}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500">
+                          Merchant Name
+                        </p>
+                        <p className="font-semibold text-slate-800">
+                          {displayValue(
+                            facility.merchantFullName ||
+                              facility.merchantUsername
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500">
+                          Username
+                        </p>
+                        <p className="font-semibold text-slate-800">
+                          {displayValue(facility.merchantUsername)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500">
+                          Email
+                        </p>
+                        <p className="break-all font-semibold text-slate-800">
+                          {displayValue(facility.merchantEmail)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500">
+                          Phone
+                        </p>
+                        <p className="font-semibold text-slate-800">
+                          {displayValue(facility.merchantPhone)}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
