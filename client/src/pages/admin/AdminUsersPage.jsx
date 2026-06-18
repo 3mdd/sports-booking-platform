@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import { authFetch } from "../../utils/api";
@@ -6,6 +6,8 @@ import { authFetch } from "../../utils/api";
 const PROTECTED_ADMIN_EMAIL = "admin@elitesport.test";
 
 function formatDate(value) {
+  if (!value) return "Not available";
+
   return new Date(value).toLocaleDateString("en-MY", {
     day: "numeric",
     month: "short",
@@ -13,10 +15,15 @@ function formatDate(value) {
   });
 }
 
+function formatCurrency(value) {
+  return `RM ${Number(value || 0).toFixed(2)}`;
+}
+
 function AdminUsersPage() {
   const [users, setUsers] = useState([]);
   const [roleFilter, setRoleFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [expandedUserId, setExpandedUserId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [processingUserId, setProcessingUserId] = useState(null);
   const [message, setMessage] = useState("");
@@ -78,7 +85,9 @@ function AdminUsersPage() {
 
       setUsers((currentUsers) =>
         currentUsers.map((currentUser) =>
-          currentUser.userId === user.userId ? data.user : currentUser
+          currentUser.userId === user.userId
+            ? { ...currentUser, ...data.user }
+            : currentUser
         )
       );
       setIsSuccess(true);
@@ -161,6 +170,7 @@ function AdminUsersPage() {
                     <th className="px-4 py-3">Profile</th>
                     <th className="px-4 py-3">Joined</th>
                     <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Activity</th>
                     <th className="px-4 py-3 text-right">Action</th>
                   </tr>
                 </thead>
@@ -169,8 +179,13 @@ function AdminUsersPage() {
                     const isProtected =
                       user.email === PROTECTED_ADMIN_EMAIL;
 
+                    const isCustomer = user.role === "CUSTOMER";
+                    const summary = user.activitySummary;
+                    const isExpanded = expandedUserId === user.userId;
+
                     return (
-                      <tr key={user.userId}>
+                      <Fragment key={user.userId}>
+                      <tr>
                         <td className="px-4 py-4">
                           <p className="font-bold text-emerald-950">
                             {user.fullName}
@@ -210,6 +225,27 @@ function AdminUsersPage() {
                             {user.isActive ? "ACTIVE" : "INACTIVE"}
                           </span>
                         </td>
+                        <td className="px-4 py-4">
+                          {isCustomer ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedUserId((currentId) =>
+                                  currentId === user.userId
+                                    ? null
+                                    : user.userId
+                                )
+                              }
+                              className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 ring-1 ring-emerald-100 transition hover:bg-emerald-100"
+                            >
+                              {isExpanded ? "Hide Summary" : "View Summary"}
+                            </button>
+                          ) : (
+                            <span className="text-xs font-semibold text-slate-400">
+                              Not applicable
+                            </span>
+                          )}
+                        </td>
                         <td className="px-4 py-4 text-right">
                           {isProtected ? (
                             <span className="text-xs font-bold text-slate-500">
@@ -235,6 +271,83 @@ function AdminUsersPage() {
                           )}
                         </td>
                       </tr>
+                      {isCustomer && isExpanded ? (
+                        <tr key={`${user.userId}-summary`}>
+                          <td
+                            colSpan="7"
+                            className="bg-emerald-50/50 px-4 py-4"
+                          >
+                            <div className="rounded-lg bg-white p-4 ring-1 ring-emerald-100">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <p className="text-sm font-black text-emerald-950">
+                                  Activity Summary
+                                </p>
+                                <span className="rounded-full bg-gray-50 px-2.5 py-1 text-xs font-bold text-slate-700 ring-1 ring-gray-200">
+                                  Account{" "}
+                                  {user.accountStatus ||
+                                    (user.isActive ? "ACTIVE" : "INACTIVE")}
+                                </span>
+                              </div>
+
+                              <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                                <div>
+                                  <p className="text-xs font-semibold text-slate-500">
+                                    Total Bookings
+                                  </p>
+                                  <p className="font-bold text-slate-900">
+                                    {summary?.totalBookings || 0}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-xs font-semibold text-slate-500">
+                                    Confirmed Bookings
+                                  </p>
+                                  <p className="font-bold text-slate-900">
+                                    {summary?.confirmedBookings || 0}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-xs font-semibold text-slate-500">
+                                    Pending / Uploaded
+                                  </p>
+                                  <p className="font-bold text-slate-900">
+                                    {summary?.pendingOrPaymentUploadedBookings ||
+                                      0}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-xs font-semibold text-slate-500">
+                                    Rejected / Cancelled / Expired
+                                  </p>
+                                  <p className="font-bold text-slate-900">
+                                    {summary?.rejectedCancelledExpiredBookings ||
+                                      0}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-xs font-semibold text-slate-500">
+                                    Confirmed Spend
+                                  </p>
+                                  <p className="font-bold text-slate-900">
+                                    {formatCurrency(summary?.totalAmountSpent)}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-xs font-semibold text-slate-500">
+                                    Last Booking
+                                  </p>
+                                  <p className="font-bold text-slate-900">
+                                    {summary?.lastBookingDate
+                                      ? formatDate(summary.lastBookingDate)
+                                      : "No activity yet"}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : null}
+                      </Fragment>
                     );
                   })}
                 </tbody>

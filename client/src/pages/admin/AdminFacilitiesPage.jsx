@@ -13,9 +13,14 @@ function formatStatus(status) {
   return status ? status.replaceAll("_", " ") : notProvided;
 }
 
+function formatCurrency(value) {
+  return `RM ${Number(value || 0).toFixed(2)}`;
+}
+
 function AdminFacilitiesPage() {
   const [facilities, setFacilities] = useState([]);
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [expandedFacilityId, setExpandedFacilityId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [processingFacilityId, setProcessingFacilityId] = useState(null);
   const [message, setMessage] = useState("");
@@ -80,7 +85,7 @@ function AdminFacilitiesPage() {
       setFacilities((currentFacilities) =>
         currentFacilities.map((currentFacility) =>
           currentFacility.facilityId === facility.facilityId
-            ? data.facility
+            ? { ...currentFacility, ...data.facility }
             : currentFacility
         )
       );
@@ -254,6 +259,92 @@ function AdminFacilitiesPage() {
                         </p>
                       </div>
                     </div>
+                  </div>
+
+                  <div className="mt-3 rounded-lg bg-gray-50 p-3 ring-1 ring-gray-200">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-black text-emerald-950">
+                          Performance Summary
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Revenue counts confirmed bookings only.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedFacilityId((currentId) =>
+                            currentId === facility.facilityId
+                              ? null
+                              : facility.facilityId
+                          )
+                        }
+                        className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-emerald-800 ring-1 ring-emerald-100 transition hover:bg-emerald-50"
+                      >
+                        {expandedFacilityId === facility.facilityId
+                          ? "Hide Details"
+                          : "View Details"}
+                      </button>
+                    </div>
+
+                    {expandedFacilityId === facility.facilityId ? (
+                      <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                        <div>
+                          <p className="text-xs font-semibold text-slate-500">
+                            Booking Requests
+                          </p>
+                          <p className="font-bold text-slate-900">
+                            {facility.performanceSummary
+                              ?.totalBookingRequests || 0}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-500">
+                            Confirmed Bookings
+                          </p>
+                          <p className="font-bold text-slate-900">
+                            {facility.performanceSummary?.confirmedBookings ||
+                              0}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-500">
+                            Pending Bookings
+                          </p>
+                          <p className="font-bold text-slate-900">
+                            {facility.performanceSummary?.pendingBookings || 0}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-500">
+                            Confirmed Revenue
+                          </p>
+                          <p className="font-bold text-slate-900">
+                            {formatCurrency(
+                              facility.performanceSummary
+                                ?.totalConfirmedRevenue
+                            )}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-500">
+                            Reviews
+                          </p>
+                          <p className="font-bold text-slate-900">
+                            {facility.performanceSummary?.totalReviews || 0}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-500">
+                            Average Rating
+                          </p>
+                          <p className="font-bold text-slate-900">
+                            {facility.performanceSummary?.averageRating || 0}/5
+                          </p>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4">

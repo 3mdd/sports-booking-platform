@@ -20,6 +20,10 @@ function formatDate(dateValue) {
   });
 }
 
+function formatCurrency(value) {
+  return `RM ${Number(value || 0).toFixed(2)}`;
+}
+
 function getStatusClass(status) {
   if (status === "APPROVED") {
     return "bg-lime-100 text-emerald-800 ring-lime-200";
@@ -35,6 +39,7 @@ function getStatusClass(status) {
 function AdminMerchantApprovalPage() {
   const [merchants, setMerchants] = useState([]);
   const [selectedTab, setSelectedTab] = useState("PENDING_APPROVAL");
+  const [expandedMerchantId, setExpandedMerchantId] = useState(null);
   const [approvalNotes, setApprovalNotes] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [processingMerchantId, setProcessingMerchantId] = useState(null);
@@ -219,6 +224,9 @@ function AdminMerchantApprovalPage() {
                       <p className="mt-1 text-sm text-slate-500">
                         Contact: {merchant.phoneNumber || "Not provided"}
                       </p>
+                      <p className="mt-1 text-xs font-semibold text-slate-500">
+                        Account: {merchant.accountStatus || "ACTIVE"}
+                      </p>
                     </div>
 
                     <span
@@ -243,6 +251,100 @@ function AdminMerchantApprovalPage() {
                         {formatDate(merchant.approvedAt)}
                       </p>
                     </div>
+                  </div>
+
+                  <div className="mt-4 rounded-lg bg-gray-50 p-3 ring-1 ring-gray-200">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-black text-emerald-950">
+                          Performance Summary
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Confirmed revenue only includes confirmed bookings.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedMerchantId((currentId) =>
+                            currentId === merchant.merchantProfileId
+                              ? null
+                              : merchant.merchantProfileId
+                          )
+                        }
+                        className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-emerald-800 ring-1 ring-emerald-100 transition hover:bg-emerald-50"
+                      >
+                        {expandedMerchantId === merchant.merchantProfileId
+                          ? "Hide Details"
+                          : "View Details"}
+                      </button>
+                    </div>
+
+                    {expandedMerchantId === merchant.merchantProfileId ? (
+                      <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                        <div>
+                          <p className="text-xs font-semibold text-slate-500">
+                            Facilities
+                          </p>
+                          <p className="font-bold text-slate-900">
+                            {merchant.performanceSummary?.activeFacilities ||
+                              0}{" "}
+                            active /{" "}
+                            {merchant.performanceSummary?.totalFacilities || 0}{" "}
+                            total
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-500">
+                            Booking Requests
+                          </p>
+                          <p className="font-bold text-slate-900">
+                            {merchant.performanceSummary
+                              ?.totalBookingRequests || 0}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-500">
+                            Confirmed Bookings
+                          </p>
+                          <p className="font-bold text-slate-900">
+                            {merchant.performanceSummary?.confirmedBookings ||
+                              0}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-500">
+                            Pending Verification
+                          </p>
+                          <p className="font-bold text-slate-900">
+                            {merchant.performanceSummary
+                              ?.pendingPaymentVerificationCount || 0}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-500">
+                            Confirmed Revenue
+                          </p>
+                          <p className="font-bold text-slate-900">
+                            {formatCurrency(
+                              merchant.performanceSummary
+                                ?.totalConfirmedRevenue
+                            )}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-500">
+                            Reviews / Rating
+                          </p>
+                          <p className="font-bold text-slate-900">
+                            {merchant.performanceSummary?.totalReviews || 0}{" "}
+                            reviews ·{" "}
+                            {merchant.performanceSummary?.averageRating || 0}
+                            /5
+                          </p>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="mt-4 rounded-lg bg-emerald-50/60 p-4 ring-1 ring-emerald-100">

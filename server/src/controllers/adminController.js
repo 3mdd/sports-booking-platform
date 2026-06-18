@@ -5,6 +5,12 @@ const {
 
 const MAX_APPROVAL_NOTE_LENGTH = 500;
 const PROTECTED_ADMIN_EMAIL = "admin@elitesport.test";
+const PENDING_BOOKING_STATUSES = ["PENDING_PAYMENT", "PAYMENT_UPLOADED"];
+const CLOSED_UNSUCCESSFUL_BOOKING_STATUSES = [
+  "REJECTED",
+  "CANCELLED",
+  "EXPIRED",
+];
 
 function parsePositiveInteger(value) {
   const parsedValue = Number(value);
@@ -32,12 +38,14 @@ function buildUserResponse(user) {
     phoneNumber: user.phoneNumber,
     role: user.role,
     isActive: user.isActive,
+    accountStatus: user.isActive ? "ACTIVE" : "INACTIVE",
     createdAt: user.createdAt,
     customerProfileId: user.customerProfile?.id || null,
     merchantProfileId: user.merchantProfile?.id || null,
     businessName: user.merchantProfile?.businessName || null,
     merchantApprovalStatus:
       user.merchantProfile?.approvalStatus || null,
+    activitySummary: user.activitySummary || null,
   };
 }
 
@@ -62,7 +70,296 @@ function buildFacilityResponse(facility) {
     merchantApprovalStatus: facility.merchantProfile.approvalStatus,
     merchantUserActive: merchantUser.isActive,
     createdAt: facility.createdAt,
+    performanceSummary: facility.performanceSummary || null,
   };
+}
+
+function decimalToNumber(value) {
+  return value ? Number(value) : 0;
+}
+
+function roundMoney(value) {
+  return Number(value.toFixed(2));
+}
+
+function roundRating(value) {
+  return value ? Number(value.toFixed(1)) : 0;
+}
+
+function createCustomerActivitySummary() {
+  return {
+    totalBookings: 0,
+    confirmedBookings: 0,
+    pendingOrPaymentUploadedBookings: 0,
+    rejectedCancelledExpiredBookings: 0,
+    totalAmountSpent: 0,
+    lastBookingDate: null,
+  };
+}
+
+function createFacilityPerformanceSummary() {
+  return {
+    totalBookingRequests: 0,
+    confirmedBookings: 0,
+    pendingBookings: 0,
+    totalConfirmedRevenue: 0,
+    totalReviews: 0,
+    averageRating: 0,
+  };
+}
+
+function createMerchantPerformanceSummary() {
+  return {
+    totalFacilities: 0,
+    activeFacilities: 0,
+    totalBookingRequests: 0,
+    confirmedBookings: 0,
+    pendingPaymentVerificationCount: 0,
+    totalConfirmedRevenue: 0,
+    totalReviews: 0,
+    averageRating: 0,
+  };
+}
+
+async function getCustomerActivitySummaries(customerIds) {
+  const summaries = new Map(
+    customerIds.map((customerId) => [
+      customerId,
+      createCustomerActivitySummary(),
+    ])
+  );
+
+  if (customerIds.length === 0) return summaries;
+
+  const [bookingRows, lastBookingRows] = await prisma.$transaction([
+    prisma.booking.groupBy({
+      by: ["customerId", "status"],
+      where: {
+        customerId: {
+          in: customerIds,
+        },
+      },
+      _count: {
+        _all: true,
+      },
+      _sum: {
+        totalPrice: true,
+      },
+    }),
+    prisma.booking.groupBy({
+      by: ["customerId"],
+      where: {
+        customerId: {
+          in: customerIds,
+        },
+      },
+      _max: {
+        createdAt: true,
+      },
+    }),
+  ]);
+
+  bookingRows.forEach((row) => {
+    const summary = summaries.get(row.customerId);
+    if (!summary) return;
+
+    const count = row._count._all;
+    summary.totalBookings += count;
+
+    if (row.status === "CONFIRMED") {
+      summary.confirmedBookings += count;
+      summary.totalAmountSpent += decimalToNumber(row._sum.totalPrice);
+    }
+
+    if (PENDING_BOOKING_STATUSES.includes(row.status)) {
+      summary.pendingOrPaymentUploadedBookings += count;
+    }
+
+    if (CLOSED_UNSUCCESSFUL_BOOKING_STATUSES.includes(row.status)) {
+      summary.rejectedCancelledExpiredBookings += count;
+    }
+  });
+
+  lastBookingRows.forEach((row) => {
+    const summary = summaries.get(row.customerId);
+    if (summary) {
+      summary.lastBookingDate = row._max.createdAt;
+    }
+  });
+
+  summaries.forEach((summary) => {
+    summary.totalAmountSpent = roundMoney(summary.totalAmountSpent);
+  });
+
+  return summaries;
+}
+
+async function getFacilityPerformanceSummaries(facilityIds) {
+  const summaries = new Map(
+    facilityIds.map((facilityId) => [
+      facilityId,
+      createFacilityPerformanceSummary(),
+    ])
+  );
+
+  if (facilityIds.length === 0) return summaries;
+
+  const [bookingRows, reviewRows] = await prisma.$transaction([
+    prisma.booking.groupBy({
+      by: ["facilityId", "status"],
+      where: {
+        facilityId: {
+          in: facilityIds,
+        },
+      },
+      _count: {
+        _all: true,
+      },
+      _sum: {
+        totalPrice: true,
+      },
+    }),
+    prisma.review.groupBy({
+      by: ["facilityId"],
+      where: {
+        facilityId: {
+          in: facilityIds,
+        },
+      },
+      _count: {
+        _all: true,
+      },
+      _avg: {
+        rating: true,
+      },
+    }),
+  ]);
+
+  bookingRows.forEach((row) => {
+    const summary = summaries.get(row.facilityId);
+    if (!summary) return;
+
+    const count = row._count._all;
+    summary.totalBookingRequests += count;
+
+    if (row.status === "CONFIRMED") {
+      summary.confirmedBookings += count;
+      summary.totalConfirmedRevenue += decimalToNumber(row._sum.totalPrice);
+    }
+
+    if (PENDING_BOOKING_STATUSES.includes(row.status)) {
+      summary.pendingBookings += count;
+    }
+  });
+
+  reviewRows.forEach((row) => {
+    const summary = summaries.get(row.facilityId);
+    if (!summary) return;
+
+    summary.totalReviews = row._count._all;
+    summary.averageRating = roundRating(row._avg.rating || 0);
+  });
+
+  summaries.forEach((summary) => {
+    summary.totalConfirmedRevenue = roundMoney(summary.totalConfirmedRevenue);
+  });
+
+  return summaries;
+}
+
+async function getMerchantPerformanceSummaries(merchantIds) {
+  const summaries = new Map(
+    merchantIds.map((merchantId) => [
+      merchantId,
+      createMerchantPerformanceSummary(),
+    ])
+  );
+
+  if (merchantIds.length === 0) return summaries;
+
+  const facilities = await prisma.facility.findMany({
+    where: {
+      merchantProfileId: {
+        in: merchantIds,
+      },
+    },
+    select: {
+      id: true,
+      merchantProfileId: true,
+      isActive: true,
+    },
+  });
+
+  const facilityIds = facilities.map((facility) => facility.id);
+  const facilityPerformanceSummaries =
+    await getFacilityPerformanceSummaries(facilityIds);
+
+  const ratingTotals = new Map();
+
+  facilities.forEach((facility) => {
+    const summary = summaries.get(facility.merchantProfileId);
+    if (!summary) return;
+
+    summary.totalFacilities += 1;
+    if (facility.isActive) {
+      summary.activeFacilities += 1;
+    }
+
+    const facilitySummary =
+      facilityPerformanceSummaries.get(facility.id) ||
+      createFacilityPerformanceSummary();
+
+    summary.totalBookingRequests += facilitySummary.totalBookingRequests;
+    summary.confirmedBookings += facilitySummary.confirmedBookings;
+    summary.totalConfirmedRevenue += facilitySummary.totalConfirmedRevenue;
+    summary.totalReviews += facilitySummary.totalReviews;
+
+    if (facilitySummary.totalReviews > 0) {
+      const currentTotal = ratingTotals.get(facility.merchantProfileId) || 0;
+      ratingTotals.set(
+        facility.merchantProfileId,
+        currentTotal +
+          facilitySummary.averageRating * facilitySummary.totalReviews
+      );
+    }
+  });
+
+  if (facilityIds.length > 0) {
+    const pendingVerificationRows = await prisma.booking.groupBy({
+      by: ["facilityId"],
+      where: {
+        facilityId: {
+          in: facilityIds,
+        },
+        status: "PAYMENT_UPLOADED",
+      },
+      _count: {
+        _all: true,
+      },
+    });
+
+    const facilityToMerchant = new Map(
+      facilities.map((facility) => [facility.id, facility.merchantProfileId])
+    );
+
+    pendingVerificationRows.forEach((row) => {
+      const merchantId = facilityToMerchant.get(row.facilityId);
+      const summary = summaries.get(merchantId);
+      if (summary) {
+        summary.pendingPaymentVerificationCount += row._count._all;
+      }
+    });
+  }
+
+  summaries.forEach((summary, merchantId) => {
+    summary.totalConfirmedRevenue = roundMoney(summary.totalConfirmedRevenue);
+    summary.averageRating =
+      summary.totalReviews > 0
+        ? roundRating((ratingTotals.get(merchantId) || 0) / summary.totalReviews)
+        : 0;
+  });
+
+  return summaries;
 }
 
 const getAdminDashboard = async (req, res) => {
@@ -169,10 +466,22 @@ const getAdminUsers = async (req, res) => {
         createdAt: "desc",
       },
     });
+    const customerIds = users
+      .map((user) => user.customerProfile?.id)
+      .filter(Boolean);
+    const customerActivitySummaries =
+      await getCustomerActivitySummaries(customerIds);
+    const usersWithSummaries = users.map((user) => ({
+      ...user,
+      activitySummary: user.customerProfile?.id
+        ? customerActivitySummaries.get(user.customerProfile.id) ||
+          createCustomerActivitySummary()
+        : null,
+    }));
 
     return res.status(200).json({
       message: "Admin users fetched successfully",
-      users: users.map(buildUserResponse),
+      users: usersWithSummaries.map(buildUserResponse),
     });
   } catch (error) {
     console.error("Fetch admin users failed:", error);
@@ -298,10 +607,19 @@ const getAdminFacilities = async (req, res) => {
         createdAt: "desc",
       },
     });
+    const facilityIds = facilities.map((facility) => facility.id);
+    const facilityPerformanceSummaries =
+      await getFacilityPerformanceSummaries(facilityIds);
+    const facilitiesWithSummaries = facilities.map((facility) => ({
+      ...facility,
+      performanceSummary:
+        facilityPerformanceSummaries.get(facility.id) ||
+        createFacilityPerformanceSummary(),
+    }));
 
     return res.status(200).json({
       message: "Admin facilities fetched successfully",
-      facilities: facilities.map(buildFacilityResponse),
+      facilities: facilitiesWithSummaries.map(buildFacilityResponse),
     });
   } catch (error) {
     console.error("Fetch admin facilities failed:", error);
@@ -398,10 +716,12 @@ function buildMerchantResponse(merchant) {
     username: merchant.user.username,
     email: merchant.user.email,
     phoneNumber: merchant.user.phoneNumber,
+    accountStatus: merchant.user.isActive === false ? "INACTIVE" : "ACTIVE",
     approvalStatus: merchant.approvalStatus,
     approvalNote: merchant.approvalNote,
     approvedAt: merchant.approvedAt,
     createdAt: merchant.createdAt,
+    performanceSummary: merchant.performanceSummary || null,
   };
 }
 
@@ -417,6 +737,7 @@ const getAdminMerchants = async (req, res) => {
             username: true,
             email: true,
             phoneNumber: true,
+            isActive: true,
           },
         },
       },
@@ -424,10 +745,19 @@ const getAdminMerchants = async (req, res) => {
         createdAt: "desc",
       },
     });
+    const merchantIds = merchants.map((merchant) => merchant.id);
+    const merchantPerformanceSummaries =
+      await getMerchantPerformanceSummaries(merchantIds);
+    const merchantsWithSummaries = merchants.map((merchant) => ({
+      ...merchant,
+      performanceSummary:
+        merchantPerformanceSummaries.get(merchant.id) ||
+        createMerchantPerformanceSummary(),
+    }));
 
     return res.status(200).json({
       message: "Merchants fetched successfully",
-      merchants: merchants.map(buildMerchantResponse),
+      merchants: merchantsWithSummaries.map(buildMerchantResponse),
     });
   } catch (error) {
     console.error("Fetch admin merchants failed:", error);
