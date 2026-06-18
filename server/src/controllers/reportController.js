@@ -27,6 +27,35 @@ const ELIGIBLE_BOOKING_STATUSES = new Set([
 const MAX_DESCRIPTION_LENGTH = 1500;
 const MAX_ADMIN_NOTE_LENGTH = 1500;
 
+function getBaseUrl(req) {
+  return `${req.protocol}://${req.get("host")}`;
+}
+
+function normalizeUploadPath(filePath) {
+  if (!filePath) return "";
+
+  const normalizedPath = String(filePath).replace(/\\/g, "/");
+  const uploadsIndex = normalizedPath.indexOf("uploads/");
+
+  return uploadsIndex !== -1
+    ? normalizedPath.substring(uploadsIndex)
+    : normalizedPath;
+}
+
+function buildUploadUrl(req, filePath) {
+  const normalizedPath = normalizeUploadPath(filePath);
+
+  if (!normalizedPath) return "";
+
+  if (/^(https?:|data:|blob:)/i.test(normalizedPath)) {
+    return normalizedPath;
+  }
+
+  return normalizedPath.startsWith("/")
+    ? `${getBaseUrl(req)}${normalizedPath}`
+    : `${getBaseUrl(req)}/${normalizedPath}`;
+}
+
 function parsePositiveInteger(value) {
   const parsedValue = Number(value);
 
@@ -79,7 +108,7 @@ function buildCustomerReportResponse(report) {
   };
 }
 
-function buildAdminReportResponse(report) {
+function buildAdminReportResponse(report, req) {
   const customerUser = report.customerProfile.user;
   const merchantUser = report.merchantProfile.user;
   const paymentProof = report.booking.paymentProof;
@@ -109,7 +138,9 @@ function buildAdminReportResponse(report) {
     },
     merchant: {
       merchantProfileId: report.merchantProfileId,
+      merchantUserId: merchantUser.id,
       businessName: report.merchantProfile.businessName,
+      approvalStatus: report.merchantProfile.approvalStatus,
       fullName: merchantUser.fullName,
       username: merchantUser.username,
       email: merchantUser.email,
@@ -135,7 +166,8 @@ function buildAdminReportResponse(report) {
     paymentProof: paymentProof
       ? {
           status: paymentProof.status,
-          filePath: paymentProof.filePath,
+          filePath: normalizeUploadPath(paymentProof.filePath),
+          fileUrl: buildUploadUrl(req, paymentProof.filePath),
           originalFileName: paymentProof.originalFileName,
           uploadedAt: paymentProof.uploadedAt,
         }
@@ -323,6 +355,7 @@ const getAdminReports = async (req, res) => {
           include: {
             user: {
               select: {
+                id: true,
                 fullName: true,
                 username: true,
                 email: true,
@@ -335,6 +368,7 @@ const getAdminReports = async (req, res) => {
           include: {
             user: {
               select: {
+                id: true,
                 fullName: true,
                 username: true,
                 email: true,
@@ -378,7 +412,7 @@ const getAdminReports = async (req, res) => {
 
     return res.status(200).json({
       message: "Admin reports fetched successfully",
-      reports: reports.map(buildAdminReportResponse),
+      reports: reports.map((report) => buildAdminReportResponse(report, req)),
     });
   } catch (error) {
     console.error("Fetch admin reports failed:", error);
@@ -446,6 +480,7 @@ const updateReportStatus = async (req, res) => {
                 username: true,
                 email: true,
                 phoneNumber: true,
+                id: true,
               },
             },
           },
@@ -458,6 +493,7 @@ const updateReportStatus = async (req, res) => {
                 username: true,
                 email: true,
                 phoneNumber: true,
+                id: true,
               },
             },
           },
@@ -494,7 +530,7 @@ const updateReportStatus = async (req, res) => {
 
     return res.status(200).json({
       message: "Report updated successfully",
-      report: buildAdminReportResponse(report),
+      report: buildAdminReportResponse(report, req),
     });
   } catch (error) {
     console.error("Update booking report failed:", error);

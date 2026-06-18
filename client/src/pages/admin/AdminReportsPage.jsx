@@ -72,6 +72,21 @@ function getBookingTimeLabel(report) {
   return formatDisplayTimeRange(startTime, endTime);
 }
 
+function getMerchantApprovalLink(report) {
+  const params = new URLSearchParams();
+  const approvalStatus = report.merchant?.approvalStatus;
+  const search =
+    report.merchant?.email ||
+    report.merchant?.businessName ||
+    report.merchant?.username ||
+    "";
+
+  if (approvalStatus) params.set("approvalStatus", approvalStatus);
+  if (search) params.set("search", search);
+
+  return `/admin/merchants${params.toString() ? `?${params.toString()}` : ""}`;
+}
+
 function AdminReportsPage() {
   const [reports, setReports] = useState([]);
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -261,11 +276,17 @@ function AdminReportsPage() {
           {!isLoading
             ? filteredReports.map((report) => {
                 const isExpanded = expandedReportId === report.id;
-                const proofUrl = getUploadFileUrl(
-                  report.paymentProof?.filePath
-                );
+                const proofUrl =
+                  report.paymentProof?.fileUrl ||
+                  getUploadFileUrl(report.paymentProof?.filePath);
                 const isImageProof = /\.(jpe?g|png|webp)$/i.test(
-                  report.paymentProof?.filePath || ""
+                  [
+                    report.paymentProof?.fileUrl,
+                    report.paymentProof?.filePath,
+                    report.paymentProof?.originalFileName,
+                  ]
+                    .filter(Boolean)
+                    .join(" ")
                 );
 
                 return (
@@ -291,8 +312,8 @@ function AdminReportsPage() {
                           {formatLabel(report.reason)}
                         </h2>
                         <p className="mt-1 text-sm text-slate-600">
-                          Booking #{report.booking?.bookingId} ·{" "}
-                          {report.facility?.name || "Facility"} ·{" "}
+                          Booking #{report.booking?.bookingId} -{" "}
+                          {report.facility?.name || "Facility"} -{" "}
                           {formatDate(report.createdAt)}
                         </p>
                       </div>
@@ -353,12 +374,20 @@ function AdminReportsPage() {
                               {report.merchant?.phoneNumber ||
                                 "Phone not provided"}
                             </p>
-                            <Link
-                              to="/admin/merchants"
-                              className="mt-3 inline-flex rounded-lg bg-white px-3 py-2 text-xs font-bold text-emerald-800 ring-1 ring-emerald-100 hover:bg-emerald-50"
-                            >
-                              Open Merchant Management
-                            </Link>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <Link
+                                to={`/admin/users?role=MERCHANT&userId=${report.merchant?.merchantUserId}`}
+                                className="inline-flex rounded-lg bg-white px-3 py-2 text-xs font-bold text-emerald-800 ring-1 ring-emerald-100 hover:bg-emerald-50"
+                              >
+                                Open Merchant Account
+                              </Link>
+                              <Link
+                                to={getMerchantApprovalLink(report)}
+                                className="inline-flex rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-700 ring-1 ring-gray-200 hover:bg-gray-50"
+                              >
+                                Open Merchant Approval
+                              </Link>
+                            </div>
                           </div>
 
                           <div className="rounded-lg bg-gray-50 p-3 ring-1 ring-gray-200">
@@ -463,7 +492,7 @@ function AdminReportsPage() {
                                       rel="noreferrer"
                                       className="inline-flex rounded-lg bg-emerald-950 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-800"
                                     >
-                                      Open Payment Proof
+                                      Open Full Image
                                     </a>
                                   </div>
                                 ) : null}

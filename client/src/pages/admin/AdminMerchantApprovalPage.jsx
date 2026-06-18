@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import { getUploadFileUrl } from "../../utils/uploadUrl";
@@ -37,8 +38,14 @@ function getStatusClass(status) {
 }
 
 function AdminMerchantApprovalPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [merchants, setMerchants] = useState([]);
-  const [selectedTab, setSelectedTab] = useState("PENDING_APPROVAL");
+  const [selectedTab, setSelectedTab] = useState(
+    () => searchParams.get("approvalStatus") || "PENDING_APPROVAL"
+  );
+  const [searchTerm, setSearchTerm] = useState(
+    () => searchParams.get("search") || ""
+  );
   const [expandedMerchantId, setExpandedMerchantId] = useState(null);
   const [approvalNotes, setApprovalNotes] = useState({});
   const [isLoading, setIsLoading] = useState(true);
@@ -49,9 +56,15 @@ function AdminMerchantApprovalPage() {
   const fetchMerchants = useCallback(async () => {
     try {
       setIsLoading(true);
+      const params = new URLSearchParams();
+
+      if (selectedTab) params.set("approvalStatus", selectedTab);
+      if (searchTerm.trim()) params.set("search", searchTerm.trim());
 
       const response = await authFetch(
-        "http://localhost:5000/admin/merchants"
+        `http://localhost:5000/admin/merchants${
+          params.toString() ? `?${params.toString()}` : ""
+        }`
       );
       const data = await response.json();
 
@@ -67,30 +80,37 @@ function AdminMerchantApprovalPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [searchTerm, selectedTab]);
 
   useEffect(() => {
     fetchMerchants();
   }, [fetchMerchants]);
 
-  const filteredMerchants = useMemo(
-    () =>
-      merchants.filter(
-        (merchant) => merchant.approvalStatus === selectedTab
-      ),
-    [merchants, selectedTab]
-  );
+  useEffect(() => {
+    setSelectedTab(searchParams.get("approvalStatus") || "PENDING_APPROVAL");
+    setSearchTerm(searchParams.get("search") || "");
+  }, [searchParams]);
 
-  const statusCounts = useMemo(
-    () =>
-      approvalTabs.reduce((counts, tab) => {
-        counts[tab.value] = merchants.filter(
-          (merchant) => merchant.approvalStatus === tab.value
-        ).length;
-        return counts;
-      }, {}),
-    [merchants]
-  );
+  const updateUrlFilters = (updates) => {
+    const nextParams = new URLSearchParams(searchParams);
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (!value) {
+        nextParams.delete(key);
+      } else {
+        nextParams.set(key, value);
+      }
+    });
+
+    setSearchParams(nextParams);
+  };
+
+  const clearFilters = () => {
+    setSearchParams({});
+  };
+
+  const hasActiveFilters =
+    selectedTab !== "PENDING_APPROVAL" || Boolean(searchTerm.trim());
 
   const handleApprovalAction = async (merchantId, action) => {
     try {
@@ -157,16 +177,41 @@ function AdminMerchantApprovalPage() {
               <button
                 key={tab.value}
                 type="button"
-                onClick={() => setSelectedTab(tab.value)}
-                className={`whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-bold transition ${
+              onClick={() =>
+                updateUrlFilters({ approvalStatus: tab.value })
+              }
+              className={`whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-bold transition ${
                   selectedTab === tab.value
                     ? "bg-emerald-950 text-white"
                     : "bg-gray-50 text-slate-600 hover:bg-gray-100"
-                }`}
-              >
-                {tab.label} ({statusCounts[tab.value] || 0})
+              }`}
+            >
+                {tab.label}
               </button>
             ))}
+          </div>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(event) =>
+                updateUrlFilters({ search: event.target.value })
+              }
+              placeholder="Search business, name, username, email, or phone"
+              className="min-w-64 flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-lime-400"
+            />
+            {hasActiveFilters ? (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-gray-50"
+              >
+                Clear Filters
+              </button>
+            ) : null}
+            <span className="self-center text-sm font-semibold text-slate-500">
+              {merchants.length} merchants
+            </span>
           </div>
         </section>
 
@@ -189,15 +234,15 @@ function AdminMerchantApprovalPage() {
             </div>
           ) : null}
 
-          {!isLoading && filteredMerchants.length === 0 ? (
+          {!isLoading && merchants.length === 0 ? (
             <div className="rounded-xl bg-white p-5 text-sm font-medium text-slate-500 ring-1 ring-gray-200">
-              No {selectedTab.toLowerCase().replace("_", " ")} merchants.
+              No matching merchants found.
             </div>
           ) : null}
 
-          {!isLoading && filteredMerchants.length > 0 ? (
+          {!isLoading && merchants.length > 0 ? (
             <div className="grid gap-4 lg:grid-cols-2">
-              {filteredMerchants.map((merchant) => (
+              {merchants.map((merchant) => (
                 <article
                   key={merchant.merchantProfileId}
                   className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200"

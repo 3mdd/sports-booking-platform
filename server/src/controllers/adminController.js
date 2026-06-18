@@ -11,11 +11,37 @@ const CLOSED_UNSUCCESSFUL_BOOKING_STATUSES = [
   "CANCELLED",
   "EXPIRED",
 ];
+const ADMIN_USER_ROLES = new Set(["CUSTOMER", "MERCHANT", "ADMIN"]);
+const ADMIN_ACCOUNT_STATUSES = new Set(["ACTIVE", "INACTIVE"]);
+const ADMIN_MERCHANT_APPROVAL_STATUSES = new Set([
+  "PENDING_APPROVAL",
+  "APPROVED",
+  "REJECTED",
+]);
 
 function parsePositiveInteger(value) {
   const parsedValue = Number(value);
 
   return Number.isInteger(parsedValue) && parsedValue > 0 ? parsedValue : null;
+}
+
+function getTrimmedQuery(value) {
+  return String(value || "").trim();
+}
+
+function containsInsensitive(value) {
+  return {
+    contains: value,
+    mode: "insensitive",
+  };
+}
+
+function getActiveFilter(value) {
+  const normalizedValue = getTrimmedQuery(value).toUpperCase();
+
+  if (!ADMIN_ACCOUNT_STATUSES.has(normalizedValue)) return undefined;
+
+  return normalizedValue === "ACTIVE";
 }
 
 async function verifyAdminRequest(req, res) {
@@ -439,7 +465,35 @@ const getAdminUsers = async (req, res) => {
   try {
     if (!(await verifyAdminRequest(req, res))) return;
 
+    const search = getTrimmedQuery(req.query.search);
+    const role = getTrimmedQuery(req.query.role).toUpperCase();
+    const userId = parsePositiveInteger(req.query.userId);
+    const isActive = getActiveFilter(req.query.status ?? req.query.isActive);
+    const where = {};
+
+    if (userId) {
+      where.id = userId;
+    }
+
+    if (ADMIN_USER_ROLES.has(role)) {
+      where.role = role;
+    }
+
+    if (typeof isActive === "boolean") {
+      where.isActive = isActive;
+    }
+
+    if (search) {
+      where.OR = [
+        { fullName: containsInsensitive(search) },
+        { username: containsInsensitive(search) },
+        { email: containsInsensitive(search) },
+        { phoneNumber: containsInsensitive(search) },
+      ];
+    }
+
     const users = await prisma.user.findMany({
+      where,
       select: {
         id: true,
         fullName: true,
@@ -577,7 +631,77 @@ const getAdminFacilities = async (req, res) => {
   try {
     if (!(await verifyAdminRequest(req, res))) return;
 
+    const search = getTrimmedQuery(req.query.search);
+    const merchantProfileId = parsePositiveInteger(req.query.merchantProfileId);
+    const isActive = getActiveFilter(req.query.status ?? req.query.isActive);
+    const where = {};
+
+    if (typeof isActive === "boolean") {
+      where.isActive = isActive;
+    }
+
+    if (merchantProfileId) {
+      where.merchantProfileId = merchantProfileId;
+    }
+
+    if (search) {
+      where.OR = [
+        { name: containsInsensitive(search) },
+        { location: containsInsensitive(search) },
+        { stateName: containsInsensitive(search) },
+        { areaName: containsInsensitive(search) },
+        {
+          sportType: {
+            is: {
+              name: containsInsensitive(search),
+            },
+          },
+        },
+        {
+          merchantProfile: {
+            is: {
+              businessName: containsInsensitive(search),
+            },
+          },
+        },
+        {
+          merchantProfile: {
+            is: {
+              user: {
+                is: {
+                  fullName: containsInsensitive(search),
+                },
+              },
+            },
+          },
+        },
+        {
+          merchantProfile: {
+            is: {
+              user: {
+                is: {
+                  username: containsInsensitive(search),
+                },
+              },
+            },
+          },
+        },
+        {
+          merchantProfile: {
+            is: {
+              user: {
+                is: {
+                  email: containsInsensitive(search),
+                },
+              },
+            },
+          },
+        },
+      ];
+    }
+
     const facilities = await prisma.facility.findMany({
+      where,
       include: {
         sportType: {
           select: {
@@ -729,7 +853,51 @@ const getAdminMerchants = async (req, res) => {
   try {
     if (!(await verifyAdminRequest(req, res))) return;
 
+    const search = getTrimmedQuery(req.query.search);
+    const approvalStatus = getTrimmedQuery(req.query.approvalStatus).toUpperCase();
+    const where = {};
+
+    if (ADMIN_MERCHANT_APPROVAL_STATUSES.has(approvalStatus)) {
+      where.approvalStatus = approvalStatus;
+    }
+
+    if (search) {
+      where.OR = [
+        { businessName: containsInsensitive(search) },
+        { businessPhone: containsInsensitive(search) },
+        {
+          user: {
+            is: {
+              fullName: containsInsensitive(search),
+            },
+          },
+        },
+        {
+          user: {
+            is: {
+              username: containsInsensitive(search),
+            },
+          },
+        },
+        {
+          user: {
+            is: {
+              email: containsInsensitive(search),
+            },
+          },
+        },
+        {
+          user: {
+            is: {
+              phoneNumber: containsInsensitive(search),
+            },
+          },
+        },
+      ];
+    }
+
     const merchants = await prisma.merchantProfile.findMany({
+      where,
       include: {
         user: {
           select: {

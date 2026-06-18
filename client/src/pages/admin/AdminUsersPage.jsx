@@ -1,4 +1,5 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import { authFetch } from "../../utils/api";
@@ -20,9 +21,20 @@ function formatCurrency(value) {
 }
 
 function AdminUsersPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [users, setUsers] = useState([]);
-  const [roleFilter, setRoleFilter] = useState("ALL");
-  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [searchTerm, setSearchTerm] = useState(
+    () => searchParams.get("search") || ""
+  );
+  const [roleFilter, setRoleFilter] = useState(
+    () => searchParams.get("role") || "ALL"
+  );
+  const [statusFilter, setStatusFilter] = useState(
+    () => searchParams.get("status") || "ALL"
+  );
+  const [userIdFilter, setUserIdFilter] = useState(
+    () => searchParams.get("userId") || ""
+  );
   const [expandedUserId, setExpandedUserId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [processingUserId, setProcessingUserId] = useState(null);
@@ -32,7 +44,18 @@ function AdminUsersPage() {
   const fetchUsers = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await authFetch("http://localhost:5000/admin/users");
+      const params = new URLSearchParams();
+
+      if (searchTerm.trim()) params.set("search", searchTerm.trim());
+      if (roleFilter !== "ALL") params.set("role", roleFilter);
+      if (statusFilter !== "ALL") params.set("status", statusFilter);
+      if (userIdFilter) params.set("userId", userIdFilter);
+
+      const response = await authFetch(
+        `http://localhost:5000/admin/users${
+          params.toString() ? `?${params.toString()}` : ""
+        }`
+      );
       const data = await response.json();
 
       if (!response.ok) {
@@ -47,23 +70,39 @@ function AdminUsersPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [roleFilter, searchTerm, statusFilter, userIdFilter]);
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
-  const filteredUsers = useMemo(
-    () =>
-      users.filter((user) => {
-        const matchesRole = roleFilter === "ALL" || user.role === roleFilter;
-        const matchesStatus =
-          statusFilter === "ALL" ||
-          (statusFilter === "ACTIVE" ? user.isActive : !user.isActive);
-        return matchesRole && matchesStatus;
-      }),
-    [roleFilter, statusFilter, users]
-  );
+  useEffect(() => {
+    setSearchTerm(searchParams.get("search") || "");
+    setRoleFilter(searchParams.get("role") || "ALL");
+    setStatusFilter(searchParams.get("status") || "ALL");
+    setUserIdFilter(searchParams.get("userId") || "");
+  }, [searchParams]);
+
+  const updateUrlFilters = (updates) => {
+    const nextParams = new URLSearchParams(searchParams);
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (!value || value === "ALL") {
+        nextParams.delete(key);
+      } else {
+        nextParams.set(key, value);
+      }
+    });
+
+    setSearchParams(nextParams);
+  };
+
+  const clearFilters = () => {
+    setSearchParams({});
+  };
+
+  const hasActiveFilters =
+    searchTerm || roleFilter !== "ALL" || statusFilter !== "ALL" || userIdFilter;
 
   const handleStatusChange = async (user) => {
     const action = user.isActive ? "deactivate" : "activate";
@@ -121,7 +160,9 @@ function AdminUsersPage() {
         <section className="mt-5 flex flex-wrap gap-3 rounded-xl bg-white p-4 ring-1 ring-gray-200">
           <select
             value={roleFilter}
-            onChange={(event) => setRoleFilter(event.target.value)}
+            onChange={(event) =>
+              updateUrlFilters({ role: event.target.value })
+            }
             className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-semibold outline-none focus:border-lime-400"
           >
             <option value="ALL">All Roles</option>
@@ -131,15 +172,35 @@ function AdminUsersPage() {
           </select>
           <select
             value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
+            onChange={(event) =>
+              updateUrlFilters({ status: event.target.value })
+            }
             className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-semibold outline-none focus:border-lime-400"
           >
             <option value="ALL">All Statuses</option>
             <option value="ACTIVE">Active</option>
             <option value="INACTIVE">Inactive</option>
           </select>
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(event) =>
+              updateUrlFilters({ search: event.target.value })
+            }
+            placeholder="Search name, username, email, or phone"
+            className="min-w-64 flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-lime-400"
+          />
+          {hasActiveFilters ? (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-gray-50"
+            >
+              Clear Filters
+            </button>
+          ) : null}
           <span className="self-center text-sm font-semibold text-slate-500">
-            {filteredUsers.length} users
+            {users.length} users
           </span>
         </section>
 
@@ -175,7 +236,7 @@ function AdminUsersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filteredUsers.map((user) => {
+                  {users.map((user) => {
                     const isProtected =
                       user.email === PROTECTED_ADMIN_EMAIL;
 
@@ -354,6 +415,12 @@ function AdminUsersPage() {
               </table>
             </div>
           )}
+
+          {!isLoading && users.length === 0 ? (
+            <p className="p-5 text-sm font-medium text-slate-500">
+              No matching users found.
+            </p>
+          ) : null}
         </section>
       </main>
 

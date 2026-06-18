@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import { authFetch } from "../../utils/api";
@@ -18,8 +19,17 @@ function formatCurrency(value) {
 }
 
 function AdminFacilitiesPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [facilities, setFacilities] = useState([]);
-  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [searchTerm, setSearchTerm] = useState(
+    () => searchParams.get("search") || ""
+  );
+  const [statusFilter, setStatusFilter] = useState(
+    () => searchParams.get("status") || "ALL"
+  );
+  const [merchantProfileIdFilter, setMerchantProfileIdFilter] = useState(
+    () => searchParams.get("merchantProfileId") || ""
+  );
   const [expandedFacilityId, setExpandedFacilityId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [processingFacilityId, setProcessingFacilityId] = useState(null);
@@ -29,8 +39,18 @@ function AdminFacilitiesPage() {
   const fetchFacilities = useCallback(async () => {
     try {
       setIsLoading(true);
+      const params = new URLSearchParams();
+
+      if (searchTerm.trim()) params.set("search", searchTerm.trim());
+      if (statusFilter !== "ALL") params.set("status", statusFilter);
+      if (merchantProfileIdFilter) {
+        params.set("merchantProfileId", merchantProfileIdFilter);
+      }
+
       const response = await authFetch(
-        "http://localhost:5000/admin/facilities"
+        `http://localhost:5000/admin/facilities${
+          params.toString() ? `?${params.toString()}` : ""
+        }`
       );
       const data = await response.json();
 
@@ -46,23 +66,40 @@ function AdminFacilitiesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [merchantProfileIdFilter, searchTerm, statusFilter]);
 
   useEffect(() => {
     fetchFacilities();
   }, [fetchFacilities]);
 
-  const filteredFacilities = useMemo(
-    () =>
-      facilities.filter(
-        (facility) =>
-          statusFilter === "ALL" ||
-          (statusFilter === "ACTIVE"
-            ? facility.isActive
-            : !facility.isActive)
-      ),
-    [facilities, statusFilter]
-  );
+  useEffect(() => {
+    setSearchTerm(searchParams.get("search") || "");
+    setStatusFilter(searchParams.get("status") || "ALL");
+    setMerchantProfileIdFilter(searchParams.get("merchantProfileId") || "");
+  }, [searchParams]);
+
+  const updateUrlFilters = (updates) => {
+    const nextParams = new URLSearchParams(searchParams);
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (!value || value === "ALL") {
+        nextParams.delete(key);
+      } else {
+        nextParams.set(key, value);
+      }
+    });
+
+    setSearchParams(nextParams);
+  };
+
+  const clearFilters = () => {
+    setSearchParams({});
+  };
+
+  const hasActiveFilters =
+    searchTerm ||
+    statusFilter !== "ALL" ||
+    Boolean(merchantProfileIdFilter);
 
   const handleStatusChange = async (facility) => {
     const action = facility.isActive ? "deactivate" : "activate";
@@ -120,15 +157,35 @@ function AdminFacilitiesPage() {
         <section className="mt-5 flex flex-wrap items-center gap-3 rounded-xl bg-white p-4 ring-1 ring-gray-200">
           <select
             value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
+            onChange={(event) =>
+              updateUrlFilters({ status: event.target.value })
+            }
             className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-semibold outline-none focus:border-lime-400"
           >
             <option value="ALL">All Facilities</option>
             <option value="ACTIVE">Active</option>
             <option value="INACTIVE">Inactive</option>
           </select>
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(event) =>
+              updateUrlFilters({ search: event.target.value })
+            }
+            placeholder="Search facility, sport, location, or merchant"
+            className="min-w-64 flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm outline-none focus:border-lime-400"
+          />
+          {hasActiveFilters ? (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-gray-50"
+            >
+              Clear Filters
+            </button>
+          ) : null}
           <span className="text-sm font-semibold text-slate-500">
-            {filteredFacilities.length} facilities
+            {facilities.length} facilities
           </span>
         </section>
 
@@ -151,7 +208,7 @@ function AdminFacilitiesPage() {
             </div>
           ) : (
             <div className="grid gap-4 lg:grid-cols-2">
-              {filteredFacilities.map((facility) => (
+              {facilities.map((facility) => (
                 <article
                   key={facility.facilityId}
                   className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200"
@@ -375,9 +432,9 @@ function AdminFacilitiesPage() {
             </div>
           )}
 
-          {!isLoading && filteredFacilities.length === 0 ? (
+          {!isLoading && facilities.length === 0 ? (
             <div className="rounded-xl bg-white p-5 text-sm font-medium text-slate-500 ring-1 ring-gray-200">
-              No facilities match this filter.
+              No matching facilities found.
             </div>
           ) : null}
         </section>
