@@ -81,18 +81,19 @@ model SportType {
 }
 
 model Facility {
-  id                Int      @id @default(autoincrement())
-  merchantProfileId Int
-  sportTypeId       Int
-  name              String
-  description       String?
-  location          String
-  stateName         String?
-  areaName          String?
-  pricePerSlot      Decimal  @db.Decimal(10, 2)
-  isActive          Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                 Int      @id @default(autoincrement())
+  merchantProfileId  Int
+  sportTypeId        Int
+  name               String
+  description        String?
+  location           String
+  stateName          String?
+  areaName           String?
+  pricePerSlot       Decimal  @db.Decimal(10, 2)
+  isActive           Boolean  @default(true)
+  isSuspendedByAdmin Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   merchantProfile MerchantProfile @relation(fields: [merchantProfileId], references: [id], onDelete: Cascade)
   sportType       SportType       @relation(fields: [sportTypeId], references: [id])

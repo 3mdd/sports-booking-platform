@@ -1,0 +1,1 @@
+ALTER TABLE "Facility" ADD COLUMN "isSuspendedByAdmin" BOOLEAN NOT NULL DEFAULT false;

@@ -18,6 +18,12 @@ const ADMIN_MERCHANT_APPROVAL_STATUSES = new Set([
   "APPROVED",
   "REJECTED",
 ]);
+const ADMIN_FACILITY_STATUSES = new Set([
+  "ACTIVE",
+  "INACTIVE",
+  "MERCHANT_INACTIVE",
+  "ADMIN_SUSPENDED",
+]);
 
 function parsePositiveInteger(value) {
   const parsedValue = Number(value);
@@ -42,6 +48,30 @@ function getActiveFilter(value) {
   if (!ADMIN_ACCOUNT_STATUSES.has(normalizedValue)) return undefined;
 
   return normalizedValue === "ACTIVE";
+}
+
+function getFacilityStatusFilter(value) {
+  const normalizedValue = getTrimmedQuery(value).toUpperCase();
+
+  if (!ADMIN_FACILITY_STATUSES.has(normalizedValue)) return undefined;
+
+  if (normalizedValue === "ACTIVE") {
+    return {
+      isActive: true,
+      isSuspendedByAdmin: false,
+    };
+  }
+
+  if (normalizedValue === "INACTIVE" || normalizedValue === "MERCHANT_INACTIVE") {
+    return {
+      isActive: false,
+      isSuspendedByAdmin: false,
+    };
+  }
+
+  return {
+    isSuspendedByAdmin: true,
+  };
 }
 
 async function verifyAdminRequest(req, res) {
@@ -85,6 +115,12 @@ function buildFacilityResponse(facility) {
     stateName: facility.stateName,
     areaName: facility.areaName,
     isActive: facility.isActive,
+    isSuspendedByAdmin: facility.isSuspendedByAdmin,
+    customerVisible:
+      facility.isActive &&
+      !facility.isSuspendedByAdmin &&
+      facility.merchantProfile.approvalStatus === "APPROVED" &&
+      merchantUser.isActive,
     sportType: facility.sportType,
     merchantProfileId: facility.merchantProfile.id,
     businessName: facility.merchantProfile.businessName,
@@ -633,11 +669,13 @@ const getAdminFacilities = async (req, res) => {
 
     const search = getTrimmedQuery(req.query.search);
     const merchantProfileId = parsePositiveInteger(req.query.merchantProfileId);
-    const isActive = getActiveFilter(req.query.status ?? req.query.isActive);
+    const facilityStatusFilter = getFacilityStatusFilter(
+      req.query.status ?? req.query.isActive
+    );
     const where = {};
 
-    if (typeof isActive === "boolean") {
-      where.isActive = isActive;
+    if (facilityStatusFilter) {
+      Object.assign(where, facilityStatusFilter);
     }
 
     if (merchantProfileId) {
@@ -751,7 +789,7 @@ const getAdminFacilities = async (req, res) => {
   }
 };
 
-async function updateFacilityActiveStatus(req, res, isActive) {
+async function updateFacilityAdminSuspensionStatus(req, res, isSuspendedByAdmin) {
   if (!(await verifyAdminRequest(req, res))) return;
 
   const facilityId = parsePositiveInteger(req.params.facilityId);
@@ -775,7 +813,7 @@ async function updateFacilityActiveStatus(req, res, isActive) {
 
   const facility = await prisma.facility.update({
     where: { id: facilityId },
-    data: { isActive },
+    data: { isSuspendedByAdmin },
     include: {
       sportType: {
         select: {
@@ -804,25 +842,27 @@ async function updateFacilityActiveStatus(req, res, isActive) {
   });
 
   return res.status(200).json({
-    message: `Facility ${isActive ? "activated" : "deactivated"} successfully`,
+    message: `Facility ${
+      isSuspendedByAdmin ? "suspended" : "restored"
+    } successfully`,
     facility: buildFacilityResponse(facility),
   });
 }
 
 const activateFacility = async (req, res) => {
   try {
-    return await updateFacilityActiveStatus(req, res, true);
+    return await updateFacilityAdminSuspensionStatus(req, res, false);
   } catch (error) {
-    console.error("Activate facility failed:", error);
+    console.error("Restore facility failed:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
 
 const deactivateFacility = async (req, res) => {
   try {
-    return await updateFacilityActiveStatus(req, res, false);
+    return await updateFacilityAdminSuspensionStatus(req, res, true);
   } catch (error) {
-    console.error("Deactivate facility failed:", error);
+    console.error("Suspend facility failed:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };

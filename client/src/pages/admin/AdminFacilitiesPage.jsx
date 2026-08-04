@@ -18,6 +18,33 @@ function formatCurrency(value) {
   return `RM ${Number(value || 0).toFixed(2)}`;
 }
 
+function getFacilityStatus(facility) {
+  if (facility.isSuspendedByAdmin) {
+    return {
+      label: "ADMIN SUSPENDED",
+      className: "bg-red-50 text-red-700",
+    };
+  }
+
+  if (facility.isActive) {
+    return {
+      label: "MERCHANT ACTIVE",
+      className: "bg-lime-100 text-emerald-800",
+    };
+  }
+
+  return {
+    label: "MERCHANT INACTIVE",
+    className: "bg-gray-100 text-slate-700",
+  };
+}
+
+function normalizeStatusFilter(value) {
+  if (value === "INACTIVE") return "MERCHANT_INACTIVE";
+
+  return value || "ALL";
+}
+
 function AdminFacilitiesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [facilities, setFacilities] = useState([]);
@@ -25,7 +52,7 @@ function AdminFacilitiesPage() {
     () => searchParams.get("search") || ""
   );
   const [statusFilter, setStatusFilter] = useState(
-    () => searchParams.get("status") || "ALL"
+    () => normalizeStatusFilter(searchParams.get("status"))
   );
   const [merchantProfileIdFilter, setMerchantProfileIdFilter] = useState(
     () => searchParams.get("merchantProfileId") || ""
@@ -74,7 +101,7 @@ function AdminFacilitiesPage() {
 
   useEffect(() => {
     setSearchTerm(searchParams.get("search") || "");
-    setStatusFilter(searchParams.get("status") || "ALL");
+    setStatusFilter(normalizeStatusFilter(searchParams.get("status")));
     setMerchantProfileIdFilter(searchParams.get("merchantProfileId") || "");
   }, [searchParams]);
 
@@ -102,7 +129,7 @@ function AdminFacilitiesPage() {
     Boolean(merchantProfileIdFilter);
 
   const handleStatusChange = async (facility) => {
-    const action = facility.isActive ? "deactivate" : "activate";
+    const action = facility.isSuspendedByAdmin ? "activate" : "deactivate";
 
     try {
       setProcessingFacilityId(facility.facilityId);
@@ -163,8 +190,9 @@ function AdminFacilitiesPage() {
             className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-semibold outline-none focus:border-lime-400"
           >
             <option value="ALL">All Facilities</option>
-            <option value="ACTIVE">Active</option>
-            <option value="INACTIVE">Inactive</option>
+            <option value="ACTIVE">Merchant Active</option>
+            <option value="MERCHANT_INACTIVE">Merchant Inactive</option>
+            <option value="ADMIN_SUSPENDED">Admin Suspended</option>
           </select>
           <input
             type="search"
@@ -227,16 +255,14 @@ function AdminFacilitiesPage() {
                     </div>
                     <span
                       className={`rounded-full px-2.5 py-1 text-xs font-bold ${
-                        facility.isActive
-                          ? "bg-lime-100 text-emerald-800"
-                          : "bg-red-50 text-red-700"
+                        getFacilityStatus(facility).className
                       }`}
                     >
-                      {facility.isActive ? "ACTIVE" : "INACTIVE"}
+                      {getFacilityStatus(facility).label}
                     </span>
                   </div>
 
-                  <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                  <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
                     <div className="rounded-lg bg-gray-50 p-3 ring-1 ring-gray-200">
                       <p className="text-xs font-semibold text-slate-500">
                         Location
@@ -252,7 +278,19 @@ function AdminFacilitiesPage() {
                     </div>
                     <div className="rounded-lg bg-gray-50 p-3 ring-1 ring-gray-200">
                       <p className="text-xs font-semibold text-slate-500">
-                        Merchant Status
+                        Merchant Facility Status
+                      </p>
+                      <p className="mt-1 font-semibold text-slate-800">
+                        {facility.isActive ? "Active" : "Inactive"}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Admin{" "}
+                        {facility.isSuspendedByAdmin ? "suspended" : "clear"}
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-gray-50 p-3 ring-1 ring-gray-200">
+                      <p className="text-xs font-semibold text-slate-500">
+                        Merchant Account
                       </p>
                       <p className="mt-1 font-semibold text-slate-800">
                         {formatStatus(facility.merchantApprovalStatus)}
@@ -260,6 +298,17 @@ function AdminFacilitiesPage() {
                       <p className="mt-1 text-xs text-slate-500">
                         Account{" "}
                         {facility.merchantUserActive ? "active" : "inactive"}
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-gray-50 p-3 ring-1 ring-gray-200">
+                      <p className="text-xs font-semibold text-slate-500">
+                        Customer Visibility
+                      </p>
+                      <p className="mt-1 font-semibold text-slate-800">
+                        {facility.customerVisible ? "Visible" : "Hidden"}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Requires merchant active, admin clear, approved owner
                       </p>
                     </div>
                   </div>
@@ -415,16 +464,16 @@ function AdminFacilitiesPage() {
                         processingFacilityId === facility.facilityId
                       }
                       className={`rounded-lg px-4 py-2.5 text-sm font-bold transition disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 ${
-                        facility.isActive
-                          ? "border border-red-200 text-red-700 hover:bg-red-50"
-                          : "bg-lime-400 text-emerald-950 hover:bg-lime-300"
+                        facility.isSuspendedByAdmin
+                          ? "bg-lime-400 text-emerald-950 hover:bg-lime-300"
+                          : "border border-red-200 text-red-700 hover:bg-red-50"
                       }`}
                     >
                       {processingFacilityId === facility.facilityId
                         ? "Updating..."
-                        : facility.isActive
-                        ? "Deactivate Facility"
-                        : "Activate Facility"}
+                        : facility.isSuspendedByAdmin
+                        ? "Restore Facility"
+                        : "Suspend Facility"}
                     </button>
                   </div>
                 </article>

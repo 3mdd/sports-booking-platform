@@ -242,6 +242,7 @@ const getAllFacilities = async (req, res) => {
       where: approvedOnly
         ? {
             isActive: true,
+            isSuspendedByAdmin: false,
             merchantProfile: {
               approvalStatus: "APPROVED",
               user: {
@@ -303,6 +304,7 @@ const getFacilityById = async (req, res) => {
     if (
       req.query.approvedOnly === "true" &&
       (!facility.isActive ||
+        facility.isSuspendedByAdmin ||
         facility.merchantProfile.approvalStatus !== "APPROVED" ||
         !facility.merchantProfile.user.isActive)
     ) {
@@ -764,6 +766,7 @@ const updateFacility = async (req, res) => {
       sportTypeId,
       pricePerSlot,
       isActive,
+      isSuspendedByAdmin,
     } = req.body;
 
     const facilityId = Number(id);
@@ -781,6 +784,12 @@ const updateFacility = async (req, res) => {
     if (!existingFacility) {
       return res.status(404).json({
         message: "Facility not found",
+      });
+    }
+
+    if (isSuspendedByAdmin !== undefined) {
+      return res.status(400).json({
+        message: "isSuspendedByAdmin can only be modified by an administrator",
       });
     }
 
@@ -863,15 +872,34 @@ const updateFacility = async (req, res) => {
       updateData.pricePerSlot = parsedPricePerSlot;
     }
 
+    let parsedIsActive;
+
     if (isActive !== undefined) {
       if (typeof isActive === "boolean") {
-        updateData.isActive = isActive;
+        parsedIsActive = isActive;
       } else if (isActive === "true" || isActive === "false") {
-        updateData.isActive = isActive === "true";
+        parsedIsActive = isActive === "true";
       } else {
         return res.status(400).json({
           message: "isActive must be true or false",
         });
+      }
+
+      if (
+        existingFacility.isSuspendedByAdmin &&
+        parsedIsActive &&
+        !existingFacility.isActive
+      ) {
+        return res.status(403).json({
+          message:
+            "This facility has been suspended by an administrator and cannot be reactivated by the merchant.",
+        });
+      }
+
+      if (!existingFacility.isSuspendedByAdmin) {
+        updateData.isActive = parsedIsActive;
+      } else if (parsedIsActive === false && existingFacility.isActive) {
+        updateData.isActive = parsedIsActive;
       }
     }
 

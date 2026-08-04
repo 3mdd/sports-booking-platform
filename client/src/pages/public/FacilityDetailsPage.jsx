@@ -328,7 +328,9 @@ function FacilityDetailsPage() {
 
   const pricePerSlot = Number(facility?.pricePerSlot || 0);
   const pricePerHour = pricePerSlot * 2;
-  const isFacilityInactive = facility ? !facility.isActive : false;
+  const isFacilityInactive = facility
+    ? !facility.isActive || facility.isSuspendedByAdmin
+    : false;
   const merchantContact = getMerchantContact(facility);
   const averageRating =
     reviews.length > 0

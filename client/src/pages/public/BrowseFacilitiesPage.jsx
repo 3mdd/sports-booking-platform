@@ -50,7 +50,7 @@ function BrowseFacilitiesPage() {
 
         const data = await response.json();
         const activeFacilities = (data.facilities || []).filter(
-          (facility) => facility.isActive
+          (facility) => facility.isActive && !facility.isSuspendedByAdmin
         );
 
         setFacilities(activeFacilities);

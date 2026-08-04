@@ -118,6 +118,13 @@ const createBooking = async (req, res) => {
       });
     }
 
+    if (facility.isSuspendedByAdmin) {
+      return res.status(400).json({
+        message:
+          "This facility has been suspended by an administrator and cannot be booked.",
+      });
+    }
+
     if (facility.merchantProfile.approvalStatus !== "APPROVED") {
       return res.status(400).json({
         message:

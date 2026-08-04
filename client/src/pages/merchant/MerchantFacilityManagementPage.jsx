@@ -43,6 +43,27 @@ function getFacilityPricePerHour(facility) {
   return `RM ${(pricePerSlot * 2).toFixed(2)} / hour`;
 }
 
+function getFacilityStatus(facility) {
+  if (facility.isSuspendedByAdmin) {
+    return {
+      label: "Suspended by Admin",
+      className: "bg-red-50 text-red-700 ring-1 ring-red-100",
+    };
+  }
+
+  if (facility.isActive) {
+    return {
+      label: "Active",
+      className: "bg-lime-100 text-emerald-950",
+    };
+  }
+
+  return {
+    label: "Inactive",
+    className: "bg-gray-200 text-slate-600",
+  };
+}
+
 function MerchantFacilityManagementPage() {
   const merchantProfileId = getMerchantProfileId();
   const [facilities, setFacilities] = useState([]);
@@ -328,6 +349,23 @@ function MerchantFacilityManagementPage() {
       setIsEditSuccess(false);
       setEditMessage("");
 
+      const editingFacility = merchantFacilities.find(
+        (facility) => facility.id === editingFacilityId
+      );
+      const updatePayload = {
+        sportTypeId: Number(editFormData.sportTypeId),
+        name: editFormData.name.trim(),
+        description: editFormData.description.trim() || null,
+        stateName: editFormData.stateName || null,
+        areaName: editFormData.areaName || null,
+        location: editFormData.location.trim(),
+        pricePerSlot: parsedPricePerSlot,
+      };
+
+      if (!editingFacility?.isSuspendedByAdmin) {
+        updatePayload.isActive = editFormData.isActive;
+      }
+
       const response = await authFetch(
         `http://localhost:5000/facilities/${editingFacilityId}`,
         {
@@ -335,16 +373,7 @@ function MerchantFacilityManagementPage() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            sportTypeId: Number(editFormData.sportTypeId),
-            name: editFormData.name.trim(),
-            description: editFormData.description.trim() || null,
-            stateName: editFormData.stateName || null,
-            areaName: editFormData.areaName || null,
-            location: editFormData.location.trim(),
-            pricePerSlot: parsedPricePerSlot,
-            isActive: editFormData.isActive,
-          }),
+          body: JSON.stringify(updatePayload),
         }
       );
 
@@ -784,14 +813,20 @@ function MerchantFacilityManagementPage() {
 
                       <span
                         className={`w-fit rounded-full px-3 py-1 text-xs font-bold ${
-                          facility.isActive
-                            ? "bg-lime-100 text-emerald-950"
-                            : "bg-gray-200 text-slate-600"
+                          getFacilityStatus(facility).className
                         }`}
                       >
-                        {facility.isActive ? "Active" : "Inactive"}
+                        {getFacilityStatus(facility).label}
                       </span>
                     </div>
+
+                    {facility.isSuspendedByAdmin ? (
+                      <div className="mt-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                        This facility has been suspended by an administrator.
+                        Only an administrator can restore customer booking
+                        access.
+                      </div>
+                    ) : null}
 
                     <div className="mt-4 grid gap-3 text-sm md:grid-cols-3">
                       <div>
@@ -1100,10 +1135,18 @@ function MerchantFacilityManagementPage() {
                               type="checkbox"
                               checked={editFormData.isActive}
                               onChange={handleEditInputChange}
-                              className="h-4 w-4 accent-emerald-950"
+                              disabled={facility.isSuspendedByAdmin}
+                              className="h-4 w-4 accent-emerald-950 disabled:cursor-not-allowed disabled:opacity-50"
                             />
                             Active facility
                           </label>
+                          {facility.isSuspendedByAdmin ? (
+                            <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                              Activation is locked because this facility is
+                              suspended by an administrator. You can still save
+                              permitted facility details.
+                            </div>
+                          ) : null}
                         </div>
 
                         {editMessage ? (
